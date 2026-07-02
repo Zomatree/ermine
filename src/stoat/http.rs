@@ -11,6 +11,7 @@ use reqwest::{
 };
 use scc::HashMap;
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, to_string};
 use stoat_models::v0::{
     AllMemberResponse, BanListResult, BulkMessageResponse, Channel, ChannelUnread,
     CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate,
@@ -742,6 +743,13 @@ impl HttpClient {
         self.request(Method::POST, format!("/sync/settings/fetch"))
             .body(data)
             .response()
+            .await
+    }
+
+    pub async fn set_settings(&self, data: &std::collections::HashMap<String, Value>) -> Result<()> {
+        self.request(Method::POST, format!("/sync/settings/set"))
+            .body(&data.into_iter().map(|(k, v)| (k, to_string(&v).unwrap())).collect::<std::collections::HashMap<_, _>>())
+            .send()
             .await
     }
 

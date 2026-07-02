@@ -19,6 +19,7 @@ use crate::{
 
 #[derive(PartialEq)]
 pub struct Textbox {
+    pub editable: UseEditable,
     pub replies: ReplyController,
     pub attachments: AttachmentController,
     pub channel: Readable<v0::Channel>,
@@ -29,11 +30,10 @@ impl Component for Textbox {
         let radio = use_radio(AppChannel::UserId);
         let theme = use_material_theme();
         let holder = use_state(ParagraphHolder::default);
-        let mut editable = use_editable(String::new, EditableConfig::new);
         let a11y_id = use_a11y();
         let mut floating = use_floating();
 
-        // let mut height = use_state(|| 48.);
+        let mut editable = self.editable;
 
         rect()
             .width(Size::Fill)
@@ -47,17 +47,9 @@ impl Component for Textbox {
                     .horizontal()
                     .content(Content::Flex)
                     .background(theme.md.surface_container_high.as_argb_u32())
-                    // .corner_radius(CornerRadius {
-                    //     top_left: 28.,
-                    //     top_right: 12.,
-                    //     bottom_right: 12.,
-                    //     bottom_left: 28.,
-                    //     smoothing: 0.,
-                    // })
                     .corner_radius(28.)
                     .padding((4., 8., 4., 0.))
                     .cross_align(Alignment::Center)
-                    // .on_sized(move |e: Event<SizedEventData>| height.set(e.area.height()))
                     .child(
                         rect()
                             .width(Size::px(62.))

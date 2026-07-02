@@ -115,15 +115,21 @@ impl Component for ServerListButton {
             .maybe_child(
                 (*selected.read() || *badge.read() == Some(NotificationBadge::Unread)).then(|| {
                     rect()
-                        .width(Size::px(12.))
+                        .width(Size::px(4.))
                         .height(Size::px(if *selected.read() { 32. } else { 8. }))
                         .layer(Layer::Relative(1))
-                        .position(Position::new_absolute().left(-8.).top(if *selected.read() {
+                        .position(Position::new_absolute().left(0.).top(if *selected.read() {
                             12.
                         } else {
                             24.
                         }))
-                        .corner_radius(4.)
+                        .corner_radius(CornerRadius {
+                            top_left: 0.,
+                            top_right: 4.,
+                            bottom_left: 0.,
+                            bottom_right: 4.,
+                            smoothing: 0.,
+                        })
                         .background(theme.md.on_surface.as_argb_u32())
                 }),
             )

@@ -1,5 +1,6 @@
 pub mod avatar;
 pub mod button;
+pub mod color_picker;
 pub mod deferred;
 pub mod dropdown;
 pub mod entry;
@@ -8,9 +9,11 @@ pub mod network_svg;
 pub mod segmented_button;
 pub mod server_icon;
 pub mod tooltip;
+pub mod checkbox;
 
 pub use avatar::*;
 pub use button::*;
+pub use color_picker::*;
 pub use deferred::*;
 pub use dropdown::*;
 pub use entry::*;

@@ -9,9 +9,10 @@ pub struct FloatingManager {}
 impl Component for FloatingManager {
     fn render(&self) -> impl IntoElement {
         let mut mouse_pos = use_state(CursorPoint::default);
-        let element = use_provide_root_context(|| State::<Option<Element>>::create(None));
+        let element = use_floating();
 
         rect()
+            .layer(Layer::RelativeOverlay(6))
             .maybe_child(element.read().cloned().map(|element| Floating {
                 element,
                 mouse_pos: *mouse_pos.read(),
@@ -23,7 +24,16 @@ impl Component for FloatingManager {
 }
 
 pub fn use_floating() -> State<Option<Element>> {
-    use_consume()
+    use_hook(|| {
+        match try_consume_root_context() {
+            Some(state) => state,
+            None => {
+                let state = State::create_global(None);
+                provide_root_context(state);
+                state
+            }
+        }
+    })
 }
 
 #[derive(PartialEq)]

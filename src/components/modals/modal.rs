@@ -42,7 +42,16 @@ impl ModalController {
 }
 
 pub fn use_modals() -> State<ModalController> {
-    use_hook(|| consume_root_context())
+    use_hook(|| {
+        match try_consume_root_context() {
+            Some(state) => state,
+            None => {
+                let state = State::create_global(ModalController { modal: None });
+                provide_root_context(state);
+                state
+            }
+        }
+    })
 }
 
 #[derive(PartialEq)]
@@ -50,15 +59,11 @@ pub struct ModalManager {}
 
 impl Component for ModalManager {
     fn render(&self) -> impl IntoElement {
-        let controller =
-            use_provide_root_context(|| State::create(ModalController { modal: None }));
-        // let controller = use_modals();
+        let controller = use_modals();
 
         let modal = controller.read().get_modal();
 
-        println!("{:?}", modal);
-
-        rect().layer(Layer::Overlay).maybe_child(modal.map(|value| {
+        rect().layer(Layer::RelativeOverlay(7)).maybe_child(modal.map(|value| {
             Modal {
                 value: value.clone(),
             }

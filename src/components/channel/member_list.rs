@@ -5,21 +5,23 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, use_floating},
+    components::{
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, image, use_floating,
+    },
     http, member_display_color,
 };
 
 #[derive(Clone)]
 enum ListValue {
-    Name(String, usize),
+    Name(String, Option<v0::File>, usize),
     Member(Readable<v0::User>, Readable<v0::Member>),
 }
 
 impl PartialEq for ListValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Name(name0, length0), Self::Name(name1, length1)) => {
-                name0 == name1 && length0 == length1
+            (Self::Name(name0, icon0, length0), Self::Name(name1, icon1, length1)) => {
+                name0 == name1 && icon0 == icon1 && length0 == length1
             }
             (Self::Member(user0, _), Self::Member(user1, _)) => user0.peek().id == user1.peek().id,
             _ => false,
@@ -144,14 +146,14 @@ impl Component for MemberList {
                     let members = groups.remove(&role.id).unwrap();
 
                     if !members.is_empty() {
-                        out.push((role.name.clone(), members));
+                        out.push((role.name.clone(), role.icon.clone(), members));
                     };
                 }
 
                 let default = groups.remove("default").unwrap();
 
                 if !members.is_empty() {
-                    out.push(("Online".to_string(), default));
+                    out.push(("Online".to_string(), None, default));
                 };
 
                 out
@@ -164,7 +166,7 @@ impl Component for MemberList {
             move || {
                 let mut out = Vec::new();
 
-                for (role, user_ids) in groups.read().iter() {
+                for (role, icon, user_ids) in groups.read().iter() {
                     let mut users = user_ids
                         .iter()
                         .cloned()
@@ -242,7 +244,7 @@ impl Component for MemberList {
                         // }
                     });
 
-                    out.push((role.clone(), users));
+                    out.push((role.clone(), icon.clone(), users));
                 }
 
                 out
@@ -258,8 +260,8 @@ impl Component for MemberList {
             move || {
                 let mut elements = Vec::new();
 
-                for (title, members) in role_members.read().iter() {
-                    elements.push(ListValue::Name(title.clone(), members.len()));
+                for (title, icon, members) in role_members.read().iter() {
+                    elements.push(ListValue::Name(title.clone(), icon.clone(), members.len()));
 
                     for (user, member) in members.clone() {
                         elements.push(ListValue::Member(user, member));
@@ -279,11 +281,17 @@ impl Component for MemberList {
                     let element = elements.read()[i].clone();
 
                     match element {
-                        ListValue::Name(name, count) => rect()
+                        ListValue::Name(name, icon, count) => rect()
                             .key(&name)
+                            .horizontal()
                             .height(Size::px(42.))
+                            .cross_align(Alignment::End)
+                            .spacing(6.)
                             .padding((0., 14.))
                             .main_align(Alignment::End)
+                            .maybe_child(icon.map(|icon| {
+                                image(&icon).width(Size::px(16.)).height(Size::px(16.))
+                            }))
                             .child(label().text(format!("{name} - {count}")).font_size(11.))
                             .into_element(),
                         ListValue::Member(user, member) => MemberListMember {
@@ -298,41 +306,6 @@ impl Component for MemberList {
             .item_size(42.)
             .length(elements.read().len()),
         )
-
-        // rect().child(
-        //     VirtualScrollView::new({
-        //         let server = self.server.clone();
-
-        //         move |i, _| {
-        //             if i == 0 {
-
-        //             } else {
-        //                 let user_id = members.read()[i - 1].clone();
-
-        //                 let member = map_readable::<HashMap<String, v0::Member>, v0::Member>(
-        //                     slice.clone().into_readable(),
-        //                     {
-        //                         let user_id = user_id.clone();
-        //                         move |members| members.get(&user_id).unwrap()
-        //                     },
-        //                 );
-
-        //                 let user = radio.slice(AppChannel::Users, move |state| {
-        //                     state.users.get(&user_id).unwrap()
-        //                 });
-
-        //                 MemberListMember {
-        //                     server: server.clone(),
-        //                     member,
-        //                     user: user.into_readable(),
-        //                 }
-        //                 .into_element()
-        //             }
-        //         }
-        //     })
-        //     .item_size(42.)
-        //     .length(members.read().len() + 1)
-        // )
     }
 }
 
@@ -345,13 +318,6 @@ pub struct MemberListMember {
 
 impl Component for MemberListMember {
     fn render(&self) -> impl IntoElement {
-        // let user = use_memo({
-        //     let user = self.user.clone();
-        //     move || user.read().clone()
-        // });
-
-        // let member = use_memo()
-
         let floating = use_floating();
 
         let role_color = use_memo({
@@ -399,7 +365,6 @@ impl Component for MemberListMember {
                         rect()
                             .padding((0., 8.))
                             .horizontal()
-                            // .height(Size::Fill)
                             .expanded()
                             .cross_align(Alignment::Center)
                             .spacing(8.)

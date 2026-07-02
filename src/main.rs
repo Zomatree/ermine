@@ -9,13 +9,18 @@ pub mod stoat;
 pub mod theme;
 pub mod utils;
 
-pub use components::*;
+// pub use components::*;
 pub use config::*;
 pub use error::*;
 pub use state::*;
 pub use stoat::*;
 pub use theme::*;
 pub use utils::*;
+
+use crate::components::{
+    HttpManager, MaterialThemeProvider, Root, StoatButtonColorsThemePreference,
+    StoatButtonLayoutThemePreference,
+};
 
 pub const BASE: &str = "https://api.stoat.chat";
 
@@ -63,8 +68,8 @@ fn app() -> impl IntoElement {
     });
 
     MaterialThemeProvider::new()
-        .child(ContextMenuViewer::new())
         .child(HttpManager::new().child(Root {}))
+        .child(rect().layer(Layer::RelativeOverlay(10)).child(ContextMenuViewer::new()))
 }
 
 fn main() {

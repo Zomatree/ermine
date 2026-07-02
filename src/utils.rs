@@ -1,6 +1,6 @@
 use std::{
     cell::Ref,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     rc::Rc,
     sync::{Arc, LazyLock},
     time::SystemTime,
@@ -12,7 +12,7 @@ use stoat_models::v0;
 
 use crate::{ChannelUnread, NotificationBadge, NotificationsSettings, color::parse_fill};
 
-pub fn map_readable<T, U>(readable: Readable<T>, f: impl Fn(&T) -> &U + 'static) -> Readable<U> {
+pub fn map_readable<T, U: PartialEq>(readable: Readable<T>, f: impl Fn(&T) -> &U + 'static) -> Readable<U> {
     let f = Rc::new(f);
 
     Readable::new(
@@ -44,7 +44,20 @@ pub fn map_readable<T, U>(readable: Readable<T>, f: impl Fn(&T) -> &U + 'static)
                 ReadableRef::Ref(r.map(move |r| Ref::map(r, |v| f(v))))
             }
         },
-        |_| true,
+        {
+            let readable = readable.clone();
+            let f = f.clone();
+
+            move |other| {
+                let f = f.clone();
+
+                let ReadableRef::Ref(r) = readable.peek() else {
+                    panic!("Unsupported")
+                };
+
+                f(&*r) == other
+            }
+        },
     )
 }
 
@@ -257,6 +270,10 @@ impl<T: Clone + 'static> Initial<T> {
         self.initial.set(value.clone());
         self.current.set(value);
     }
+
+    pub fn apply(&mut self) {
+        self.initial.set(self.current.read().cloned());
+    }
 }
 
 impl<T> Deref for Initial<T> {
@@ -264,6 +281,12 @@ impl<T> Deref for Initial<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.current
+    }
+}
+
+impl<T> DerefMut for Initial<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.current
     }
 }
 

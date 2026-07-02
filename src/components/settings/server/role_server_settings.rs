@@ -1,14 +1,20 @@
 use freya::{
-    icons::lucide::{chevron_right, list, user_plus},
+    icons::lucide::{chevron_right, list, user_plus, x},
     prelude::*,
     radio::use_radio,
 };
+use rfd::AsyncFileDialog;
 use stoat_models::v0;
+use stoat_permissions::{DataPermissionsValue, Override};
 
 use crate::{
-    AppChannel, ServerSettingsPage,
-    components::{ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, use_modals},
-    parse_fill, use_material_theme,
+    AppChannel, LocalFile, ServerSettingsPage, Tag,
+    components::{
+        ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
+        checkbox::StoatCheckbox, image, use_modals,
+    },
+    http, parse_fill, use_initial, use_material_theme,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,8 +63,15 @@ impl Component for RoleServerSettings {
         });
 
         match self.selected_role.clone() {
-            Some(SelectedRole::Default) => "defaut".into_element(),
-            Some(SelectedRole::Role(id)) => id.into_element(),
+            Some(SelectedRole::Default) => DefaultRoleServerSettings {
+                server: self.server.clone(),
+            }
+            .into_element(),
+            Some(SelectedRole::Role(id)) => SelectedRoleServerSettings {
+                server: self.server.clone(),
+                role_id: id,
+            }
+            .into_element(),
             None => rect()
                 .spacing(15.)
                 .child(
@@ -248,5 +261,406 @@ impl Component for RoleServerSettings {
                 )
                 .into_element(),
         }
+    }
+}
+
+#[derive(PartialEq)]
+pub struct SelectedRoleServerSettings {
+    pub server: Readable<v0::Server>,
+    pub role_id: String,
+}
+
+impl Component for SelectedRoleServerSettings {
+    fn render(&self) -> impl IntoElement {
+        let theme = use_material_theme();
+
+        let server = self.server.read();
+        let current_role = server.roles.get(&self.role_id).unwrap();
+
+        let mut name = use_initial(move || current_role.name.clone());
+
+        let mut color = use_initial(move || {
+            current_role
+                .colour
+                .as_deref()
+                .and_then(parse_fill)
+                .and_then(|f| {
+                    if let Fill::Color(c) = f {
+                        Some(c)
+                    } else {
+                        None
+                    }
+                })
+        });
+
+        let mut hoist = use_initial(move || current_role.hoist);
+
+        let mut overrides = use_initial(move || current_role.permissions);
+
+        let mut error = use_state(|| None);
+
+        let edit_role = {
+            let server_id = server.id.clone();
+            let role_id = self.role_id.clone();
+
+            move |payload| {
+                let server_id = server_id.clone();
+                let role_id = role_id.clone();
+
+                async move {
+                    match http().edit_role(&server_id, &role_id, &payload).await {
+                        Ok(role) => Some(role),
+                        Err(e) => {
+                            error.set(Some(e));
+                            None
+                        }
+                    }
+                }
+            }
+        };
+
+        let remove_field = {
+            let edit_role = edit_role.clone();
+
+            move |field| {
+                let edit_role = edit_role.clone();
+
+                async move {
+                    edit_role(v0::DataEditRole {
+                        name: None,
+                        colour: None,
+                        hoist: None,
+                        rank: None,
+                        icon: None,
+                        remove: vec![field],
+                    })
+                    .await
+                }
+            }
+        };
+
+        let prompt_image_upload = {
+            move |tag: Tag| async move {
+                if let Some(file) = AsyncFileDialog::new().pick_file().await {
+                    let contents = file.read().await.into();
+                    let filename = file.file_name();
+
+                    if let Ok(response) = http()
+                        .upload_file(
+                            tag.as_str(),
+                            LocalFile {
+                                name: filename,
+                                body: contents,
+                            },
+                        )
+                        .await
+                    {
+                        return Some(response.id);
+                    };
+                };
+
+                None
+            }
+        };
+
+        rect()
+            .spacing(15.)
+            .child(SingleLineEntry::new("Role Name", name))
+            .child(rect().horizontal().child(StoatColorPicker::new(
+                color.read().cloned().unwrap_or(Color::WHITE),
+                move |c| color.set(Some(c)),
+            )))
+            .child(label().text("Role Icon").font_size(12.))
+            .child(
+                rect()
+                    .horizontal()
+                    .spacing(15.)
+                    .cross_align(Alignment::Center)
+                    .child(
+                        StoatButton::new()
+                            .corner_radius(48.)
+                            .on_press({
+                                let prompt_image_upload = prompt_image_upload.clone();
+                                let edit_role = edit_role.clone();
+
+                                move |_| {
+                                    let prompt_image_upload = prompt_image_upload.clone();
+                                    let edit_role = edit_role.clone();
+
+                                    spawn(async move {
+                                        if let Some(id) = prompt_image_upload(Tag::Icons).await {
+                                            edit_role(v0::DataEditRole {
+                                                name: None,
+                                                colour: None,
+                                                hoist: None,
+                                                rank: None,
+                                                icon: Some(id),
+                                                remove: Vec::new(),
+                                            })
+                                            .await;
+                                        };
+                                    });
+                                }
+                            })
+                            .child(
+                                rect()
+                                    .width(Size::px(96.))
+                                    .height(Size::px(96.))
+                                    .background(theme.md.surface_dim.as_argb_u32())
+                                    .maybe_child(current_role.icon.as_ref().map(|icon| {
+                                        rect()
+                                            .layer(Layer::Relative(1))
+                                            .width(Size::Fill)
+                                            .height(Size::Fill)
+                                            .child(image(icon))
+                                    })),
+                            ),
+                    )
+                    .child(
+                        StoatButton::new()
+                            .corner_radius(16.)
+                            .on_press({
+                                let remove_field = remove_field.clone();
+
+                                move |_| {
+                                    let remove_field = remove_field.clone();
+
+                                    spawn(async move {
+                                        remove_field(v0::FieldsRole::Icon).await;
+                                    });
+                                }
+                            })
+                            .child(
+                                rect()
+                                    .width(Size::px(36.))
+                                    .height(Size::px(36.))
+                                    .center()
+                                    .child(
+                                        svg(x())
+                                            .width(Size::px(24.))
+                                            .height(Size::px(24.))
+                                            .color(theme.md.primary.as_argb_u32()),
+                                    ),
+                            ),
+                    ),
+            )
+            .child(label().text("Hoist Role").font_size(12.))
+            .child(rect().child(StoatCheckbox::new(hoist).child("Display this role above others")))
+            .child(
+                rect()
+                    .horizontal()
+                    .spacing(8.)
+                    .font_size(14)
+                    .child(
+                        StoatButton::new()
+                            .color(theme.md.primary.as_argb_u32())
+                            .corner_radius(40.)
+                            .child(
+                                rect()
+                                    .height(Size::px(40.))
+                                    .padding((0., 16.))
+                                    .center()
+                                    .child("Reset"),
+                            )
+                            .on_press(move |_| {
+                                name.reset();
+                                color.reset();
+                                hoist.reset();
+                            }),
+                    )
+                    .child(
+                        StoatButton::new()
+                            .color(theme.md.on_primary.as_argb_u32())
+                            .background(theme.md.primary.as_argb_u32())
+                            .corner_radius(40.)
+                            .on_press({
+                                let edit_role = edit_role.clone();
+
+                                move |_| {
+                                    let edit_role = edit_role.clone();
+
+                                    spawn({
+                                        async move {
+                                            let payload = v0::DataEditRole {
+                                                name: name.get_if_different(),
+                                                colour: color
+                                                    .get_if_different()
+                                                    .flatten()
+                                                    .map(|c| c.to_hex_string()),
+                                                hoist: hoist.get_if_different(),
+                                                icon: None,
+                                                rank: None,
+                                                remove: Vec::new(),
+                                            };
+
+                                            if edit_role(payload).await.is_some() {
+                                                name.apply();
+                                                color.apply();
+                                                hoist.apply();
+                                            };
+                                        }
+                                    });
+                                }
+                            })
+                            .child(
+                                rect()
+                                    .height(Size::px(40.))
+                                    .padding((0., 16.))
+                                    .center()
+                                    .child("Save"),
+                            ),
+                    ),
+            )
+            .child(
+                rect()
+                    .child(PermissionsEditor::new_overrite(overrides))
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(8.)
+                            .font_size(14)
+                            .child(
+                                StoatButton::new()
+                                    .color(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .child(
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .child("Reset"),
+                                    )
+                                    .on_press(move |_| {
+                                        overrides.reset();
+                                    }),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .color(theme.md.on_primary.as_argb_u32())
+                                    .background(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .on_press({
+                                        let server_id = server.id.clone();
+                                        let role_id = self.role_id.clone();
+
+                                        move |_| {
+                                            let server_id = server_id.clone();
+                                            let role_id = role_id.clone();
+
+                                            spawn({
+                                                async move {
+                                                    let field = *overrides.read();
+
+                                                    if http()
+                                                        .set_role_server_permissions(
+                                                            &server_id,
+                                                            &role_id,
+                                                            &v0::DataSetServerRolePermission {
+                                                                permissions: Override {
+                                                                    allow: field.a as u64,
+                                                                    deny: field.d as u64,
+                                                                },
+                                                            },
+                                                        )
+                                                        .await
+                                                        .is_ok()
+                                                    {
+                                                        overrides.apply();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .child("Save permissions"),
+                                    ),
+                            ),
+                    ),
+            )
+    }
+}
+
+#[derive(PartialEq)]
+struct DefaultRoleServerSettings {
+    server: Readable<v0::Server>,
+}
+
+impl Component for DefaultRoleServerSettings {
+    fn render(&self) -> impl IntoElement {
+        let theme = use_material_theme();
+
+        let server = self.server.read();
+
+        let mut permissions = use_initial(|| server.default_permissions);
+
+        rect()
+                    .child(
+                rect()
+                    .child(PermissionsEditor::new_value(permissions))
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(8.)
+                            .font_size(14)
+                            .child(
+                                StoatButton::new()
+                                    .color(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .child(
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .child("Reset"),
+                                    )
+                                    .on_press(move |_| {
+                                        permissions.reset();
+                                    }),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .color(theme.md.on_primary.as_argb_u32())
+                                    .background(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .on_press({
+                                        let server_id = server.id.clone();
+
+                                        move |_| {
+                                            let server_id = server_id.clone();
+
+                                            spawn({
+                                                async move {
+                                                    let value = *permissions.read();
+
+                                                    if http()
+                                                        .set_default_server_permissions(
+                                                            &server_id,
+                                                            &DataPermissionsValue {
+                                                                permissions: value as u64,
+                                                            },
+                                                        )
+                                                        .await
+                                                        .is_ok()
+                                                    {
+                                                        permissions.apply();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .child("Save permissions"),
+                                    ),
+                            ),
+                    ),
+            )
     }
 }

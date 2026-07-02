@@ -69,8 +69,6 @@ pub fn get_config_path() -> PathBuf {
 
     dir.push("config.json");
 
-    println!("{dir:?}");
-
     dir
 }
 
@@ -85,7 +83,6 @@ pub fn read_config() -> Config {
 }
 
 pub fn write_config(config: &Config) {
-    println!("writing {config:?}");
     let path = get_config_path();
 
     std::fs::write(path, serde_json::to_string(config).unwrap()).unwrap();

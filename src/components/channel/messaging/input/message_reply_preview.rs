@@ -33,7 +33,6 @@ impl Component for MessageReplyPreview {
             .corner_radius(16.)
             .overflow(Overflow::Clip)
             .content(Content::Flex)
-            // .width(Size::func(|size| Some(size.parent - 16.)))
             .padding((8., 16., 8., 16.))
             .horizontal()
             .content(Content::Flex)

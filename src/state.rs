@@ -149,7 +149,7 @@ impl ChannelSettingsPage {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct OrderingSettings {
     pub servers: Option<Vec<String>>,
 }
@@ -183,7 +183,7 @@ pub enum NotificationBadge {
 }
 
 #[derive(Debug, Default)]
-pub struct Settings {
+pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,
 }
@@ -254,7 +254,7 @@ pub struct AppState {
     pub channel_unreads: HashMap<String, ChannelUnread>,
     pub settings_page: Option<SettingsPage>,
     pub user_profile: Option<String>,
-    pub settings: Settings,
+    pub settings: SettingsState,
     pub message_handlers: Option<MessageHandlers>,
     pub editing_message: Option<EditingMessage>,
     pub server_settings_page: Option<(String, ServerSettingsPage)>,

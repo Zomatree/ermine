@@ -131,8 +131,6 @@ impl Component for Client {
             .child(
                 rect()
                     .direction(Direction::Horizontal)
-                    .child(FloatingManager {})
-                    .child(ModalManager {})
                     .child(ServerList {})
                     .child(match selected.read().clone() {
                         Selection::Server(server_id) => {
@@ -149,12 +147,37 @@ impl Component for Client {
                         Selection::Home => Home {}.into_element(),
                     }),
             )
+            .maybe_child(show_connection_state_banner.read().then(|| {
+                let connection_state = connection_state.read();
+
+                let (color, background, text) = match *connection_state {
+                    ConnectionState::Disconnected => (0xff90909a, 0xff292a2f, "Disconnected"),
+                    ConnectionState::Connected => (0xffdde1ff, 0xff384379, "Connected"),
+                    ConnectionState::Reconnecting => (0xff90909a, 0xff292a2f, "Reconnecting"),
+                    ConnectionState::Reconnected => (0xffdde1ff, 0xff384379, "Reconnected"),
+                };
+
+                rect()
+                    .position(Position::new_global())
+                    .layer(Layer::RelativeOverlay(1))
+                    .width(Size::window_percent(100.))
+                    .height(Size::px(30.))
+                    .center()
+                    .child(
+                        label()
+                            .text(text)
+                            .font_size(16.)
+                            .color(color)
+                            .font_weight(FontWeight::SEMI_BOLD),
+                    )
+                    .background(background)
+            }))
             .maybe_child((settings_opacity > 0.).then(|| {
                 rect()
                     .position(Position::new_global())
                     .width(Size::window_percent(100.))
                     .height(Size::window_percent(100.))
-                    .layer(Layer::Overlay)
+                    .layer(Layer::RelativeOverlay(2))
                     .opacity(settings_opacity)
                     .child(Settings {})
                     .into_element()
@@ -170,7 +193,7 @@ impl Component for Client {
                             .position(Position::new_global())
                             .width(Size::window_percent(100.))
                             .height(Size::window_percent(100.))
-                            .layer(Layer::Overlay)
+                            .layer(Layer::RelativeOverlay(3))
                             .opacity(server_settings_opacity)
                             .child(ServerSettings {
                                 server: map_readable::<HashMap<String, v0::Server>, _>(
@@ -192,7 +215,7 @@ impl Component for Client {
                             .position(Position::new_global())
                             .width(Size::window_percent(100.))
                             .height(Size::window_percent(100.))
-                            .layer(Layer::Overlay)
+                            .layer(Layer::RelativeOverlay(4))
                             .opacity(channel_settings_opacity)
                             .child(ChannelSettings {
                                 channel: map_readable::<HashMap<String, v0::Channel>, _>(
@@ -203,31 +226,6 @@ impl Component for Client {
                             .into_element()
                     }),
             )
-            .maybe_child(show_connection_state_banner.read().then(|| {
-                let connection_state = connection_state.read();
-
-                let (color, background, text) = match *connection_state {
-                    ConnectionState::Disconnected => (0xff90909a, 0xff292a2f, "Disconnected"),
-                    ConnectionState::Connected => (0xffdde1ff, 0xff384379, "Connected"),
-                    ConnectionState::Reconnecting => (0xff90909a, 0xff292a2f, "Reconnecting"),
-                    ConnectionState::Reconnected => (0xffdde1ff, 0xff384379, "Reconnected"),
-                };
-
-                rect()
-                    .position(Position::new_global())
-                    .layer(Layer::Overlay)
-                    .width(Size::window_percent(100.))
-                    .height(Size::px(30.))
-                    .center()
-                    .child(
-                        label()
-                            .text(text)
-                            .font_size(16.)
-                            .color(color)
-                            .font_weight(FontWeight::SEMI_BOLD),
-                    )
-                    .background(background)
-            }))
             .maybe_child(user_profile.read().cloned().map(|user_id| {
                 let user = radio.slice(AppChannel::Users, move |state| {
                     state.users.get(&user_id).unwrap()
@@ -237,11 +235,13 @@ impl Component for Client {
                     .position(Position::new_global())
                     .width(Size::window_percent(100.))
                     .height(Size::window_percent(100.))
-                    .layer(Layer::Overlay)
+                    .layer(Layer::RelativeOverlay(5))
                     .child(UserProfile {
                         user: user.into_readable(),
                     })
                     .into_element()
             }))
+            .child(FloatingManager {})
+            .child(ModalManager {})
     }
 }
