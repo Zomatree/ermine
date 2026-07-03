@@ -102,7 +102,7 @@ impl Component for Message {
                         .center()
                         .color(theme.md.primary.as_argb_u32())
                         .child(
-                            svg(match system {
+                            SvgViewer::new(match system {
                                 v0::SystemMessage::Text { .. } => info(),
                                 v0::SystemMessage::UserAdded { .. } => plus(),
                                 v0::SystemMessage::UserRemove { .. } => x(),

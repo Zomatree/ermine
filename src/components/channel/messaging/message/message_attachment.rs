@@ -108,7 +108,7 @@ impl Component for MessageAttachment {
                     .cross_align(Alignment::Center)
                     .spacing(8.)
                     .content(Content::Flex)
-                    .child(svg(file_text()).width(Size::px(24.)).height(Size::px(24.)))
+                    .child(SvgViewer::new(file_text()).width(Size::px(24.)).height(Size::px(24.)))
                     .child(
                         rect()
                             .width(Size::flex(1.))
@@ -143,7 +143,7 @@ impl Component for MessageAttachment {
                                     .height(Size::px(40.))
                                     .center()
                                     .child(
-                                        svg(download()).width(Size::px(24.)).height(Size::px(24.)),
+                                        SvgViewer::new(download()).width(Size::px(24.)).height(Size::px(24.)),
                                     ),
                             ),
                     )

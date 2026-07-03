@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{NetworkSvg, StoatButton, StoatButtonLayoutThemePartialExt, server_icon},
+    components::{StoatButton, StoatButtonLayoutThemePartialExt, server_icon},
     get_unicode_emojis, http,
     types::Tag,
     use_material_theme,
@@ -235,7 +235,7 @@ impl Component for EmojiPicker {
                                 );
 
                                 StoatButton::new().corner_radius(8.).child(rect().padding(4.).child(
-                                    NetworkSvg::new(url.parse::<Uri>().unwrap())
+                                    SvgViewer::new(url.parse::<Uri>().unwrap())
                                         .width(Size::px(32.))
                                         .height(Size::px(32.))
                                 ))

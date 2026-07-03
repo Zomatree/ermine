@@ -53,7 +53,7 @@ impl Component for HomeButton {
                                         .selected_channel = None;
                                 })
                                 .child(
-                                    svg(house())
+                                    SvgViewer::new(house())
                                         .width(Size::px(24.))
                                         .height(Size::px(24.))
                                         .color(theme.md.on_surface.as_argb_u32()),
@@ -70,7 +70,7 @@ impl Component for HomeButton {
         //     .height(Size::px(42.))
         //     .center()
         //     .child(
-        //         svg(house())
+        //         SvgViewer::new(house())
         //             .width(Size::px(24.))
         //             .height(Size::px(24.))
         //             .color(0xffe3e1e9),

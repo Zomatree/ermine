@@ -35,13 +35,13 @@ impl Component for HideSidebarHeader {
                         .padding((0., 4.))
                         .horizontal()
                         .child(
-                            svg(chevron_left())
+                            SvgViewer::new(chevron_left())
                                 .width(Size::px(18.))
                                 .height(Size::px(18.))
-                                .rotate(if hide_channel_list { 180. } else { 0. }),
+                                .rotation(if hide_channel_list { 180. } else { 0. }),
                         )
                         .child(
-                            svg(self.icon.clone())
+                            SvgViewer::new(self.icon.clone())
                                 .width(Size::px(24.))
                                 .height(Size::px(24.)),
                         ),

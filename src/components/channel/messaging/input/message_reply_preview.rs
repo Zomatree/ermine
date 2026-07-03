@@ -69,7 +69,7 @@ impl Component for MessageReplyPreview {
                                     .spacing(4.)
                                     .cross_align(Alignment::Center)
                                     .child(
-                                        svg(file_text()).width(Size::px(16.)).height(Size::px(16.)),
+                                        SvgViewer::new(file_text()).width(Size::px(16.)).height(Size::px(16.)),
                                     )
                                     .child(
                                         label()
@@ -112,7 +112,7 @@ impl Component for MessageReplyPreview {
                                         .as_argb_u32(),
                                     )
                                     .child(
-                                        svg(at_sign()).width(Size::px(16.)).height(Size::px(16.)),
+                                        SvgViewer::new(at_sign()).width(Size::px(16.)).height(Size::px(16.)),
                                     )
                                     .child(if mention { "ON" } else { "OFF" }),
                             )
@@ -128,7 +128,7 @@ impl Component for MessageReplyPreview {
                     .child(
                         StoatButton::new()
                             .child(
-                                svg(circle_x())
+                                SvgViewer::new(circle_x())
                                     .color(theme.md.on_primary_container.as_argb_u32())
                                     .width(Size::px(16.))
                                     .height(Size::px(16.)),

@@ -9,14 +9,17 @@ description = "Native desktop client for Stoat chat"
 hotreload = ["freya/hotreload"]
 
 [patch.crates-io]
-# freya = { path = "../freya/crates/freya" }
-# freya-components = { path = "../freya/crates/freya-components" }
-# freya = { git = "https://github.com/marc2332/freya", rev = "f180384" }
-# freya-components = { git = "https://github.com/marc2332/freya", rev = "f180384" }
+freya = { git = "https://github.com/marc2332/freya", branch = "chore/cache-svg" }
+freya-components = { git = "https://github.com/marc2332/freya", branch = "chore/cache-svg" }
+freya-performance-plugin = { git = "https://github.com/marc2332/freya", branch = "chore/cache-svg" }
+# freya = { path = "../../freya/chore-cache-svg/crates/freya" }
+# freya-components = { path = "../../freya/chore-cache-svg/crates/freya-components" }
+# freya-performance-plugin = { path = "../../freya/chore-cache-svg/crates/freya-performance-plugin" }
 
 [dependencies]
-freya = { version = "0.4.0-rc.23", features = ["devtools", "radio", "remote-asset", "icons", "webview", "markdown", "zoom-shortcuts"] }
+freya = { version = "0.4.0-rc.23", features = ["radio", "remote-asset", "icons", "webview", "markdown", "zoom-shortcuts"] }
 freya-components = { version = "0.4.0-rc.23", features = ["remote-asset", "gif"] }
+freya-performance-plugin = { version = "0.4.0-rc.23" }
 tokio-tungstenite = { version = "0.27", features = ["native-tls"] }
 tungstenite = { version = "0.27", features = ["native-tls"] }
 reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }

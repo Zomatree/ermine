@@ -202,7 +202,7 @@ impl Component for EmojiServerSettings {
                                             .height(Size::px(36.))
                                             .center()
                                             .child(
-                                                svg(trash_2())
+                                                SvgViewer::new(trash_2())
                                                     .width(Size::px(24.))
                                                     .height(Size::px(24.))
                                                     .color(theme.md.error.as_argb_u32()),

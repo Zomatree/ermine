@@ -83,7 +83,7 @@ impl Component for ProfileSettings {
                                     .color(theme.md.on_surface.as_argb_u32())
                                     .center()
                                     .child(
-                                        svg(users_round())
+                                        SvgViewer::new(users_round())
                                             .width(Size::px(22.))
                                             .height(Size::px(22.)),
                                     ),
@@ -107,7 +107,7 @@ impl Component for ProfileSettings {
                                     ),
                             )
                             .child(
-                                svg(chevron_down())
+                                SvgViewer::new(chevron_down())
                                     .width(Size::px(18.))
                                     .height(Size::px(18.)),
                             ),

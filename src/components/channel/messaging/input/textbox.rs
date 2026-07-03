@@ -73,7 +73,7 @@ impl Component for Textbox {
                                             .height(Size::px(40.))
                                             .center()
                                             .child(
-                                                svg(plus())
+                                                SvgViewer::new(plus())
                                                     .width(Size::px(24.))
                                                     .height(Size::px(24.)),
                                             ),
@@ -298,7 +298,7 @@ impl Component for Textbox {
                                     .width(Size::px(40.))
                                     .height(Size::px(40.))
                                     .center()
-                                    .child(svg(smile()).width(Size::px(24.)).height(Size::px(24.))),
+                                    .child(SvgViewer::new(smile()).width(Size::px(24.)).height(Size::px(24.))),
                             ),
                     ),
             )
@@ -314,7 +314,7 @@ impl Component for Textbox {
         //             .background(theme.md.surface_container_high.as_argb_u32())
         //             .child(
         //                 rect().height(Size::px(height())).padding((0., 8.)).center().child(
-        //                     svg(send_horizontal())
+        //                     SvgViewer::new(send_horizontal())
         //                         .width(Size::px(24.))
         //                         .height(Size::px(24.)),
         //                 ),

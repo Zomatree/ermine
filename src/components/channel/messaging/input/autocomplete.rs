@@ -243,7 +243,7 @@ impl Component for Autocomplete {
                                         .spacing(8.)
                                         .width(Size::Fill)
                                         .child(
-                                            svg(hash()).width(Size::px(24.)).height(Size::px(24.)),
+                                            SvgViewer::new(hash()).width(Size::px(24.)).height(Size::px(24.)),
                                         )
                                         .child(
                                             label()

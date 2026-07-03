@@ -135,7 +135,7 @@ impl Component for ChannelButton {
                             .font_size(15)
                             .width(Size::Fill)
                             .child(
-                                svg(
+                                SvgViewer::new(
                                     if matches!(
                                         &*channel.read(),
                                         v0::Channel::TextChannel { voice: Some(_), .. }
@@ -194,7 +194,7 @@ impl Component for ChannelButton {
                                         )
                                         .position(AttachedPosition::Top)
                                         .child(
-                                            svg(user_plus())
+                                            SvgViewer::new(user_plus())
                                                 .width(Size::px(16.))
                                                 .height(Size::px(16.))
                                                 .on_press(|e: Event<PressEventData>| {
@@ -211,7 +211,7 @@ impl Component for ChannelButton {
                                         )
                                         .position(AttachedPosition::Top)
                                         .child(
-                                            svg(settings())
+                                            SvgViewer::new(settings())
                                                 .width(Size::px(16.))
                                                 .height(Size::px(16.))
                                                 .on_press({

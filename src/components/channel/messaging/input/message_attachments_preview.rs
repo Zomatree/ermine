@@ -52,7 +52,7 @@ impl Component for MessageAttachmentsPreview {
                                     .width(Size::px(100.))
                                     .height(Size::px(100.))
                                     .center()
-                                    .child(svg(plus()).width(Size::px(48.)).height(Size::px(48.))),
+                                    .child(SvgViewer::new(plus()).width(Size::px(48.)).height(Size::px(48.))),
                             ),
                     )
                     .child(rect()),
@@ -112,7 +112,7 @@ impl Component for MessageAttachmentPreview {
                                             .height(Size::px(100.))
                                             .center()
                                             .child(
-                                                svg(file_text())
+                                                SvgViewer::new(file_text())
                                                     .width(Size::px(36.))
                                                     .height(Size::px(36.)),
                                             )
@@ -132,7 +132,7 @@ impl Component for MessageAttachmentPreview {
                                     .background(0xcc000000)
                                     .center()
                                     .child(
-                                        svg(circle_x())
+                                        SvgViewer::new(circle_x())
                                             .width(Size::px(36.))
                                             .height(Size::px(36.))
                                             .color(Color::WHITE),
@@ -154,7 +154,7 @@ impl Component for MessageAttachmentPreview {
                                                             )
                                                             .padding(4.)
                                                             .child(
-                                                                svg(if self.attachment.spoiler {
+                                                                SvgViewer::new(if self.attachment.spoiler {
                                                                     eye_off()
                                                                 } else {
                                                                     eye()

@@ -59,7 +59,7 @@ impl Component for Server {
                     .child(
                         rect()
                             .padding(4.)
-                            .child(svg(settings()).width(Size::px(24.)).height(Size::px(24.))),
+                            .child(SvgViewer::new(settings()).width(Size::px(24.)).height(Size::px(24.))),
                     ),
             )
             .into_element();
@@ -108,7 +108,7 @@ impl Component for Server {
                                             .position(Position::new_absolute().bottom(0.))
                                             .layer(Layer::Relative(1))
                                             .padding((6., 14.))
-                                            .background_linear_gradient(
+                                            .background(
                                                 LinearGradient::new()
                                                     .stop((Color::TRANSPARENT, 0.))
                                                     .stop((Color::BLACK, 90.)),

@@ -232,7 +232,7 @@ pub fn dmlist_nav_button(
                     .color(theme.md.on_primary_container.as_argb_u32())
             })
             .width(Size::Fill)
-            .child(svg(icon).width(Size::px(24.)).height(Size::px(24.)))
+            .child(SvgViewer::new(icon).width(Size::px(24.)).height(Size::px(24.)))
             .child(title),
     )
 }
