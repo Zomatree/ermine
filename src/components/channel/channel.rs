@@ -12,7 +12,9 @@ use stoat_models::v0;
 use crate::{
     AppChannel,
     components::{
-        AttachmentController, ChannelMessages, HideSidebarHeader, MemberList, MessageAttachmentsPreview, MessageInput, MessageReplyPreview, ModalValue, ReplyController, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, Textbox, use_modals
+        AttachmentController, ChannelMessages, HideSidebarHeader, MemberList,
+        MessageAttachmentsPreview, MessageInput, MessageReplyPreview, ModalValue, ReplyController,
+        StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, Textbox, use_modals,
     },
     use_config, use_material_theme,
 };
@@ -328,13 +330,11 @@ impl Component for Channel {
                                                 server: self.server.clone(),
                                             }),
                                     )
-                                    .child(
-                                        MessageInput {
-                                            channel: self.channel.clone(),
-                                            replies,
-                                            attachments,
-                                        }
-                                    ),
+                                    .child(MessageInput {
+                                        channel: self.channel.clone(),
+                                        replies,
+                                        attachments,
+                                    }),
                             ),
                     )
                     .maybe_child(self.server.as_ref().filter(|_| !hide_members_list).map(

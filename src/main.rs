@@ -69,7 +69,11 @@ fn app() -> impl IntoElement {
 
     MaterialThemeProvider::new()
         .child(HttpManager::new().child(Root {}))
-        .child(rect().layer(Layer::RelativeOverlay(10)).child(ContextMenuViewer::new()))
+        .child(
+            rect()
+                .layer(Layer::RelativeOverlay(10))
+                .child(ContextMenuViewer::new()),
+        )
 }
 
 fn main() {

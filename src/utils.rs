@@ -12,7 +12,10 @@ use stoat_models::v0;
 
 use crate::{ChannelUnread, NotificationBadge, NotificationsSettings, color::parse_fill};
 
-pub fn map_readable<T, U: PartialEq>(readable: Readable<T>, f: impl Fn(&T) -> &U + 'static) -> Readable<U> {
+pub fn map_readable<T, U: PartialEq>(
+    readable: Readable<T>,
+    f: impl Fn(&T) -> &U + 'static,
+) -> Readable<U> {
     let f = Rc::new(f);
 
     Readable::new(

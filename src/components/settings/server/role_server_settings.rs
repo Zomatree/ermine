@@ -597,70 +597,69 @@ impl Component for DefaultRoleServerSettings {
 
         let mut permissions = use_initial(|| server.default_permissions);
 
-        rect()
-                    .child(
-                rect()
-                    .child(PermissionsEditor::new_value(permissions))
-                    .child(
-                        rect()
-                            .horizontal()
-                            .spacing(8.)
-                            .font_size(14)
-                            .child(
-                                StoatButton::new()
-                                    .color(theme.md.primary.as_argb_u32())
-                                    .corner_radius(40.)
-                                    .child(
-                                        rect()
-                                            .height(Size::px(40.))
-                                            .padding((0., 16.))
-                                            .center()
-                                            .child("Reset"),
-                                    )
-                                    .on_press(move |_| {
-                                        permissions.reset();
-                                    }),
-                            )
-                            .child(
-                                StoatButton::new()
-                                    .color(theme.md.on_primary.as_argb_u32())
-                                    .background(theme.md.primary.as_argb_u32())
-                                    .corner_radius(40.)
-                                    .on_press({
-                                        let server_id = server.id.clone();
+        rect().child(
+            rect()
+                .child(PermissionsEditor::new_value(permissions))
+                .child(
+                    rect()
+                        .horizontal()
+                        .spacing(8.)
+                        .font_size(14)
+                        .child(
+                            StoatButton::new()
+                                .color(theme.md.primary.as_argb_u32())
+                                .corner_radius(40.)
+                                .child(
+                                    rect()
+                                        .height(Size::px(40.))
+                                        .padding((0., 16.))
+                                        .center()
+                                        .child("Reset"),
+                                )
+                                .on_press(move |_| {
+                                    permissions.reset();
+                                }),
+                        )
+                        .child(
+                            StoatButton::new()
+                                .color(theme.md.on_primary.as_argb_u32())
+                                .background(theme.md.primary.as_argb_u32())
+                                .corner_radius(40.)
+                                .on_press({
+                                    let server_id = server.id.clone();
 
-                                        move |_| {
-                                            let server_id = server_id.clone();
+                                    move |_| {
+                                        let server_id = server_id.clone();
 
-                                            spawn({
-                                                async move {
-                                                    let value = *permissions.read();
+                                        spawn({
+                                            async move {
+                                                let value = *permissions.read();
 
-                                                    if http()
-                                                        .set_default_server_permissions(
-                                                            &server_id,
-                                                            &DataPermissionsValue {
-                                                                permissions: value as u64,
-                                                            },
-                                                        )
-                                                        .await
-                                                        .is_ok()
-                                                    {
-                                                        permissions.apply();
-                                                    }
+                                                if http()
+                                                    .set_default_server_permissions(
+                                                        &server_id,
+                                                        &DataPermissionsValue {
+                                                            permissions: value as u64,
+                                                        },
+                                                    )
+                                                    .await
+                                                    .is_ok()
+                                                {
+                                                    permissions.apply();
                                                 }
-                                            });
-                                        }
-                                    })
-                                    .child(
-                                        rect()
-                                            .height(Size::px(40.))
-                                            .padding((0., 16.))
-                                            .center()
-                                            .child("Save permissions"),
-                                    ),
-                            ),
-                    ),
-            )
+                                            }
+                                        });
+                                    }
+                                })
+                                .child(
+                                    rect()
+                                        .height(Size::px(40.))
+                                        .padding((0., 16.))
+                                        .center()
+                                        .child("Save permissions"),
+                                ),
+                        ),
+                ),
+        )
     }
 }

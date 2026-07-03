@@ -4,9 +4,7 @@ use freya::prelude::*;
 
 use crate::{
     components::{
-        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal,
-        DeleteMessageModal, JoinServerModal, ServerInfoModal, StoatButton,
-        StoatButtonLayoutThemePartialExt,
+        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal, DeleteInviteModal, DeleteMessageModal, JoinServerModal, ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt
     },
     use_material_theme,
 };
@@ -20,6 +18,7 @@ pub enum ModalValue {
     ChannelDescription { channel: String },
     CreateRole { server: String },
     DeleteMessage { channel: String, message: String },
+    DeleteInvite { invite: String },
 }
 
 #[derive(Clone)]
@@ -42,14 +41,12 @@ impl ModalController {
 }
 
 pub fn use_modals() -> State<ModalController> {
-    use_hook(|| {
-        match try_consume_root_context() {
-            Some(state) => state,
-            None => {
-                let state = State::create_global(ModalController { modal: None });
-                provide_root_context(state);
-                state
-            }
+    use_hook(|| match try_consume_root_context() {
+        Some(state) => state,
+        None => {
+            let state = State::create_global(ModalController { modal: None });
+            provide_root_context(state);
+            state
         }
     })
 }
@@ -63,12 +60,14 @@ impl Component for ModalManager {
 
         let modal = controller.read().get_modal();
 
-        rect().layer(Layer::RelativeOverlay(7)).maybe_child(modal.map(|value| {
-            Modal {
-                value: value.clone(),
-            }
-            .into_element()
-        }))
+        rect()
+            .layer(Layer::RelativeOverlay(7))
+            .maybe_child(modal.map(|value| {
+                Modal {
+                    value: value.clone(),
+                }
+                .into_element()
+            }))
     }
 }
 
@@ -133,7 +132,10 @@ impl Component for Modal {
                                     }
                                     ModalValue::DeleteMessage { channel, message } => {
                                         DeleteMessageModal { channel, message }.into_element()
-                                    }
+                                    },
+                                    ModalValue::DeleteInvite { invite } => DeleteInviteModal {
+                                        invite
+                                    }.into_element()
                                 }),
                         ),
                 ),

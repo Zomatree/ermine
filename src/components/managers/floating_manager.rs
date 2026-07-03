@@ -24,14 +24,12 @@ impl Component for FloatingManager {
 }
 
 pub fn use_floating() -> State<Option<Element>> {
-    use_hook(|| {
-        match try_consume_root_context() {
-            Some(state) => state,
-            None => {
-                let state = State::create_global(None);
-                provide_root_context(state);
-                state
-            }
+    use_hook(|| match try_consume_root_context() {
+        Some(state) => state,
+        None => {
+            let state = State::create_global(None);
+            provide_root_context(state);
+            state
         }
     })
 }

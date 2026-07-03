@@ -746,9 +746,17 @@ impl HttpClient {
             .await
     }
 
-    pub async fn set_settings(&self, data: &std::collections::HashMap<String, Value>) -> Result<()> {
+    pub async fn set_settings(
+        &self,
+        data: &std::collections::HashMap<String, Value>,
+    ) -> Result<()> {
         self.request(Method::POST, format!("/sync/settings/set"))
-            .body(&data.into_iter().map(|(k, v)| (k, to_string(&v).unwrap())).collect::<std::collections::HashMap<_, _>>())
+            .body(
+                &data
+                    .into_iter()
+                    .map(|(k, v)| (k, to_string(&v).unwrap()))
+                    .collect::<std::collections::HashMap<_, _>>(),
+            )
             .send()
             .await
     }
