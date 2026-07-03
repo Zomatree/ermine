@@ -9,7 +9,9 @@ use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
 use crate::{
-    components::{Autocomplete, MessageAttachmentsPreview, MessageModel, MessageReplyPreview, Textbox},
+    components::{
+        Autocomplete, MessageAttachmentsPreview, MessageModel, MessageReplyPreview, Textbox,
+    },
     map_readable,
 };
 
@@ -214,14 +216,17 @@ impl Component for MessageInput {
         rect()
             .width(Size::Fill)
             .margin((0., 8., 8., 8.))
-            .maybe_child(autocomplete.read().cloned().map(|(autocomplete, query)| {
-                Autocomplete {
-                    autocomplete,
-                    query,
-                    editable,
-                    channel: self.channel.clone(),
-                }
-            }))
+            .maybe_child(
+                autocomplete
+                    .read()
+                    .cloned()
+                    .map(|(autocomplete, query)| Autocomplete {
+                        autocomplete,
+                        query,
+                        editable,
+                        channel: self.channel.clone(),
+                    }),
+            )
             .maybe_child(self.attachments.not_empty().then(|| {
                 rect()
                     .margin((0., 0., 8., 0.))

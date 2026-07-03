@@ -1,6 +1,6 @@
 [package]
 name = "Ermine"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 repository = "https://github.com/Zomatree/ermine"
 description = "Native desktop client for Stoat chat"
@@ -19,7 +19,6 @@ freya-performance-plugin = { git = "https://github.com/marc2332/freya", branch =
 [dependencies]
 freya = { version = "0.4.0-rc.23", features = ["radio", "remote-asset", "icons", "webview", "markdown", "zoom-shortcuts"] }
 freya-components = { version = "0.4.0-rc.23", features = ["remote-asset", "gif"] }
-freya-performance-plugin = { version = "0.4.0-rc.23" }
 tokio-tungstenite = { version = "0.27", features = ["native-tls"] }
 tungstenite = { version = "0.27", features = ["native-tls"] }
 reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }

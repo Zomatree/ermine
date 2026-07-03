@@ -264,11 +264,18 @@ impl Component for Autocomplete {
                                         .width(Size::px(12.))
                                         .height(Size::px(12.));
 
-                                    color.get_style().background = role
-                                        .colour
-                                        .as_deref()
-                                        .and_then(parse_fill)
-                                        .unwrap_or_else(|| Fill::Color(theme.md.surface_container_highest.as_argb_u32().into()));
+                                    color.get_style().background =
+                                        role.colour.as_deref().and_then(parse_fill).unwrap_or_else(
+                                            || {
+                                                Fill::Color(
+                                                    theme
+                                                        .md
+                                                        .surface_container_highest
+                                                        .as_argb_u32()
+                                                        .into(),
+                                                )
+                                            },
+                                        );
 
                                     rect()
                                         .horizontal()

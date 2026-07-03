@@ -10,8 +10,9 @@ use stoat_models::v0;
 use crate::{
     AppChannel, ServerSettingsPage,
     components::{
-        EmojiServerSettings, OverviewServerSettings, RoleServerSettings, SelectedRole, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        EmojiServerSettings, InviteServerSettings, OverviewServerSettings, RoleServerSettings,
+        SelectedRole, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
     },
     theme::Theme,
     use_material_theme,
@@ -207,7 +208,10 @@ impl Component for ServerSettings {
                                                     .into_element()
                                                 }
                                                 ServerSettingsPage::Invites => {
-                                                    "Coming soon!".into_element()
+                                                    InviteServerSettings {
+                                                        server: self.server.clone(),
+                                                    }
+                                                    .into_element()
                                                 }
                                                 ServerSettingsPage::Bans => {
                                                     "Coming soon!".into_element()
