@@ -188,10 +188,10 @@ impl Component for CategoryHeader {
                             .text(self.category.read().title.clone()),
                     )
                     .child(
-                        svg(chevron_down())
+                        SvgViewer::new(chevron_down())
                             .width(Size::px(12.))
                             .height(Size::px(12.))
-                            .rotate(&*self.animation.read()),
+                            .rotation(&*self.animation.read()),
                     ),
             )
     }

@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{MessageModel, NetworkSvg, StoatButton, StoatButtonLayoutThemePartialExt},
+    components::{MessageModel, StoatButton, StoatButtonLayoutThemePartialExt},
     http,
     types::Tag,
     use_material_theme,
@@ -98,7 +98,7 @@ impl Component for MessageReactions {
                                         "https://static.stoat.chat/emoji/fluent-3d/{codes}.svg?v=1"
                                     );
 
-                                    NetworkSvg::new(url.parse::<Uri>().unwrap())
+                                    SvgViewer::new(url.parse::<Uri>().unwrap())
                                         .width(Size::px(16.8))
                                         .height(Size::px(16.8))
                                         .into_element()

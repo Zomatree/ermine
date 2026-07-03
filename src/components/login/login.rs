@@ -59,7 +59,7 @@ impl Component for Login {
                                             .height(Size::px(40.))
                                             .center()
                                             .child(
-                                                svg(moon())
+                                                SvgViewer::new(moon())
                                                     .width(Size::px(24.))
                                                     .height(Size::px(24.)),
                                             ),
@@ -152,7 +152,7 @@ impl Component for Login {
                                                     .center()
                                                     .spacing(4.)
                                                     .child(
-                                                        svg(x())
+                                                        SvgViewer::new(x())
                                                             .width(Size::px(12.))
                                                             .height(Size::px(12.)),
                                                     )

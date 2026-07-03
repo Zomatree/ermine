@@ -73,7 +73,7 @@ impl Component for AccountSettings {
                                         .color(theme.md.on_primary.as_argb_u32())
                                         .padding(8.)
                                         .child(
-                                            svg(pencil())
+                                            SvgViewer::new(pencil())
                                                 .width(Size::px(24.))
                                                 .height(Size::px(24.)),
                                         ),
@@ -97,7 +97,7 @@ impl Component for AccountSettings {
                                         .corner_radius(12.)
                                         .padding(8.)
                                         .child(
-                                            svg(cake()).width(Size::px(14.)).height(Size::px(14.)),
+                                            SvgViewer::new(cake()).width(Size::px(14.)).height(Size::px(14.)),
                                         ),
                                 ),
                             ),

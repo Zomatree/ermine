@@ -216,7 +216,7 @@ impl Component for RoomUserCard {
                     .main_align(Alignment::SpaceBetween)
                     .child(display_name)
                     .child(rect().maybe_child(
-                        is_muted.then(|| svg(mic_off()).width(Size::px(16.)).height(Size::px(16.))),
+                        is_muted.then(|| SvgViewer::new(mic_off()).width(Size::px(16.)).height(Size::px(16.))),
                     )),
             )
     }

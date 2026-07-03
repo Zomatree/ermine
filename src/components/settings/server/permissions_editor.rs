@@ -413,7 +413,7 @@ impl Component for PermissionOverriteSwitchOverride {
                 }
             })
             .child(
-                svg(match self.value {
+                SvgViewer::new(match self.value {
                     Some(true) => check(),
                     None => square_dashed(),
                     Some(false) => x(),

@@ -84,7 +84,7 @@ impl Component for Friends {
                                                             )
                                                             .center()
                                                             .child(
-                                                                svg(plus())
+                                                                SvgViewer::new(plus())
                                                                     .width(Size::px(24.))
                                                                     .height(Size::px(24.)),
                                                             ),
@@ -123,7 +123,7 @@ impl Component for Friends {
                                                                         .width(Size::px(56.))
                                                                         .height(Size::px(32.))
                                                                         .child(
-                                                                            svg(icon)
+                                                                            SvgViewer::new(icon)
                                                                                 .width(Size::px(
                                                                                     24.,
                                                                                 ))

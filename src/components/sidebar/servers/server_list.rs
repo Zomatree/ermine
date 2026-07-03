@@ -204,7 +204,7 @@ impl Component for ServerList {
                                                                 .as_argb_u32(),
                                                         )
                                                         .child(
-                                                            svg(plus())
+                                                            SvgViewer::new(plus())
                                                                 .width(Size::px(32.0))
                                                                 .height(Size::px(32.0)),
                                                         ),
@@ -245,7 +245,7 @@ impl Component for ServerList {
                                                                 .as_argb_u32(),
                                                         )
                                                         .child(
-                                                            svg(compass())
+                                                            SvgViewer::new(compass())
                                                                 .width(Size::px(32.0))
                                                                 .height(Size::px(32.0)),
                                                         ),
@@ -284,7 +284,7 @@ impl Component for ServerList {
                                                 theme.md.surface_container_low.as_argb_u32(),
                                             )
                                             .child(
-                                                svg(settings())
+                                                SvgViewer::new(settings())
                                                     .width(Size::px(32.0))
                                                     .height(Size::px(32.0)),
                                             ),

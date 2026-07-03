@@ -326,7 +326,7 @@ pub fn message_actions_button(icon: Bytes, theme: &Theme) -> StoatButton {
     StoatButton::new()
         .child(
             rect().padding(4.).child(
-                svg(icon)
+                SvgViewer::new(icon)
                     .color(theme.md.on_secondary_container.as_argb_u32())
                     .width(Size::px(20.))
                     .height(Size::px(20.)),

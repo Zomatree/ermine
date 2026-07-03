@@ -43,7 +43,7 @@ impl Component for SourceCodeSettings {
                                     .corner_radius(18.)
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
-                                    .child(svg(cpu()).width(Size::px(22.)).height(Size::px(22.))),
+                                    .child(SvgViewer::new(cpu()).width(Size::px(22.)).height(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -54,7 +54,7 @@ impl Component for SourceCodeSettings {
                                     ),
                             )
                             .child(
-                                svg(external_link())
+                                SvgViewer::new(external_link())
                                     .width(Size::px(18.))
                                     .height(Size::px(18.)),
                             ),
@@ -84,7 +84,7 @@ impl Component for SourceCodeSettings {
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
                                     .child(
-                                        svg(list_ordered())
+                                        SvgViewer::new(list_ordered())
                                             .width(Size::px(22.))
                                             .height(Size::px(22.)),
                                     ),
@@ -96,7 +96,7 @@ impl Component for SourceCodeSettings {
                                     .child(label().font_size(12.).text("Submit feedback.")),
                             )
                             .child(
-                                svg(external_link())
+                                SvgViewer::new(external_link())
                                     .width(Size::px(18.))
                                     .height(Size::px(18.)),
                             ),
@@ -125,7 +125,7 @@ impl Component for SourceCodeSettings {
                                     .corner_radius(18.)
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
-                                    .child(svg(bug()).width(Size::px(22.)).height(Size::px(22.))),
+                                    .child(SvgViewer::new(bug()).width(Size::px(22.)).height(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -138,7 +138,7 @@ impl Component for SourceCodeSettings {
                                     ),
                             )
                             .child(
-                                svg(external_link())
+                                SvgViewer::new(external_link())
                                     .width(Size::px(18.))
                                     .height(Size::px(18.)),
                             ),

@@ -196,7 +196,7 @@ impl Component for InviteServerSettings {
                                                         .color(theme.md.on_secondary_container.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(copy())
+                                                            SvgViewer::new(copy())
                                                                 .width(Size::px(24.))
                                                                 .height(Size::px(24.)),
                                                         ),
@@ -224,7 +224,7 @@ impl Component for InviteServerSettings {
                                                         .color(theme.md.on_primary.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(trash())
+                                                            SvgViewer::new(trash())
                                                                 .width(Size::px(24.))
                                                                 .height(Size::px(24.)),
                                                         ),

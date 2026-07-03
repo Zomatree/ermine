@@ -186,7 +186,7 @@ impl Component for ProfileBanner {
                     .width(Size::Fill)
                     .height(Size::px(120.))
                     .main_align(Alignment::End)
-                    .background_linear_gradient(
+                    .background(
                         LinearGradient::new()
                             .stop((0x33000000, 20.))
                             .stop((0xb3000000, 70.)),
@@ -340,7 +340,7 @@ impl Component for ProfileButtons {
                             .height(Size::px(40.))
                             .padding((0., 8.))
                             .center()
-                            .child(svg(icon).width(Size::px(24.)).height(Size::px(24.))),
+                            .child(SvgViewer::new(icon).width(Size::px(24.)).height(Size::px(24.))),
                     )
             }))
             .child(
@@ -372,7 +372,7 @@ impl Component for ProfileButtons {
                             .padding((0., 8.))
                             .center()
                             .child(
-                                svg(ellipsis_vertical())
+                                SvgViewer::new(ellipsis_vertical())
                                     .width(Size::px(24.))
                                     .height(Size::px(24.)),
                             ),
@@ -525,7 +525,7 @@ impl Component for ProfileBio {
         card(
             "Bio",
             &theme,
-            SelectableText::new(self.bio.clone()).font_size(14),
+            SelectableText::new().span(self.bio.clone()).font_size(14),
         )
         .height(Size::Inner)
     }

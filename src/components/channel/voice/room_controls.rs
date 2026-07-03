@@ -130,7 +130,7 @@ impl Component for RoomControls {
                             .height(Size::px(40.))
                             .center()
                             .child(
-                                svg(if is_muted { mic_off() } else { mic() })
+                                SvgViewer::new(if is_muted { mic_off() } else { mic() })
                                     .width(Size::px(24.))
                                     .width(Size::px(24.)),
                             )
@@ -154,7 +154,7 @@ impl Component for RoomControls {
                     .height(Size::px(40.))
                     .center()
                     .child(
-                        svg(if is_deafend {
+                        SvgViewer::new(if is_deafend {
                             headphone_off()
                         } else {
                             headphones()
@@ -180,7 +180,7 @@ impl Component for RoomControls {
                     .width(Size::px(40.))
                     .height(Size::px(40.))
                     .center()
-                    .child(svg(camera()).width(Size::px(24.)).width(Size::px(24.)))
+                    .child(SvgViewer::new(camera()).width(Size::px(24.)).width(Size::px(24.)))
             }))
             .child(
                 StoatButton::new()
@@ -202,7 +202,7 @@ impl Component for RoomControls {
                             .width(Size::px(40.))
                             .height(Size::px(40.))
                             .center()
-                            .child(svg(monitor_up()).width(Size::px(24.)).width(Size::px(24.)))
+                            .child(SvgViewer::new(monitor_up()).width(Size::px(24.)).width(Size::px(24.)))
                     }),
             )
             .child(
@@ -229,10 +229,10 @@ impl Component for RoomControls {
                             .height(Size::px(40.))
                             .center()
                             .child(
-                                svg(phone())
+                                SvgViewer::new(phone())
                                     .width(Size::px(24.))
                                     .width(Size::px(24.))
-                                    .rotate(135.)
+                                    .rotation(135.)
                                     .margin((2., 0., 0., 0.)),
                             ),
                     ),

@@ -194,7 +194,7 @@ impl Component for OverviewChannelSettings {
                                     .height(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
+                                        SvgViewer::new(x())
                                             .width(Size::px(24.))
                                             .height(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),

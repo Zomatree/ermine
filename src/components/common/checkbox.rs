@@ -95,7 +95,7 @@ impl Component for StoatCheckbox {
                             .center()
                             .color(color)
                             .child(
-                                svg(if *self.value.read() {
+                                SvgViewer::new(if *self.value.read() {
                                     square_check()
                                 } else {
                                     square()

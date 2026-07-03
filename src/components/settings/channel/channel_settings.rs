@@ -154,7 +154,7 @@ impl Component for ChannelSettings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    svg(x())
+                                                    SvgViewer::new(x())
                                                         .width(Size::px(24.))
                                                         .height(Size::px(24.)),
                                                 ),
@@ -194,7 +194,7 @@ impl Component for ChannelSettingsButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(self.page.icon())
+                        SvgViewer::new(self.page.icon())
                             .width(Size::px(20.))
                             .height(Size::px(20.)),
                     )
@@ -259,7 +259,7 @@ impl Component for DeleteChannelButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(square_arrow_right())
+                        SvgViewer::new(square_arrow_right())
                             .width(Size::px(20.))
                             .height(Size::px(20.)),
                     )

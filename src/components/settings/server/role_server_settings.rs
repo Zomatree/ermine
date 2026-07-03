@@ -106,7 +106,7 @@ impl Component for RoleServerSettings {
                                                         .color(theme.md.on_surface.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(list())
+                                                            SvgViewer::new(list())
                                                                 .width(Size::px(22.))
                                                                 .height(Size::px(22.)),
                                                         ),
@@ -131,7 +131,7 @@ impl Component for RoleServerSettings {
                                                         ),
                                                 )
                                                 .child(
-                                                    svg(chevron_right())
+                                                    SvgViewer::new(chevron_right())
                                                         .width(Size::px(18.))
                                                         .height(Size::px(18.)),
                                                 ),
@@ -171,7 +171,7 @@ impl Component for RoleServerSettings {
                                                         .color(theme.md.on_surface.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(user_plus())
+                                                            SvgViewer::new(user_plus())
                                                                 .width(Size::px(22.))
                                                                 .height(Size::px(22.)),
                                                         ),
@@ -194,7 +194,7 @@ impl Component for RoleServerSettings {
                                                         ),
                                                 )
                                                 .child(
-                                                    svg(chevron_right())
+                                                    SvgViewer::new(chevron_right())
                                                         .width(Size::px(18.))
                                                         .height(Size::px(18.)),
                                                 ),
@@ -249,7 +249,7 @@ impl Component for RoleServerSettings {
                                                             .text(role.name.clone()),
                                                     )
                                                     .child(
-                                                        svg(chevron_right())
+                                                        SvgViewer::new(chevron_right())
                                                             .width(Size::px(18.))
                                                             .height(Size::px(18.)),
                                                     ),
@@ -436,7 +436,7 @@ impl Component for SelectedRoleServerSettings {
                                     .height(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
+                                        SvgViewer::new(x())
                                             .width(Size::px(24.))
                                             .height(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),

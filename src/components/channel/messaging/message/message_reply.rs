@@ -225,7 +225,7 @@ impl Component for MessageReply {
                                         .spacing(4.)
                                         .cross_align(Alignment::Center)
                                         .child(
-                                            svg(file_text())
+                                            SvgViewer::new(file_text())
                                                 .width(Size::px(16.))
                                                 .height(Size::px(16.)),
                                         )

@@ -175,7 +175,7 @@ impl Component for WelcomeButton {
                             .corner_radius(36.)
                             .center()
                             .child(
-                                svg(self.icon.clone())
+                                SvgViewer::new(self.icon.clone())
                                     .width(Size::px(24.))
                                     .height(Size::px(24.)),
                             ),

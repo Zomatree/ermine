@@ -219,7 +219,7 @@ impl Component for Channel {
                     //                         .center()
                     //                         .color(theme.md.on_surface_variant.as_argb_u32())
                     //                         .child(
-                    //                             svg(phone_call())
+                    //                             SvgViewer::new(phone_call())
                     //                                 .width(Size::px(24.))
                     //                                 .height(Size::px(24.)),
                     //                         ),
@@ -247,7 +247,7 @@ impl Component for Channel {
                                         .center()
                                         .color(theme.md.on_surface_variant.as_argb_u32())
                                         .child(
-                                            svg(pin()).width(Size::px(24.)).height(Size::px(24.)),
+                                            SvgViewer::new(pin()).width(Size::px(24.)).height(Size::px(24.)),
                                         ),
                                 ),
                         ),
@@ -269,7 +269,7 @@ impl Component for Channel {
                                             .center()
                                             .color(theme.md.on_surface_variant.as_argb_u32())
                                             .child(
-                                                svg(users_round())
+                                                SvgViewer::new(users_round())
                                                     .width(Size::px(24.))
                                                     .height(Size::px(24.)),
                                             ),

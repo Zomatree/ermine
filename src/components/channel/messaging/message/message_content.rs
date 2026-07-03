@@ -41,7 +41,7 @@ impl Component for MessageContent {
                             .clone()
                             .filter(|c| !c.is_empty())
                             .map(|content| {
-                                SelectableText::new(content).line_height(1.5).into_element()
+                                SelectableText::new().span(content).line_height(1.5).into_element()
                                 // MarkdownViewer::new(content)
                                 //     .paragraph_size(14.)
                                 //     .into_element()
