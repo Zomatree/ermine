@@ -2,7 +2,11 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, Config, NotificationBadge, Selection, components::{ServerContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, server_icon}, consume_material_theme, get_unread_badge, is_server_muted
+    AppChannel, Config, NotificationBadge, Selection,
+    components::{
+        ServerContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, server_icon,
+    },
+    consume_material_theme, get_unread_badge, is_server_muted,
 };
 
 #[derive(PartialEq)]
@@ -98,7 +102,9 @@ impl Component for ServerListButton {
                 move |e| {
                     ContextMenu::open_from_event(
                         &e,
-                        Menu::new().child(ServerContextMenu { server_id: server_id.clone() }),
+                        Menu::new().child(ServerContextMenu {
+                            server_id: server_id.clone(),
+                        }),
                     );
                 }
             })

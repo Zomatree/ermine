@@ -5,10 +5,16 @@ use freya::{
 };
 
 use crate::{
-    AppChannel, Selection, SettingsPage, SizeExt, components::{
+    AppChannel, Selection, SettingsPage, SizeExt,
+    components::{
         HideSidebarHeader, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, material::{MaterialIcon, filled::{add_circle, explore, groups_3, home, payments, rate_review, settings}},
-    }, consume_material_theme
+        StoatButtonLayoutThemePartialExt,
+        material::{
+            MaterialIcon,
+            filled::{add_circle, explore, groups_3, home, payments, rate_review, settings},
+        },
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -174,7 +180,7 @@ impl Component for WelcomeButton {
                             .child(
                                 MaterialIcon::new(self.icon.clone())
                                     .size(Size::px(24.))
-                                    .color(theme.md.on_surface.as_argb_u32())
+                                    .color(theme.md.on_surface.as_argb_u32()),
                             ),
                     )
                     .child(

@@ -3,7 +3,10 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{MarkdownViewer, MessageAttachment, MessageEdit, MessageEmbed, MessageModel, MessageReactions},
+    components::{
+        MarkdownViewer, MessageAttachment, MessageEdit, MessageEmbed, MessageModel,
+        MessageReactions,
+    },
 };
 
 #[derive(PartialEq)]
@@ -24,7 +27,13 @@ impl Component for MessageContent {
             if let v0::Channel::TextChannel { server, .. } = &*channel {
                 let server = server.clone();
 
-                Some(radio.slice(AppChannel::Servers, move |state| state.servers.get(&server).unwrap()).into_readable())
+                Some(
+                    radio
+                        .slice(AppChannel::Servers, move |state| {
+                            state.servers.get(&server).unwrap()
+                        })
+                        .into_readable(),
+                )
             } else {
                 None
             }
@@ -53,7 +62,9 @@ impl Component for MessageContent {
                             .clone()
                             .filter(|c| !c.is_empty())
                             .map(|content| {
-                                MarkdownViewer::new(content, server).font_size(14.).into_element()
+                                MarkdownViewer::new(content, server)
+                                    .font_size(14.)
+                                    .into_element()
                                 // SelectableText::new().span(content).line_height(1.5).into_element()
                                 // MarkdownViewer::new(content)
                                 //     .paragraph_size(14.)

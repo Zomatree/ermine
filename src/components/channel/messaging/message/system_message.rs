@@ -2,13 +2,15 @@ use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
-    SizeExt, components::{
+    SizeExt,
+    components::{
         MaterialIcon, MessageModel, UserMention,
         material::filled::{
             add, arrow_back, arrow_forward, cancel, clear, format_align_left, image, info, key,
             local_offer, local_police, push_pin, volume_up,
         },
-    }, consume_material_theme
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]

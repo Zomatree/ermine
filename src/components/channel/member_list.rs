@@ -6,8 +6,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel,
     components::{
-        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, UserContextMenu, file_image,
-        use_floating,
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, UserContextMenu,
+        file_image, use_floating,
     },
     http, member_display_color,
 };

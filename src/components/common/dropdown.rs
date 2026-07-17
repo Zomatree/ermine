@@ -8,7 +8,11 @@ use freya::{
     prelude::*,
 };
 
-use crate::{SizeExt, components::{MaterialIcon, StoatButton, material::filled::expand_more}, consume_material_theme};
+use crate::{
+    SizeExt,
+    components::{MaterialIcon, StoatButton, material::filled::expand_more},
+    consume_material_theme,
+};
 
 pub struct Dropdown<T: PartialEq + 'static, B> {
     title: Cow<'static, str>,
@@ -24,7 +28,12 @@ impl<T: PartialEq + 'static, B> PartialEq for Dropdown<T, B> {
 }
 
 impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> Dropdown<T, B> {
-    pub fn new(title: impl Into<Cow<'static, str>>, state: Writable<T>, options: Vec<T>, builder: B) -> Self {
+    pub fn new(
+        title: impl Into<Cow<'static, str>>,
+        state: Writable<T>,
+        options: Vec<T>,
+        builder: B,
+    ) -> Self {
         Self {
             title: title.into(),
             state,
@@ -60,10 +69,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
             if open() {
                 (opacity, offset_y)
             } else {
-                (
-                    opacity.into_reversed(),
-                    offset_y.into_reversed(),
-                )
+                (opacity.into_reversed(), offset_y.into_reversed())
             }
         });
 
@@ -222,7 +228,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                                     .child((self.builder)(value))
                                                     .into_element()
                                             }),
-                                        ))
+                                        )),
                                 ),
                         ),
                 )

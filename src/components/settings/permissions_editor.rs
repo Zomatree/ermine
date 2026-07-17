@@ -1,9 +1,18 @@
-use freya::{
-    prelude::*,
-};
+use freya::prelude::*;
 use stoat_permissions::OverrideField;
 
-use crate::{SizeExt, components::{MaterialIcon, checkbox::StoatCheckbox, material::{filled::{check, clear}, outlined::check_box_outline_blank}}, consume_material_theme};
+use crate::{
+    SizeExt,
+    components::{
+        MaterialIcon,
+        checkbox::StoatCheckbox,
+        material::{
+            filled::{check, clear},
+            outlined::check_box_outline_blank,
+        },
+    },
+    consume_material_theme,
+};
 
 #[derive(PartialEq)]
 pub struct PermissionsEditor {
@@ -417,7 +426,7 @@ impl Component for PermissionOverriteSwitchOverride {
                     None => check_box_outline_blank(),
                     Some(false) => clear(),
                 })
-                .size(Size::px(24.))
+                .size(Size::px(24.)),
             )
             .maybe_child(hover().then(|| {
                 rect()

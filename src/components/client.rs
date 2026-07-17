@@ -11,7 +11,9 @@ use tokio::time::sleep;
 use crate::{
     AppChannel, ConnectionState, Selection, SizeExt,
     components::{
-        AttachmentController, ChannelSettings, Discover, FloatingManager, Home, MaterialIcon, ModalManager, Server, ServerList, ServerSettings, Settings, UserProfile, material::filled::description
+        AttachmentController, ChannelSettings, Discover, FloatingManager, Home, MaterialIcon,
+        ModalManager, Server, ServerList, ServerSettings, Settings, UserProfile,
+        material::filled::description,
     },
     consume_material_theme, map_readable,
 };
@@ -191,13 +193,12 @@ impl Component for Client {
                                     try_consume_root_context::<Option<AttachmentController>>()
                                         .flatten()
                             {
-                            file_hover.clone().set(false);
+                                file_hover.clone().set(false);
 
                                 spawn(async move {
-                                controller.add(path).await;
+                                    controller.add(path).await;
                                 });
                             };
-
                         }
                     })
                     .child(

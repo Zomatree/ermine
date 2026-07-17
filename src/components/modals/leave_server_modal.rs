@@ -49,9 +49,15 @@ impl Component for LeaveServerModal {
                         async move {
                             modals.write().pop_modal();
 
-                            http().delete_server(&server, &v0::OptionsServerDelete {
-                                leave_silently: Some(silent())
-                            }).await.unwrap();
+                            http()
+                                .delete_server(
+                                    &server,
+                                    &v0::OptionsServerDelete {
+                                        leave_silently: Some(silent()),
+                                    },
+                                )
+                                .await
+                                .unwrap();
                         }
                     });
 

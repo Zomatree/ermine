@@ -24,7 +24,12 @@ impl Component for MessageEdit {
         let holder = use_state(ParagraphHolder::default);
         let mut editable = use_editable(|| self.content.clone(), EditableConfig::new);
 
-        use_hook(|| editable.editor_mut().write().move_cursor_to(self.content.len()));
+        use_hook(|| {
+            editable
+                .editor_mut()
+                .write()
+                .move_cursor_to(self.content.len())
+        });
 
         let a11y_id = use_a11y();
 

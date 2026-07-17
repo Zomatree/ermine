@@ -13,7 +13,17 @@ use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_string};
 use stoat_models::v0::{
-    AllMemberResponse, AuditLogQueryResponse, BanListResult, BulkMessageResponse, Channel, ChannelUnread, CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataCreateEmoji, DataCreateRole, DataCreateServer, DataCreateServerChannel, DataDefaultChannelPermissions, DataEditChannel, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite, InviteJoinResponse, Member, Message, MutualResponse, NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, ResponseWebhook, Role, Server, ServerBan, User, UserProfile, UserSettings, Webhook
+    AllMemberResponse, AuditLogQueryResponse, BanListResult, BulkMessageResponse, Channel,
+    ChannelUnread, CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody,
+    DataBanCreate, DataCreateEmoji, DataCreateRole, DataCreateServer, DataCreateServerChannel,
+    DataDefaultChannelPermissions, DataEditChannel, DataEditMessage, DataEditRole,
+    DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
+    DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions,
+    DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite,
+    InviteJoinResponse, Member, Message, MutualResponse, NewRoleResponse, OptionsAuditLogQuery,
+    OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings,
+    OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, ResponseWebhook, Role, Server,
+    ServerBan, User, UserProfile, UserSettings, Webhook,
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
@@ -800,7 +810,11 @@ impl HttpClient {
             .await
     }
 
-    pub async fn search_channel(&self, channel_id: &str, data: &DataMessageSearch) -> Result<BulkMessageResponse> {
+    pub async fn search_channel(
+        &self,
+        channel_id: &str,
+        data: &DataMessageSearch,
+    ) -> Result<BulkMessageResponse> {
         self.request(Method::POST, format!("/channels/{channel_id}/search"))
             .body(data)
             .response()
@@ -814,12 +828,19 @@ impl HttpClient {
     }
 
     pub async fn ack_channel(&self, channel_id: &str, message_id: &str) -> Result<()> {
-        self.request(Method::PUT, format!("/channels/{channel_id}/ack/{message_id}"))
-            .send()
-            .await
+        self.request(
+            Method::PUT,
+            format!("/channels/{channel_id}/ack/{message_id}"),
+        )
+        .send()
+        .await
     }
 
-    pub async fn fetch_audit_logs(&self, server_id: &str, data: &OptionsAuditLogQuery) -> Result<AuditLogQueryResponse> {
+    pub async fn fetch_audit_logs(
+        &self,
+        server_id: &str,
+        data: &OptionsAuditLogQuery,
+    ) -> Result<AuditLogQueryResponse> {
         self.request(Method::GET, format!("/servers/{server_id}/audit_logs"))
             .query(data)
             .response()
@@ -922,7 +943,12 @@ impl HttpRequest {
 
         let request = req?;
 
-        log::debug!("Sending http request {} {}?{}", request.method(), request.url().path(), request.url().query().unwrap_or_default());
+        log::debug!(
+            "Sending http request {} {}?{}",
+            request.method(),
+            request.url().path(),
+            request.url().query().unwrap_or_default()
+        );
 
         let (bucket, resource) = Self::resolve_bucket(self.service, &request);
         let mut key = DefaultHasher::new();

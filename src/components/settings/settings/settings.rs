@@ -1,12 +1,16 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 
 use crate::{
-    AppChannel, SettingsPage, SizeExt, components::{
-        AccountSettings, AppearanceSettings, Avatar, MaterialIcon, ProfileSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, delete}
-    }, consume_material_theme, theme::Theme, use_config
+    AppChannel, SettingsPage, SizeExt,
+    components::{
+        AccountSettings, AppearanceSettings, Avatar, MaterialIcon, ProfileSettings,
+        SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::filled::{clear, delete},
+    },
+    consume_material_theme,
+    theme::Theme,
+    use_config,
 };
 
 #[derive(PartialEq)]
@@ -182,8 +186,7 @@ impl Component for Settings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    MaterialIcon::new(clear())
-                                                        .size(Size::px(24.))
+                                                    MaterialIcon::new(clear()).size(Size::px(24.)),
                                                 ),
                                         ),
                                 ),
@@ -265,10 +268,7 @@ impl Component for SettingsButton {
                     .padding((6., 8.))
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        MaterialIcon::new(self.page.icon())
-                            .size(Size::px(20.))
-                    )
+                    .child(MaterialIcon::new(self.page.icon()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)
@@ -322,10 +322,7 @@ impl Component for LogoutButton {
                     .horizontal()
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        MaterialIcon::new(delete())
-                            .size(Size::px(20.))
-                    )
+                    .child(MaterialIcon::new(delete()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)

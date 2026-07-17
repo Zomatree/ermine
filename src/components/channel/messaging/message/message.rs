@@ -94,7 +94,12 @@ impl Component for Message {
         };
 
         if let Some(system) = self.message.message.system.clone() {
-            SystemMessage { message: self.message.clone(), system, server_id: server_id.clone() }.into_element()
+            SystemMessage {
+                message: self.message.clone(),
+                system,
+                server_id: server_id.clone(),
+            }
+            .into_element()
         } else {
             rect()
                 .child(

@@ -5,7 +5,7 @@ use freya::{prelude::*, radio::use_radio};
 use crate::{
     AppChannel,
     components::{Channel, DMList, Friends, Welcome},
-    use_config, consume_material_theme,
+    consume_material_theme, use_config,
 };
 
 #[derive(Default, Clone, PartialEq)]

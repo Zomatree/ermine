@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt, components::{
-        MaterialIcon, OverviewChannelSettings, PermissionsChannelSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{chevron_right, clear, delete}
-    }, consume_material_theme, theme::Theme
+    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
+    components::{
+        MaterialIcon, OverviewChannelSettings, PermissionsChannelSettings, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        material::filled::{chevron_right, clear, delete},
+    },
+    consume_material_theme,
+    theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -260,10 +262,7 @@ impl Component for ChannelSettingsButton {
                     .padding((6., 8.))
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        MaterialIcon::new(self.page.icon())
-                            .size(Size::px(20.))
-                    )
+                    .child(MaterialIcon::new(self.page.icon()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)
@@ -326,10 +325,7 @@ impl Component for DeleteChannelButton {
                     .horizontal()
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        MaterialIcon::new(delete())
-                            .size(Size::px(20.))
-                    )
+                    .child(MaterialIcon::new(delete()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)

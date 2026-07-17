@@ -111,7 +111,7 @@ impl Component for MessageReply {
             {
                 map_optional_readable::<HashMap<String, HashMap<String, v0::Member>>, v0::Member>(
                     members.clone().into_readable(),
-                    move |members| members.get(&server_id).unwrap().get(&message.author) ,
+                    move |members| members.get(&server_id).unwrap().get(&message.author),
                 )
             } else {
                 OptionalReadable::none()

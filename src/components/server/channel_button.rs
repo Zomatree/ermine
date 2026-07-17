@@ -1,15 +1,20 @@
 use std::hash::Hash;
 
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt, calculate_channel_permissions, components::{
-        ChannelContextMenu, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{filled::{grid_3x3, person_add_alt_1, settings}, outlined::headset_mic}
-    }, consume_material_theme, get_unread_badge, is_channel_muted, user_permissions_query
+    AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt,
+    calculate_channel_permissions,
+    components::{
+        ChannelContextMenu, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{
+            filled::{grid_3x3, person_add_alt_1, settings},
+            outlined::headset_mic,
+        },
+    },
+    consume_material_theme, get_unread_badge, is_channel_muted, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -142,40 +147,43 @@ impl Component for ChannelButton {
                                         grid_3x3()
                                     },
                                 )
-                                .size(Size::px(24.))
+                                .size(Size::px(24.)),
                             )
                             .child(
                                 label()
                                     .text(channel.read().name().unwrap().to_string())
                                     .text_overflow(TextOverflow::Ellipsis)
                                     .width(Size::flex(1.))
-                                    .max_lines(1)
+                                    .max_lines(1),
                             )
                             .maybe(unread_badge.read().is_some(), |this| {
                                 this.color(theme.md.on_surface.as_argb_u32())
                             })
-                            .maybe_child(unread_badge.read().filter(|_| !hovering() && !selected()).map(|badge| {
-                                match badge {
-                                    NotificationBadge::Mentions(count) => rect()
-                                        .corner_radius(14.)
-                                        .size(Size::px(14.))
-                                        .center()
-                                        .background(theme.md.error.as_argb_u32())
-                                        .color(theme.md.on_error.as_argb_u32())
-                                        .color(0xff690005)
-                                        .font_size(8.)
-                                        .child(if count <= 9 {
-                                            count.to_string()
-                                        } else {
-                                            "+".to_string()
-                                        }),
-                                    NotificationBadge::Unread => rect()
-                                        .corner_radius(7.)
-                                        .size(Size::px(7.))
-                                        .background(theme.md.on_surface.as_argb_u32())
-                                        .margin((0., 3.5)),
-                                }
-                            }))
+                            .maybe_child(
+                                unread_badge
+                                    .read()
+                                    .filter(|_| !hovering() && !selected())
+                                    .map(|badge| match badge {
+                                        NotificationBadge::Mentions(count) => rect()
+                                            .corner_radius(14.)
+                                            .size(Size::px(14.))
+                                            .center()
+                                            .background(theme.md.error.as_argb_u32())
+                                            .color(theme.md.on_error.as_argb_u32())
+                                            .color(0xff690005)
+                                            .font_size(8.)
+                                            .child(if count <= 9 {
+                                                count.to_string()
+                                            } else {
+                                                "+".to_string()
+                                            }),
+                                        NotificationBadge::Unread => rect()
+                                            .corner_radius(7.)
+                                            .size(Size::px(7.))
+                                            .background(theme.md.on_surface.as_argb_u32())
+                                            .margin((0., 3.5)),
+                                    }),
+                            )
                             .maybe_child(hovering().then(|| {
                                 rect()
                                     .horizontal()

@@ -1,17 +1,22 @@
 use std::borrow::Cow;
 
-use freya::{
-    prelude::*,
-    radio::use_radio,
-    text_edit::*,
-};
+use freya::{prelude::*, radio::use_radio, text_edit::*};
 use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, LocalFile, SizeExt, calculate_channel_permissions, components::{
-        AttachmentController, EmojiPicker, ReplyController, StoatButton, StoatButtonLayoutThemePartialExt, material::{MaterialIcon, filled::{add, do_not_disturb}, round::insert_emoticon}, use_floating
-    }, consume_material_theme, http, user_permissions_query
+    AppChannel, LocalFile, SizeExt, calculate_channel_permissions,
+    components::{
+        AttachmentController, EmojiPicker, ReplyController, StoatButton,
+        StoatButtonLayoutThemePartialExt,
+        material::{
+            MaterialIcon,
+            filled::{add, do_not_disturb},
+            round::insert_emoticon,
+        },
+        use_floating,
+    },
+    consume_material_theme, http, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -131,8 +136,7 @@ impl Component for Textbox {
                                                 .height(Size::px(40.))
                                                 .center()
                                                 .child(
-                                                    MaterialIcon::new(add())
-                                                        .size(Size::px(24.))
+                                                    MaterialIcon::new(add()).size(Size::px(24.)),
                                                 ),
                                         ),
                                 )
@@ -377,10 +381,7 @@ impl Component for Textbox {
                             .width(Size::px(40.))
                             .height(Size::px(40.))
                             .center()
-                            .child(
-                                MaterialIcon::new(insert_emoticon())
-                                    .size(Size::px(24.))
-                            ),
+                            .child(MaterialIcon::new(insert_emoticon()).size(Size::px(24.))),
                     )
             }))
     }

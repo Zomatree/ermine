@@ -7,7 +7,7 @@ use crate::{
         ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfileRoles,
         ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, use_floating,
     },
-    http, consume_material_theme,
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]

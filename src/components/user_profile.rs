@@ -1,16 +1,18 @@
 use std::{rc::Rc, time::SystemTime};
 
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{
-        Avatar, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu, file_image, material::{filled::cancel, outlined::more_vert}
-    }, consume_material_theme, http, parse_fill, theme::Theme
+    AppChannel, SizeExt,
+    components::{
+        Avatar, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, UserContextMenu, file_image,
+        material::{filled::cancel, outlined::more_vert},
+    },
+    consume_material_theme, http, parse_fill,
+    theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -358,10 +360,7 @@ impl Component for ProfileButtons {
                             .height(Size::px(40.))
                             .padding((0., 8.))
                             .center()
-                            .child(
-                                MaterialIcon::new(more_vert())
-                                    .size(Size::px(24.))
-                            ),
+                            .child(MaterialIcon::new(more_vert()).size(Size::px(24.))),
                     ),
             )
     }

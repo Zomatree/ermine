@@ -61,7 +61,6 @@ impl MarkdownViewer {
         self.text_overflow = text_overflow.into();
         self
     }
-
 }
 
 impl KeyExt for MarkdownViewer {
@@ -760,18 +759,18 @@ impl Component for UserMention {
             .background(theme.md.primary_container.as_argb_u32())
             .color(theme.md.on_primary_container.as_argb_u32())
             .font_weight(FontWeight::SEMI_BOLD)
-            .maybe_child(
-                user.map(|user| {
-                    Avatar::new(
-                        user.clone().into_readable(),
-                        member.read().cloned().map(|m| m.into_readable()),
-                        size,
-                    )
-                })
-            )
+            .maybe_child(user.map(|user| {
+                Avatar::new(
+                    user.clone().into_readable(),
+                    member.read().cloned().map(|m| m.into_readable()),
+                    size,
+                )
+            }))
             .child(
                 label()
-                .map(role_color.read().cloned(), |label, color| label.color(color))
+                    .map(role_color.read().cloned(), |label, color| {
+                        label.color(color)
+                    })
                     .line_height(1.5)
                     .max_lines(1)
                     .font_size(self.font_size)
@@ -1013,7 +1012,9 @@ fn render_content(
                             .padding((1., 4.))
                             .corner_radius(12.)
                             .child(
-                                freya::prelude::paragraph().line_height(1.5).span(styled.font_family("monospace")),
+                                freya::prelude::paragraph()
+                                    .line_height(1.5)
+                                    .span(styled.font_family("monospace")),
                             ),
                     )
                 } else if span.link {

@@ -7,7 +7,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, AppState, Selection,
     components::{Dialog, SingleLineEntry, use_modals},
-    http, insert_channel, insert_member, insert_server, insert_user, consume_material_theme,
+    consume_material_theme, http, insert_channel, insert_member, insert_server, insert_user,
 };
 
 #[derive(PartialEq)]

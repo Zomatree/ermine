@@ -5,7 +5,14 @@ use freya::{
     prelude::*,
 };
 
-use crate::{SizeExt, components::{MaterialIcon, material::outlined::{check_box, check_box_outline_blank}}, consume_material_theme};
+use crate::{
+    SizeExt,
+    components::{
+        MaterialIcon,
+        material::outlined::{check_box, check_box_outline_blank},
+    },
+    consume_material_theme,
+};
 
 #[derive(PartialEq)]
 pub struct StoatCheckbox {

@@ -4,9 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ServerSettingsPage, SizeExt, components::{
-        Channel, ChannelList, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, file_image, material::filled::settings, use_modals
-    }, consume_material_theme, use_config
+    AppChannel, ServerSettingsPage, SizeExt,
+    components::{
+        Channel, ChannelList, MaterialIcon, ModalValue, StoatButton,
+        StoatButtonLayoutThemePartialExt, file_image, material::filled::settings, use_modals,
+    },
+    consume_material_theme, use_config,
 };
 
 #[derive(PartialEq)]

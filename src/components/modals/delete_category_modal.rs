@@ -52,7 +52,7 @@ impl Component for DeleteCategoryModal {
                         let server_id = server_id.clone();
                         let server = server.clone();
                         let category = category.clone();
-                        
+
                         async move {
                             let mut server = server.read().cloned();
 

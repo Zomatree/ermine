@@ -4,7 +4,10 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         Avatar, MaterialIcon,
-        material::filled::{message, flag, format_list_bulleted, group, info, insert_emoticon, list, pin_invoke, smart_toy},
+        material::filled::{
+            flag, format_list_bulleted, group, info, insert_emoticon, list, message, pin_invoke,
+            smart_toy,
+        },
     },
     consume_material_theme, http,
 };
@@ -168,39 +171,51 @@ impl Component for AuditLogEntry {
 
         let get_channel_name = |id| {
             channels
-                                .read()
-                                .get(id)
-                                .and_then(|channel| channel.name().map(|s| s.to_string()))
-                                .unwrap_or("Unknown Channel".to_string())
+                .read()
+                .get(id)
+                .and_then(|channel| channel.name().map(|s| s.to_string()))
+                .unwrap_or("Unknown Channel".to_string())
         };
 
         let get_user_name = |id| {
-            self.users.read().get(id).map(|user| user.username.clone()).unwrap_or("Unknown User".to_string())
+            self.users
+                .read()
+                .get(id)
+                .map(|user| user.username.clone())
+                .unwrap_or("Unknown User".to_string())
         };
 
         let get_role_name = |id| {
-            self.server.read().roles.get(id).map(|role| role.name.clone()).unwrap_or("Unknown Role".to_string())
+            self.server
+                .read()
+                .roles
+                .get(id)
+                .map(|role| role.name.clone())
+                .unwrap_or("Unknown Role".to_string())
         };
 
         let username = user.read().username.clone();
 
         let (icon, color, text) = match &self.entry.action {
-            v0::AuditLogEntryAction::MessageDelete { author, channel } => {
-                (
-                    message(),
-                    IconColor::Red,
-                    format!(
-                        "{} deleted a message by {} in #{}",
-                        username,
-                        get_user_name(author),
-                        get_channel_name(channel)
-                    ),
-                )
-            }
+            v0::AuditLogEntryAction::MessageDelete { author, channel } => (
+                message(),
+                IconColor::Red,
+                format!(
+                    "{} deleted a message by {} in #{}",
+                    username,
+                    get_user_name(author),
+                    get_channel_name(channel)
+                ),
+            ),
             v0::AuditLogEntryAction::MessageBulkDelete { channel, count } => (
                 list(),
                 IconColor::Red,
-                format!("{} deleted {} messages in #{}", username, count, get_channel_name(channel))
+                format!(
+                    "{} deleted {} messages in #{}",
+                    username,
+                    count,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::MessagePin {
                 message,
@@ -209,7 +224,11 @@ impl Component for AuditLogEntry {
             } => (
                 pin_invoke(),
                 IconColor::Green,
-                format!("{} pinned a message in #{}", username, get_channel_name(channel))
+                format!(
+                    "{} pinned a message in #{}",
+                    username,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::MessageUnpin {
                 message,
@@ -218,22 +237,26 @@ impl Component for AuditLogEntry {
             } => (
                 pin_invoke(),
                 IconColor::Red,
-                format!("{} unpinned a message in #{}", username, get_channel_name(channel))
+                format!(
+                    "{} unpinned a message in #{}",
+                    username,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::BanCreate { user } => (
                 group(),
                 IconColor::Red,
-                format!("{} banned {}", username, get_user_name(user))
+                format!("{} banned {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::BanDelete { user } => (
                 group(),
                 IconColor::Green,
-                format!("{} unbanned {}", username, get_user_name(user))
+                format!("{} unbanned {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::ChannelCreate { channel, name } => (
                 format_list_bulleted(),
                 IconColor::Green,
-                format!("{} created #{}", username, get_channel_name(channel))
+                format!("{} created #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::ChannelEdit {
                 channel,
@@ -242,7 +265,7 @@ impl Component for AuditLogEntry {
             } => (
                 format_list_bulleted(),
                 IconColor::Yellow,
-                format!("{} updated #{}", username, get_channel_name(channel))
+                format!("{} updated #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::ChannelRolePermissionsEdit {
                 channel,
@@ -251,12 +274,17 @@ impl Component for AuditLogEntry {
             } => (
                 format_list_bulleted(),
                 IconColor::Yellow,
-                format!("{} updated role @{} permissions in #{}", username, get_role_name(role), get_channel_name(channel))
+                format!(
+                    "{} updated role @{} permissions in #{}",
+                    username,
+                    get_role_name(role),
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::ChannelDelete { channel, name } => (
                 format_list_bulleted(),
                 IconColor::Red,
-                format!("{} deleted #{}", username, get_channel_name(channel))
+                format!("{} deleted #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::MemberEdit {
                 user,
@@ -265,17 +293,21 @@ impl Component for AuditLogEntry {
             } => (
                 group(),
                 IconColor::Yellow,
-                format!("{} updated {}", username, get_user_name(user))
+                format!("{} updated {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::MemberKick { user } => (
                 group(),
                 IconColor::Red,
-                format!("{} kicked {}", username, get_user_name(user))
+                format!("{} kicked {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::ServerEdit { before, after } => (
                 info(),
                 IconColor::Yellow,
-                format!("{} made changes to {}", username, self.server.read().name.clone())
+                format!(
+                    "{} made changes to {}",
+                    username,
+                    self.server.read().name.clone()
+                ),
             ),
             v0::AuditLogEntryAction::RoleEdit {
                 role,
@@ -284,32 +316,42 @@ impl Component for AuditLogEntry {
             } => (
                 info(),
                 IconColor::Yellow,
-                format!("{} updated role @{}", username, get_role_name(role))
+                format!("{} updated role @{}", username, get_role_name(role)),
             ),
             v0::AuditLogEntryAction::RoleCreate { role, name } => (
                 flag(),
                 IconColor::Green,
-                format!("{} created role @{}", username, get_role_name(role))
+                format!("{} created role @{}", username, get_role_name(role)),
             ),
             v0::AuditLogEntryAction::RoleDelete { role, name } => (
                 flag(),
                 IconColor::Red,
-                format!("{} deleted role @{}", username, name)
+                format!("{} deleted role @{}", username, name),
             ),
             v0::AuditLogEntryAction::RolesReorder { before, after } => (
                 flag(),
                 IconColor::Yellow,
-                format!("{} re-oredered roles", username)
+                format!("{} re-oredered roles", username),
             ),
             v0::AuditLogEntryAction::InviteCreate { invite, channel } => (
                 flag(),
                 IconColor::Green,
-                format!("{} created an invite {} in #{}", username, invite, get_channel_name(channel))
+                format!(
+                    "{} created an invite {} in #{}",
+                    username,
+                    invite,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::InviteDelete { invite, channel } => (
                 flag(),
                 IconColor::Red,
-                format!("{} deleted an invite {} in #{}", username, invite, get_channel_name(channel))
+                format!(
+                    "{} deleted an invite {} in #{}",
+                    username,
+                    invite,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::WebhookCreate {
                 webhook,
@@ -318,7 +360,12 @@ impl Component for AuditLogEntry {
             } => (
                 smart_toy(),
                 IconColor::Green,
-                format!("{} created a webhook {} in #{}", username, name, get_channel_name(channel))
+                format!(
+                    "{} created a webhook {} in #{}",
+                    username,
+                    name,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::WebhookDelete {
                 webhook,
@@ -327,12 +374,17 @@ impl Component for AuditLogEntry {
             } => (
                 smart_toy(),
                 IconColor::Red,
-                format!("{} deleted a webhook {} in #{}", username, name, get_channel_name(channel))
+                format!(
+                    "{} deleted a webhook {} in #{}",
+                    username,
+                    name,
+                    get_channel_name(channel)
+                ),
             ),
             v0::AuditLogEntryAction::EmojiCreate { emoji, name } => (
                 smart_toy(),
                 IconColor::Green,
-                format!("{} created emoji {}", username, name)
+                format!("{} created emoji {}", username, name),
             ),
             v0::AuditLogEntryAction::EmojiUpdate {
                 emoji,
@@ -341,12 +393,12 @@ impl Component for AuditLogEntry {
             } => (
                 insert_emoticon(),
                 IconColor::Yellow,
-                format!("{} updated an emoji", username)
+                format!("{} updated an emoji", username),
             ),
             v0::AuditLogEntryAction::EmojiDelete { emoji, name } => (
                 smart_toy(),
                 IconColor::Red,
-                format!("{} deleted emoji {}", username, name)
+                format!("{} deleted emoji {}", username, name),
             ),
             _ => (info(), IconColor::Green, "todo".to_string()),
         };

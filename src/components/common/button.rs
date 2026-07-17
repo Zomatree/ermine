@@ -149,13 +149,16 @@ impl Component for StoatButton {
                 hovering.set(true);
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
-            .on_pointer_enter({let on_hover = self.on_hover.clone(); move |e| {
-                Cursor::set(CursorIcon::Pointer);
+            .on_pointer_enter({
+                let on_hover = self.on_hover.clone();
+                move |e| {
+                    Cursor::set(CursorIcon::Pointer);
 
-                if let Some(on_hover) = &on_hover {
-                    on_hover.call(e);
+                    if let Some(on_hover) = &on_hover {
+                        on_hover.call(e);
+                    }
                 }
-            }})
+            })
             .on_pointer_leave(move |_| {
                 Cursor::set(CursorIcon::default());
             })

@@ -1,12 +1,15 @@
 use std::borrow::Cow;
 
 use crate::{
-    AppChannel, SizeExt, components::{Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, material::{filled::content_copy, outlined::delete}, use_modals}, consume_material_theme, http
+    AppChannel, SizeExt,
+    components::{
+        Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::{filled::content_copy, outlined::delete},
+        use_modals,
+    },
+    consume_material_theme, http,
 };
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 struct Invite {
@@ -188,12 +191,22 @@ impl Component for InviteServerSettings {
                                                 .child(
                                                     rect()
                                                         .size(Size::px(36.))
-                                                        .background(theme.md.secondary_container.as_argb_u32())
-                                                        .color(theme.md.on_secondary_container.as_argb_u32())
+                                                        .background(
+                                                            theme
+                                                                .md
+                                                                .secondary_container
+                                                                .as_argb_u32(),
+                                                        )
+                                                        .color(
+                                                            theme
+                                                                .md
+                                                                .on_secondary_container
+                                                                .as_argb_u32(),
+                                                        )
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(content_copy())
-                                                                .size(Size::px(24.))
+                                                                .size(Size::px(24.)),
                                                         ),
                                                 ),
                                         )
@@ -219,7 +232,7 @@ impl Component for InviteServerSettings {
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(delete())
-                                                                .size(Size::px(24.))
+                                                                .size(Size::px(24.)),
                                                         ),
                                                 ),
                                         ),

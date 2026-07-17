@@ -17,9 +17,7 @@ pub use stoat::*;
 pub use theme::*;
 pub use utils::*;
 
-use crate::components::{
-    HttpManager, MaterialThemeProvider, Root,
-};
+use crate::components::{HttpManager, MaterialThemeProvider, Root};
 
 pub const BASE: &str = "https://api.stoat.chat";
 

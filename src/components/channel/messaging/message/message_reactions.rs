@@ -2,7 +2,10 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{MessageModel, StoatButton, StoatButtonLayoutThemePartialExt}, consume_material_theme, http, types::Tag
+    AppChannel, SizeExt,
+    components::{MessageModel, StoatButton, StoatButtonLayoutThemePartialExt},
+    consume_material_theme, http,
+    types::Tag,
 };
 
 #[derive(PartialEq)]

@@ -1,10 +1,13 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 
 use crate::{
-    AppChannel, SizeExt, components::{Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{filled::cake, outlined::edit}}, consume_material_theme, types::Account
+    AppChannel, SizeExt,
+    components::{
+        Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{filled::cake, outlined::edit},
+    },
+    consume_material_theme,
+    types::Account,
 };
 
 #[derive(PartialEq)]
@@ -68,10 +71,7 @@ impl Component for AccountSettings {
                                         .background(theme.md.primary.as_argb_u32())
                                         .color(theme.md.on_primary.as_argb_u32())
                                         .padding(8.)
-                                        .child(
-                                            MaterialIcon::new(edit())
-                                                .size(Size::px(24.))
-                                        ),
+                                        .child(MaterialIcon::new(edit()).size(Size::px(24.))),
                                 ),
                             ),
                     )
@@ -91,9 +91,7 @@ impl Component for AccountSettings {
                                         .color(theme.md.on_primary.as_argb_u32())
                                         .corner_radius(12.)
                                         .padding(8.)
-                                        .child(
-                                            MaterialIcon::new(cake()).size(Size::px(14.)),
-                                        ),
+                                        .child(MaterialIcon::new(cake()).size(Size::px(14.))),
                                 ),
                             ),
                         ),

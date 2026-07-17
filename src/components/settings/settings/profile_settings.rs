@@ -1,9 +1,13 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 
-use crate::{AppChannel, SizeExt, components::{Avatar, MaterialIcon, material::{filled::expand_more, outlined::groups}}, consume_material_theme};
+use crate::{
+    AppChannel, SizeExt,
+    components::{
+        Avatar, MaterialIcon,
+        material::{filled::expand_more, outlined::groups},
+    },
+    consume_material_theme,
+};
 
 #[derive(PartialEq)]
 pub struct ProfileSettings {}
@@ -81,10 +85,7 @@ impl Component for ProfileSettings {
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .color(theme.md.on_surface.as_argb_u32())
                                     .center()
-                                    .child(
-                                        MaterialIcon::new(groups())
-                                            .size(Size::px(22.))
-                                    ),
+                                    .child(MaterialIcon::new(groups()).size(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -104,10 +105,7 @@ impl Component for ProfileSettings {
                                             .text("Change your profile per-server"),
                                     ),
                             )
-                            .child(
-                                MaterialIcon::new(expand_more())
-                                    .size(Size::px(18.))
-                            ),
+                            .child(MaterialIcon::new(expand_more()).size(Size::px(18.))),
                     ),
             )
     }

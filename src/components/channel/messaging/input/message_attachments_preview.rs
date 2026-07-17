@@ -5,7 +5,11 @@ use crate::{
     components::{
         Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
-        material::{MaterialIcon, filled::{add, description}, outlined::{cancel, hide_image, image}},
+        material::{
+            MaterialIcon,
+            filled::{add, description},
+            outlined::{cancel, hide_image, image},
+        },
     },
     consume_material_theme,
 };

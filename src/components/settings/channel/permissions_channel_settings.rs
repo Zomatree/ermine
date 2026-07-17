@@ -1,14 +1,15 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 use stoat_permissions::OverrideField;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt, components::{
-        MaterialIcon, PermissionsEditor, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{chevron_right, list}
-    }, consume_material_theme, http, parse_fill, use_initial
+    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
+    components::{
+        MaterialIcon, PermissionsEditor, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::filled::{chevron_right, list},
+    },
+    consume_material_theme, http, parse_fill, use_initial,
 };
 
 #[derive(PartialEq)]
@@ -136,10 +137,7 @@ impl Component for ServerChannelPermissionsOverviewSettings {
                                             .background(theme.md.surface_dim.as_argb_u32())
                                             .color(theme.md.on_surface.as_argb_u32())
                                             .center()
-                                            .child(
-                                                MaterialIcon::new(list())
-                                                    .size(Size::px(22.))
-                                            ),
+                                            .child(MaterialIcon::new(list()).size(Size::px(22.))),
                                     )
                                     .child(
                                         rect()
@@ -158,10 +156,7 @@ impl Component for ServerChannelPermissionsOverviewSettings {
                                                     .text("Affects all roles and users"),
                                             ),
                                     )
-                                    .child(
-                                        MaterialIcon::new(chevron_right())
-                                            .size(Size::px(18.))
-                                    ),
+                                    .child(MaterialIcon::new(chevron_right()).size(Size::px(18.))),
                             ),
                     ),
             )
@@ -213,7 +208,7 @@ impl Component for ServerChannelPermissionsOverviewSettings {
                                                 )
                                                 .child(
                                                     MaterialIcon::new(chevron_right())
-                                                        .size(Size::px(18.))
+                                                        .size(Size::px(18.)),
                                                 ),
                                         ),
                                 )

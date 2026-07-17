@@ -3,9 +3,14 @@ use std::{cell::RefCell, rc::Rc};
 use freya::prelude::*;
 
 use crate::{
-    Error, components::{
-        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal, DeleteCategoryModal, DeleteChannelModal, DeleteInviteModal, DeleteMessageModal, ErrorModal, InviteInfoModal, JoinServerModal, LeaveGroupModal, LeaveServerModal, RenameCategoryModal, ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt
-    }, consume_material_theme
+    Error,
+    components::{
+        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal,
+        DeleteCategoryModal, DeleteChannelModal, DeleteInviteModal, DeleteMessageModal, ErrorModal,
+        InviteInfoModal, JoinServerModal, LeaveGroupModal, LeaveServerModal, RenameCategoryModal,
+        ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt,
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq, Clone, Debug)]

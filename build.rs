@@ -23,7 +23,7 @@ fn sanitise_icon_name(name: &str) -> String {
         match name {
             "loop" => "looped".to_string(),
             "try" => "tried".to_string(),
-            name => name.to_string()
+            name => name.to_string(),
         }
     }
 }

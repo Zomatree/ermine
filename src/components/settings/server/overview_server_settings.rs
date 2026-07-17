@@ -1,7 +1,12 @@
 use crate::{
-    AppChannel, LocalFile, SizeExt, components::{
-        Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image, material::filled::clear
-    }, consume_material_theme, http, types::Tag, use_initial
+    AppChannel, LocalFile, SizeExt,
+    components::{
+        Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
+    },
+    consume_material_theme, http,
+    types::Tag,
+    use_initial,
 };
 use freya::{prelude::*, radio::use_radio};
 use rfd::AsyncFileDialog;
@@ -458,15 +463,13 @@ impl Component for SystemMessagesChannelSelector {
                 let channels = channels.read();
                 let mut options = vec![None];
 
-                options.extend(server
-                    .read()
-                    .channels
-                    .iter()
-                    .filter_map(|id| {
-                        channels
-                            .get(id)
-                            .map(|c| Some(c.id().to_string()))
-                    }));
+                options.extend(
+                    server
+                        .read()
+                        .channels
+                        .iter()
+                        .filter_map(|id| channels.get(id).map(|c| Some(c.id().to_string()))),
+                );
 
                 options
             }
@@ -476,11 +479,16 @@ impl Component for SystemMessagesChannelSelector {
             self.title,
             self.value.clone(),
             options.read().cloned(),
-            move |channel| {
-                match channel {
-                    Some(id) => channels.read().get(id).unwrap().name().unwrap().to_string().into_element(),
-                    None => "Disabled".into_element()
-                }
+            move |channel| match channel {
+                Some(id) => channels
+                    .read()
+                    .get(id)
+                    .unwrap()
+                    .name()
+                    .unwrap()
+                    .to_string()
+                    .into_element(),
+                None => "Disabled".into_element(),
             },
         )
     }

@@ -1,9 +1,15 @@
-use freya::{
-    prelude::*,
-};
+use freya::prelude::*;
 
 use crate::{
-    SizeExt, components::{MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, material::{filled::{list, memory}, outlined::{bug_report, open_in_new}}}, consume_material_theme
+    SizeExt,
+    components::{
+        MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::{
+            filled::{list, memory},
+            outlined::{bug_report, open_in_new},
+        },
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -51,10 +57,7 @@ impl Component for SourceCodeSettings {
                                         label().font_size(12.).text("Ermine client source code."),
                                     ),
                             )
-                            .child(
-                                MaterialIcon::new(open_in_new())
-                                    .size(Size::px(18.))
-                            ),
+                            .child(MaterialIcon::new(open_in_new()).size(Size::px(18.))),
                     ),
             )
             .child(
@@ -80,10 +83,7 @@ impl Component for SourceCodeSettings {
                                     .corner_radius(18.)
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
-                                    .child(
-                                        MaterialIcon::new(list())
-                                            .size(Size::px(22.))
-                                    ),
+                                    .child(MaterialIcon::new(list()).size(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -91,10 +91,7 @@ impl Component for SourceCodeSettings {
                                     .child(label().font_size(14.).text("Feedback"))
                                     .child(label().font_size(12.).text("Submit feedback.")),
                             )
-                            .child(
-                                MaterialIcon::new(open_in_new())
-                                    .size(Size::px(18.))
-                            ),
+                            .child(MaterialIcon::new(open_in_new()).size(Size::px(18.))),
                     ),
             )
             .child(
@@ -132,10 +129,7 @@ impl Component for SourceCodeSettings {
                                             .text("View currently active bug reports."),
                                     ),
                             )
-                            .child(
-                                MaterialIcon::new(open_in_new())
-                                    .size(Size::px(18.))
-                            ),
+                            .child(MaterialIcon::new(open_in_new()).size(Size::px(18.))),
                     ),
             )
     }

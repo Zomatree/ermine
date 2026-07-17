@@ -1,7 +1,7 @@
 use freya::prelude::*;
 use stoat_models::v0;
 
-use crate::{components::file_image, http, consume_material_theme};
+use crate::{components::file_image, consume_material_theme, http};
 
 #[derive(PartialEq)]
 pub struct Avatar {

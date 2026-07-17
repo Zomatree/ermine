@@ -355,7 +355,6 @@ pub enum SelectedRole {
     Role(String),
 }
 
-
 // pub fn map_optional_readable<T, U>(
 //     readable: Readable<T>,
 //     f: impl Fn(&T) -> Option<&U> + 'static,

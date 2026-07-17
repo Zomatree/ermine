@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{Message, MessageModel, StoatSegmentedButton}, http
+    AppChannel,
+    components::{Message, MessageModel, StoatSegmentedButton},
+    http,
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -79,7 +81,12 @@ impl Component for MessageSearch {
                                 .iter()
                                 .find(|u| u.id == message.author)
                                 .cloned()
-                                .or_else(|| users_state.read().get("00000000000000000000000000").cloned())
+                                .or_else(|| {
+                                    users_state
+                                        .read()
+                                        .get("00000000000000000000000000")
+                                        .cloned()
+                                })
                                 .unwrap()
                                 .into_readable();
 

@@ -43,10 +43,7 @@ impl Component for HideSidebarHeader {
                                 .size(Size::px(18.))
                                 .rotation(if hide_channel_list { 180. } else { 0. }),
                         )
-                        .child(
-                            MaterialIcon::new(self.icon.clone())
-                                .size(Size::px(24.))
-                        ),
+                        .child(MaterialIcon::new(self.icon.clone()).size(Size::px(24.))),
                 ),
         )
     }

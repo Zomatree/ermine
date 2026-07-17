@@ -1,15 +1,22 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 use stoat_permissions::{DataPermissionsValue, Override};
 
 use crate::{
-    AppChannel, LocalFile, SelectedRole, ServerSettingsPage, SizeExt, Tag, components::{
-        MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker, checkbox::StoatCheckbox, file_image, material::{filled::{chevron_right, clear, list}, outlined::group_add}, use_modals
-    }, consume_material_theme, http, parse_fill, use_initial
+    AppChannel, LocalFile, SelectedRole, ServerSettingsPage, SizeExt, Tag,
+    components::{
+        MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
+        checkbox::StoatCheckbox,
+        file_image,
+        material::{
+            filled::{chevron_right, clear, list},
+            outlined::group_add,
+        },
+        use_modals,
+    },
+    consume_material_theme, http, parse_fill, use_initial,
 };
 
 #[derive(PartialEq)]
@@ -96,7 +103,7 @@ impl Component for RoleServerSettings {
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(list())
-                                                                .size(Size::px(22.))
+                                                                .size(Size::px(22.)),
                                                         ),
                                                 )
                                                 .child(
@@ -120,7 +127,7 @@ impl Component for RoleServerSettings {
                                                 )
                                                 .child(
                                                     MaterialIcon::new(chevron_right())
-                                                        .size(Size::px(18.))
+                                                        .size(Size::px(18.)),
                                                 ),
                                         ),
                                 ),
@@ -159,7 +166,7 @@ impl Component for RoleServerSettings {
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(group_add())
-                                                                .size(Size::px(22.))
+                                                                .size(Size::px(22.)),
                                                         ),
                                                 )
                                                 .child(
@@ -417,14 +424,11 @@ impl Component for SelectedRoleServerSettings {
                                 }
                             })
                             .child(
-                                rect()
-                                    .size(Size::px(36.))
-                                    .center()
-                                    .child(
-                                        MaterialIcon::new(clear())
-                                            .size(Size::px(24.))
-                                            .color(theme.md.primary.as_argb_u32()),
-                                    ),
+                                rect().size(Size::px(36.)).center().child(
+                                    MaterialIcon::new(clear())
+                                        .size(Size::px(24.))
+                                        .color(theme.md.primary.as_argb_u32()),
+                                ),
                             ),
                     ),
             )

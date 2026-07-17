@@ -1,7 +1,11 @@
 use crate::{
-    AppChannel, LocalFile, SizeExt, components::{
-        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::delete
-    }, consume_material_theme, http, types::Tag
+    AppChannel, LocalFile, SizeExt,
+    components::{
+        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, material::filled::delete,
+    },
+    consume_material_theme, http,
+    types::Tag,
 };
 use freya::{prelude::*, radio::use_radio};
 use rfd::AsyncFileDialog;

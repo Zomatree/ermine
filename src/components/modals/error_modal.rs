@@ -11,10 +11,7 @@ impl Component for ErrorModal {
     fn render(&self) -> impl IntoElement {
         Dialog::new()
             .title(label().line_height(1.5).text("An Error Occurred"))
-            .body(
-                rect()
-                    .child(format!("{:?}", self.error))
-            )
+            .body(rect().child(format!("{:?}", self.error)))
             .default_action("Ok")
     }
 }

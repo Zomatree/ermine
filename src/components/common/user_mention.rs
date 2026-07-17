@@ -73,15 +73,15 @@ impl Component for UserMention {
             .background(theme.md.primary_container.as_argb_u32())
             .color(theme.md.on_primary_container.as_argb_u32())
             .font_weight(FontWeight::SEMI_BOLD)
-            .maybe_child(
-                user.as_ref().map(|user| {
-                    Avatar::new(
-                        (*user).clone().into_readable(),
-                        member.as_ref().map(|member| (*member).clone().into_readable()),
-                        16.,
-                    )
-                })
-            )
+            .maybe_child(user.as_ref().map(|user| {
+                Avatar::new(
+                    (*user).clone().into_readable(),
+                    member
+                        .as_ref()
+                        .map(|member| (*member).clone().into_readable()),
+                    16.,
+                )
+            }))
             .child(
                 label()
                     .line_height(1.5)

@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::{BASE, HTTP, HttpClient, use_config, consume_material_theme};
+use crate::{BASE, HTTP, HttpClient, consume_material_theme, use_config};
 
 #[derive(PartialEq)]
 pub struct HttpManager {

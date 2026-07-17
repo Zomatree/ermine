@@ -6,7 +6,11 @@ use freya::{
     prelude::*,
 };
 
-use crate::{SizeExt, components::{MaterialIcon, material::outlined::color_lens}, consume_material_theme};
+use crate::{
+    SizeExt,
+    components::{MaterialIcon, material::outlined::color_lens},
+    consume_material_theme,
+};
 
 #[derive(Clone, PartialEq)]
 pub struct StoatColorPicker {

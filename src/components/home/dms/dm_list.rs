@@ -1,11 +1,17 @@
-use freya::{
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt, material::{MaterialIcon, outlined::{group, home, sticky_note_2}}}, consume_material_theme, http, theme::Theme
+    AppChannel, SizeExt,
+    components::{
+        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::{
+            MaterialIcon,
+            outlined::{group, home, sticky_note_2},
+        },
+    },
+    consume_material_theme, http,
+    theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -201,8 +207,7 @@ impl Component for DMList {
                             }
                         })
                         .item_size(48.)
-                        .length(channels.read().len())
-
+                        .length(channels.read().len()),
                     ),
             )
     }

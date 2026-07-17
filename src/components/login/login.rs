@@ -1,11 +1,14 @@
-use freya::{
-    prelude::*,
-};
+use freya::prelude::*;
 
 use crate::{
-    Config, SizeExt, components::{
-        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, dark_mode}
-    }, consume_material_theme, http, types::{DataLogin, MFAResponse, ResponseLogin}
+    Config, SizeExt,
+    components::{
+        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::filled::{clear, dark_mode},
+    },
+    consume_material_theme, http,
+    types::{DataLogin, MFAResponse, ResponseLogin},
 };
 
 #[derive(PartialEq)]
@@ -48,13 +51,9 @@ impl Component for Login {
                                     .corner_radius(40.)
                                     .on_press(move |_| config.write().theme.scheme.toggle())
                                     .child(
-                                        rect()
-                                            .size(Size::px(40.))
-                                            .center()
-                                            .child(
-                                                MaterialIcon::new(dark_mode())
-                                                    .size(Size::px(24.))
-                                            ),
+                                        rect().size(Size::px(40.)).center().child(
+                                            MaterialIcon::new(dark_mode()).size(Size::px(24.)),
+                                        ),
                                     ),
                             ),
                     )

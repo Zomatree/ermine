@@ -15,7 +15,11 @@ use freya::{
 use material_colors::{color::Rgb, scheme::Scheme};
 
 use crate::{
-    Config, StoatScheme, ThemeConfig, ThemeScheme, components::{StoatButtonColorsThemePreference, StoatButtonLayoutThemePreference}, generate_theme, map_readable, theme::Theme, use_config
+    Config, StoatScheme, ThemeConfig, ThemeScheme,
+    components::{StoatButtonColorsThemePreference, StoatButtonLayoutThemePreference},
+    generate_theme, map_readable,
+    theme::Theme,
+    use_config,
 };
 
 fn generate(theme_config: &ThemeConfig) -> Theme {
@@ -36,7 +40,6 @@ fn generate(theme_config: &ThemeConfig) -> Theme {
 
 static INITIAL_THEME: LazyLock<Arc<RwLock<Option<Theme>>>> =
     LazyLock::new(|| Arc::new(RwLock::new(None)));
-
 
 fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
     theme.set(

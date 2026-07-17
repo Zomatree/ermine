@@ -34,8 +34,7 @@ impl Component for DMButton {
                     let radio = radio.clone();
 
                     spawn(async move {
-                        let mut query =
-                            user_permissions_query(radio).channel(channel.clone());
+                        let mut query = user_permissions_query(radio).channel(channel.clone());
 
                         let permissions = calculate_channel_permissions(&mut query).await;
 

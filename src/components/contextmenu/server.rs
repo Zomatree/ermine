@@ -1,6 +1,13 @@
 use freya::{prelude::*, radio::use_radio};
 
-use crate::{AppChannel, ServerSettingsPage, components::{ContextMenuButton, ModalValue, material::outlined::{badge, logout, settings}, use_modals}};
+use crate::{
+    AppChannel, ServerSettingsPage,
+    components::{
+        ContextMenuButton, ModalValue,
+        material::outlined::{badge, logout, settings},
+        use_modals,
+    },
+};
 
 #[derive(PartialEq)]
 pub struct ServerContextMenu {
@@ -27,36 +34,34 @@ impl Component for ServerContextMenu {
         rect()
             .content(Content::Fit)
             .child(
-                ContextMenuButton::new(settings(), "Open Server Settings")
-                    .on_press({
-                        let server_id = self.server_id.clone();
+                ContextMenuButton::new(settings(), "Open Server Settings").on_press({
+                    let server_id = self.server_id.clone();
 
-                        move |_| {
-                            *server_settings.write() =
-                                Some((server_id.clone(), ServerSettingsPage::default()));
-                        }
-                    }),
+                    move |_| {
+                        *server_settings.write() =
+                            Some((server_id.clone(), ServerSettingsPage::default()));
+                    }
+                }),
             )
             .maybe_child((&server.read().owner != &*user_id.read()).then(|| {
                 ContextMenuButton::new(logout(), "Leave Server")
-                .danger()
+                    .danger()
                     .on_press({
                         let server_id = self.server_id.clone();
 
                         move |_| {
-                            modals.write().push_modal(ModalValue::LeaveServer { server: server_id.clone() });
+                            modals.write().push_modal(ModalValue::LeaveServer {
+                                server: server_id.clone(),
+                            });
                         }
                     })
             }))
-            .child(
-                ContextMenuButton::new(badge(), "Copy Server ID")
-                    .on_press({
-                        let server_id = self.server_id.clone();
+            .child(ContextMenuButton::new(badge(), "Copy Server ID").on_press({
+                let server_id = self.server_id.clone();
 
-                        move |_| {
-                            Clipboard::set(server_id.clone()).unwrap();
-                        }
-                    }),
-            )
+                move |_| {
+                    Clipboard::set(server_id.clone()).unwrap();
+                }
+            }))
     }
 }

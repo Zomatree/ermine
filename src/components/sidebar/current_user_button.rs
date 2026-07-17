@@ -7,9 +7,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel,
     components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
-    http,
+    consume_material_theme, http,
     theme::Theme,
-    consume_material_theme,
 };
 
 #[derive(PartialEq)]

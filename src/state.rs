@@ -13,13 +13,25 @@ use std::{
 };
 
 use stoat_models::v0::{
-    AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMember, PartialMessage, Relationship, RelationshipStatus, Server, User, UserSettings
+    AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole,
+    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMember, PartialMessage,
+    Relationship, RelationshipStatus, Server, User, UserSettings,
 };
 use stoat_result::ErrorType;
 
 use crate::{
     Config, SelectedRole,
-    components::{AttachmentController, ReplyController, material::{filled::{cloud, fact_check, info, list, mail, memory, person_remove}, outlined::{account_circle, color_lens, credit_card, language, mic, rate_review, science, smart_toy, verified_user}, round::{flag, insert_emoticon}}},
+    components::{
+        AttachmentController, ReplyController,
+        material::{
+            filled::{cloud, fact_check, info, list, mail, memory, person_remove},
+            outlined::{
+                account_circle, color_lens, credit_card, language, mic, rate_review, science,
+                smart_toy, verified_user,
+            },
+            round::{flag, insert_emoticon},
+        },
+    },
     http,
     types::EventV1,
 };
@@ -827,9 +839,14 @@ pub async fn update_state(
                         ),
                         FieldsChannel::Voice => {
                             set_enum_varient_values!(channel, voice, None, (Channel::TextChannel))
-                        },
+                        }
                         FieldsChannel::Slowmode => {
-                            set_enum_varient_values!(channel, slowmode, None, (Channel::TextChannel))
+                            set_enum_varient_values!(
+                                channel,
+                                slowmode,
+                                None,
+                                (Channel::TextChannel)
+                            )
                         }
                     }
                 }
@@ -1038,7 +1055,6 @@ pub async fn update_state(
                         FieldsMember::JoinedAt => {}
                         FieldsMember::VoiceChannel => {}
                         FieldsMember::Pronouns => member.pronouns = None,
-
                     }
                 }
             });
@@ -1109,24 +1125,20 @@ pub async fn update_state(
             // TODO
         }
         EventV1::UserRelationship { id, user } => {
-            update_user(
-                &id,
-                station,
-                |ourself| {
-                    if let Some(rel) = ourself
-                        .relations
-                        .iter_mut()
-                        .find(|rel| &rel.user_id == &user.id)
-                    {
-                        rel.status = user.relationship.clone();
-                    } else {
-                        ourself.relations.push(Relationship {
-                            user_id: user.id.clone(),
-                            status: user.relationship.clone(),
-                        });
-                    }
-                },
-            );
+            update_user(&id, station, |ourself| {
+                if let Some(rel) = ourself
+                    .relations
+                    .iter_mut()
+                    .find(|rel| &rel.user_id == &user.id)
+                {
+                    rel.status = user.relationship.clone();
+                } else {
+                    ourself.relations.push(Relationship {
+                        user_id: user.id.clone(),
+                        status: user.relationship.clone(),
+                    });
+                }
+            });
             insert_user(user, station);
         }
         EventV1::UserVoiceStateUpdate {

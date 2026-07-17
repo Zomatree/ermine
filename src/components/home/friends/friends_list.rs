@@ -17,10 +17,7 @@ impl Component for FriendsList {
         let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
 
         let user = radio.slice(AppChannel::Users, move |state| {
-            state
-                .users
-                .get(user_id.read().as_str())
-                .unwrap()
+            state.users.get(user_id.read().as_str()).unwrap()
         });
 
         let relations = use_memo({

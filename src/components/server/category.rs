@@ -8,7 +8,9 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions, components::{CategoryContextMenu, ChannelButton, MaterialIcon, material::filled::expand_more}, consume_material_theme, use_config, user_permissions_query
+    AppChannel, SizeExt, calculate_server_permissions,
+    components::{CategoryContextMenu, ChannelButton, MaterialIcon, material::filled::expand_more},
+    consume_material_theme, use_config, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -188,7 +190,9 @@ impl Component for CategoryHeader {
 
                         let permissions = calculate_server_permissions(&mut query).await;
 
-                        ContextMenu::open_from_event(&e, Menu::new().child(CategoryContextMenu {
+                        ContextMenu::open_from_event(
+                            &e,
+                            Menu::new().child(CategoryContextMenu {
                                 server_id: server.id.clone(),
                                 category_id: category_id.clone(),
                                 current_permissions: permissions,

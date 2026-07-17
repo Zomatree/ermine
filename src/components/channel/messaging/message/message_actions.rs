@@ -10,9 +10,19 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, calculate_channel_permissions, components::{
-        EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController, StoatButton, StoatButtonColorsThemePartialExt, material::{outlined::{delete, edit, more_vert, reply}, round::insert_emoticon}, use_floating, use_modals
-    }, consume_material_theme, http, theme::Theme, user_permissions_query
+    AppChannel, calculate_channel_permissions,
+    components::{
+        EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController,
+        StoatButton, StoatButtonColorsThemePartialExt,
+        material::{
+            outlined::{delete, edit, more_vert, reply},
+            round::insert_emoticon,
+        },
+        use_floating, use_modals,
+    },
+    consume_material_theme, http,
+    theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -152,12 +162,11 @@ impl Component for MessageActions {
                 move |e| {
                     ContextMenu::open_from_event(
                         &e,
-                        Menu::new()
-                        .child(MessageContextMenu {
+                        Menu::new().child(MessageContextMenu {
                             message: message.clone(),
                             replies,
-                            current_permissions: permissions()
-                        })
+                            current_permissions: permissions(),
+                        }),
                     );
                 }
             })
@@ -176,43 +185,61 @@ impl Component for MessageActions {
                     .horizontal()
                     .shadow(Shadow::new().blur(3.).color(Color::BLACK))
                     .layer(Layer::Relative(2))
-                    .maybe_child(permissions.read().has_channel_permission(ChannelPermission::SendMessage).then(|| message_actions_button(reply(), &theme).on_press({
-                        let mut replies = self.replies;
-                        let message = self.message.clone();
+                    .maybe_child(
+                        permissions
+                            .read()
+                            .has_channel_permission(ChannelPermission::SendMessage)
+                            .then(|| {
+                                message_actions_button(reply(), &theme).on_press({
+                                    let mut replies = self.replies;
+                                    let message = self.message.clone();
 
-                        move |_| {
-                            replies.add_reply(message.clone(), true);
-                        }
-                    })))
-                    .maybe_child(permissions.read().has_channel_permission(ChannelPermission::React).then(|| message_actions_button(insert_emoticon(), &theme).on_press({
-                        let message_id = self.message.message.id.clone();
-                        let channel_id = self.channel.peek().id().to_string();
-
-                        move |_| {
-                            floating.set(Some(
-                                EmojiPicker::new({
-                                    let message_id = message_id.clone();
-                                    let channel_id = channel_id.clone();
-
-                                    move |id: String| {
-                                        let message_id = message_id.clone();
-                                        let channel_id = channel_id.clone();
-                                        floating.set(None);
-
-                                        spawn_forever(async move {
-                                            println!(
-                                                "{:?}",
-                                                http()
-                                                    .react_message(&channel_id, &message_id, &id)
-                                                    .await
-                                            );
-                                        });
+                                    move |_| {
+                                        replies.add_reply(message.clone(), true);
                                     }
                                 })
-                                .into_element(),
-                            ));
-                        }
-                    })))
+                            }),
+                    )
+                    .maybe_child(
+                        permissions
+                            .read()
+                            .has_channel_permission(ChannelPermission::React)
+                            .then(|| {
+                                message_actions_button(insert_emoticon(), &theme).on_press({
+                                    let message_id = self.message.message.id.clone();
+                                    let channel_id = self.channel.peek().id().to_string();
+
+                                    move |_| {
+                                        floating.set(Some(
+                                            EmojiPicker::new({
+                                                let message_id = message_id.clone();
+                                                let channel_id = channel_id.clone();
+
+                                                move |id: String| {
+                                                    let message_id = message_id.clone();
+                                                    let channel_id = channel_id.clone();
+                                                    floating.set(None);
+
+                                                    spawn_forever(async move {
+                                                        println!(
+                                                            "{:?}",
+                                                            http()
+                                                                .react_message(
+                                                                    &channel_id,
+                                                                    &message_id,
+                                                                    &id
+                                                                )
+                                                                .await
+                                                        );
+                                                    });
+                                                }
+                                            })
+                                            .into_element(),
+                                        ));
+                                    }
+                                })
+                            }),
+                    )
                     .maybe_child((&self.message.message.author == &*user_id.read()).then(|| {
                         message_actions_button(edit(), &theme).on_press({
                             let message = self.message.message.clone();
@@ -256,28 +283,26 @@ impl Component for MessageActions {
                             })
                         }),
                     )
-                    .child(
-                        message_actions_button(more_vert(), &theme).on_press({
-                            let id = self.message.message.id.clone();
+                    .child(message_actions_button(more_vert(), &theme).on_press({
+                        let id = self.message.message.id.clone();
 
-                            move |e| {
-                                ContextMenu::open_from_event(
-                                    &e,
-                                    Menu::new().child(
-                                        MenuButton::new()
-                                            .child(label().font_size(14.).text("Copy Message ID"))
-                                            .on_press({
-                                                let id = id.clone();
+                        move |e| {
+                            ContextMenu::open_from_event(
+                                &e,
+                                Menu::new().child(
+                                    MenuButton::new()
+                                        .child(label().font_size(14.).text("Copy Message ID"))
+                                        .on_press({
+                                            let id = id.clone();
 
-                                                move |_| {
-                                                    Clipboard::set(id.clone()).unwrap();
-                                                }
-                                            }),
-                                    ),
-                                );
-                            }
-                        }),
-                    )
+                                            move |_| {
+                                                Clipboard::set(id.clone()).unwrap();
+                                            }
+                                        }),
+                                ),
+                            );
+                        }
+                    }))
             }))
     }
 

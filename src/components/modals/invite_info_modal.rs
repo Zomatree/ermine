@@ -14,9 +14,14 @@ impl Component for InviteInfoModal {
         Dialog::new()
             .title(label().line_height(1.5).text("Create Invite"))
             .body(
-                rect()
-                    .child("Here is your new invite code:")
-                    .child(rect().padding(15.).child(label().text(url.clone()).font_family("monospace").font_size(20.))),
+                rect().child("Here is your new invite code:").child(
+                    rect().padding(15.).child(
+                        label()
+                            .text(url.clone())
+                            .font_family("monospace")
+                            .font_size(20.),
+                    ),
+                ),
             )
             .action("Copy Link", move || {
                 Clipboard::set(url.clone()).unwrap();

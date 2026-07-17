@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{Message, MessageModel}, http
+    AppChannel,
+    components::{Message, MessageModel},
+    http,
 };
 
 #[derive(PartialEq)]
@@ -46,7 +48,12 @@ impl Component for MessagePinned {
                             .iter()
                             .find(|u| u.id == message.author)
                             .cloned()
-                            .or_else(|| users_state.read().get("00000000000000000000000000").cloned())
+                            .or_else(|| {
+                                users_state
+                                    .read()
+                                    .get("00000000000000000000000000")
+                                    .cloned()
+                            })
                             .unwrap()
                             .into_readable();
 
