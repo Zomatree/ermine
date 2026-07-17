@@ -4,9 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt, image},
-    use_material_theme,
+    AppChannel, calculate_channel_permissions,
+    components::{
+        Avatar, ChannelContextMenu, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
+        file_image,
+    },
+    consume_material_theme, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -19,51 +22,31 @@ impl Component for DMButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
         let user_id = radio.read().user_id.clone().unwrap();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .on_secondary_down({
                 let channel = self.channel.clone();
                 let radio = radio.clone();
-                let user_id = user_id.clone();
 
                 move |e| {
-                    ContextMenu::open_from_event(
-                        &e,
-                        match &*channel.read() {
-                            v0::Channel::DirectMessage { recipients, .. } => Menu::new().child(
-                                MenuButton::new()
-                                    .child(label().font_size(14.).text("Copy User ID"))
-                                    .on_press({
-                                        let other = recipients
-                                            .iter()
-                                            .find(|&id| id != &user_id)
-                                            .unwrap()
-                                            .clone();
+                    let channel = channel.read().clone();
+                    let radio = radio.clone();
 
-                                        let user = radio.slice(AppChannel::Users, move |state| {
-                                            state.users.get(&other).unwrap()
-                                        });
+                    spawn(async move {
+                        let mut query =
+                            user_permissions_query(radio).channel(channel.clone());
 
-                                        move |_| {
-                                            Clipboard::set(user.read().id.clone()).unwrap();
-                                        }
-                                    }),
-                            ),
-                            v0::Channel::Group { id, .. } => Menu::new().child(
-                                MenuButton::new()
-                                    .child(label().font_size(14.).text("Copy Channel ID"))
-                                    .on_press({
-                                        let id = id.clone();
+                        let permissions = calculate_channel_permissions(&mut query).await;
 
-                                        move |_| {
-                                            Clipboard::set(id.clone()).unwrap();
-                                        }
-                                    }),
-                            ),
-                            _ => unreachable!(),
-                        },
-                    );
+                        ContextMenu::open_from_event(
+                            &e,
+                            Menu::new().child(ChannelContextMenu {
+                                channel_id: channel.id().to_string(),
+                                current_permissions: permissions,
+                            }),
+                        );
+                    });
                 }
             })
             .child(
@@ -189,7 +172,7 @@ pub struct DMGroupButton {
 
 impl Component for DMGroupButton {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let (name, icon, users) = match &*self.channel.read() {
             v0::Channel::Group {
@@ -211,7 +194,7 @@ impl Component for DMGroupButton {
                     .corner_radius(12.)
                     .overflow(Overflow::Clip)
                     .child(match icon {
-                        Some(icon) => image(&icon).into_element(),
+                        Some(icon) => file_image(&icon).into_element(),
                         None => {
                             let initials = name
                                 .trim()

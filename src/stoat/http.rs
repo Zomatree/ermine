@@ -13,16 +13,7 @@ use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_string};
 use stoat_models::v0::{
-    AllMemberResponse, BanListResult, BulkMessageResponse, Channel, ChannelUnread,
-    CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate,
-    DataCreateEmoji, DataCreateRole, DataCreateServer, DataCreateServerChannel,
-    DataDefaultChannelPermissions, DataEditChannel, DataEditMessage, DataEditRole,
-    DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
-    DataMessageSend, DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission,
-    Emoji, FetchServerResponse, FlagResponse, Invite, InviteJoinResponse, Member, Message,
-    MutualResponse, NewRoleResponse, OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer,
-    OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete, OptionsUnreact,
-    ResponseWebhook, Role, Server, ServerBan, User, UserProfile, UserSettings, Webhook,
+    AllMemberResponse, AuditLogQueryResponse, BanListResult, BulkMessageResponse, Channel, ChannelUnread, CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataCreateEmoji, DataCreateRole, DataCreateServer, DataCreateServerChannel, DataDefaultChannelPermissions, DataEditChannel, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite, InviteJoinResponse, Member, Message, MutualResponse, NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, ResponseWebhook, Role, Server, ServerBan, User, UserProfile, UserSettings, Webhook
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
@@ -328,21 +319,21 @@ impl HttpClient {
         .await
     }
 
-    pub async fn pin_message(&self, channel_id: &str, message_id: &str) -> Result<Message> {
+    pub async fn pin_message(&self, channel_id: &str, message_id: &str) -> Result<()> {
         self.request(
             Method::POST,
             format!("/channels/{channel_id}/messages/{message_id}/pin"),
         )
-        .response()
+        .send()
         .await
     }
 
-    pub async fn unpin_message(&self, channel_id: &str, message_id: &str) -> Result<Message> {
+    pub async fn unpin_message(&self, channel_id: &str, message_id: &str) -> Result<()> {
         self.request(
             Method::DELETE,
             format!("/channels/{channel_id}/messages/{message_id}/pin"),
         )
-        .response()
+        .send()
         .await
     }
 
@@ -808,6 +799,32 @@ impl HttpClient {
             .response()
             .await
     }
+
+    pub async fn search_channel(&self, channel_id: &str, data: &DataMessageSearch) -> Result<BulkMessageResponse> {
+        self.request(Method::POST, format!("/channels/{channel_id}/search"))
+            .body(data)
+            .response()
+            .await
+    }
+
+    pub async fn create_invite(&self, channel_id: &str) -> Result<Invite> {
+        self.request(Method::POST, format!("/channels/{channel_id}/invites"))
+            .response()
+            .await
+    }
+
+    pub async fn ack_channel(&self, channel_id: &str, message_id: &str) -> Result<()> {
+        self.request(Method::PUT, format!("/channels/{channel_id}/ack/{message_id}"))
+            .send()
+            .await
+    }
+
+    pub async fn fetch_audit_logs(&self, server_id: &str, data: &OptionsAuditLogQuery) -> Result<AuditLogQueryResponse> {
+        self.request(Method::GET, format!("/servers/{server_id}/audit_logs"))
+            .query(data)
+            .response()
+            .await
+    }
 }
 
 pub struct HttpRequest {
@@ -904,6 +921,8 @@ impl HttpRequest {
         let (client, req) = self.builder.build_split();
 
         let request = req?;
+
+        log::debug!("Sending http request {} {}?{}", request.method(), request.url().path(), request.url().query().unwrap_or_default());
 
         let (bucket, resource) = Self::resolve_bucket(self.service, &request);
         let mut key = DefaultHasher::new();

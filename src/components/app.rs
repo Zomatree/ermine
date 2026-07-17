@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use freya::{
     prelude::*,
-    radio::{use_init_radio_station, use_radio},
+    radio::{use_radio, use_radio_station},
 };
 use stoat_models::v0;
 use tokio::{
@@ -11,8 +11,8 @@ use tokio::{
 };
 
 use crate::{
-    AppChannel, AppState, ConnectionState, components, http, state, update_settings, use_config,
-    use_material_theme,
+    AppChannel, ConnectionState, components, consume_material_theme, http, state, update_settings,
+    use_config,
     websocket::{self, Event, LocalEvent},
 };
 
@@ -21,9 +21,9 @@ pub struct App {}
 
 impl Component for App {
     fn render(&self) -> impl IntoElement {
-        let station = use_init_radio_station::<AppState, AppChannel>(AppState::new);
+        let station = use_radio_station();
         let config = use_config();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let (_msg_s, msg_r) = use_hook(|| {
             let (s, r) = mpsc::unbounded_channel();
@@ -96,7 +96,6 @@ impl Component for App {
                     })
                     .await
                 {
-                    println!("{settings:?}");
                     update_settings(settings, station);
                 }
 

@@ -1,14 +1,14 @@
-use freya::{
-    icons::lucide::{download, file_text},
-    prelude::*,
-};
+use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
+    SizeExt,
     components::{
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, image,
+        MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, file_image,
+        material::filled::{description, download},
     },
-    http, use_material_theme,
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]
@@ -18,7 +18,7 @@ pub struct MessageAttachment {
 
 impl Component for MessageAttachment {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut spoilered = use_state(|| self.file.filename.starts_with("SPOILER_"));
 
         rect()
@@ -38,7 +38,7 @@ impl Component for MessageAttachment {
                         .width(Size::px(new_width))
                         .height(Size::px(new_height))
                         .child(
-                            image(&self.file)
+                            file_image(&self.file)
                                 .width(Size::Fill)
                                 .height(Size::Fill)
                                 .aspect_ratio(AspectRatio::Min)
@@ -108,7 +108,7 @@ impl Component for MessageAttachment {
                     .cross_align(Alignment::Center)
                     .spacing(8.)
                     .content(Content::Flex)
-                    .child(svg(file_text()).width(Size::px(24.)).height(Size::px(24.)))
+                    .child(MaterialIcon::new(description()).size(Size::px(24.)))
                     .child(
                         rect()
                             .width(Size::flex(1.))
@@ -142,9 +142,7 @@ impl Component for MessageAttachment {
                                     .width(Size::px(40.))
                                     .height(Size::px(40.))
                                     .center()
-                                    .child(
-                                        svg(download()).width(Size::px(24.)).height(Size::px(24.)),
-                                    ),
+                                    .child(MaterialIcon::new(download()).size(Size::px(24.))),
                             ),
                     )
                     .into_element(),

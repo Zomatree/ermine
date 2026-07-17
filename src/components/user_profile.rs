@@ -1,7 +1,6 @@
 use std::{rc::Rc, time::SystemTime};
 
 use freya::{
-    icons::lucide::{circle_x, ellipsis_vertical},
     prelude::*,
     radio::use_radio,
 };
@@ -9,14 +8,9 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{
-        Avatar, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-        image,
-    },
-    http, parse_fill,
-    theme::Theme,
-    use_material_theme,
+    AppChannel, SizeExt, components::{
+        Avatar, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu, file_image, material::{filled::cancel, outlined::more_vert}
+    }, consume_material_theme, http, parse_fill, theme::Theme
 };
 
 #[derive(PartialEq)]
@@ -27,7 +21,7 @@ pub struct UserProfile {
 impl Component for UserProfile {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserProfile);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let close_profile = move || radio.clone().write().user_profile = None;
 
@@ -172,7 +166,7 @@ impl Component for ProfileBanner {
                     .as_ref()
                     .and_then(|p| p.background.as_ref())
                     .map(|background| {
-                        image(background)
+                        file_image(background)
                             .aspect_ratio(AspectRatio::Max)
                             .image_cover(ImageCover::Center)
                             .expanded()
@@ -186,7 +180,7 @@ impl Component for ProfileBanner {
                     .width(Size::Fill)
                     .height(Size::px(120.))
                     .main_align(Alignment::End)
-                    .background_linear_gradient(
+                    .background(
                         LinearGradient::new()
                             .stop((0x33000000, 20.))
                             .stop((0xb3000000, 70.)),
@@ -223,7 +217,7 @@ pub struct ProfileButtons {
 impl Component for ProfileButtons {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Users);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let user = self.user.read();
 
@@ -286,7 +280,7 @@ impl Component for ProfileButtons {
                     }),
                 )),
                 Some((
-                    circle_x(),
+                    cancel(),
                     Rc::new({
                         let id = user.id.clone();
                         move || {
@@ -340,7 +334,7 @@ impl Component for ProfileButtons {
                             .height(Size::px(40.))
                             .padding((0., 8.))
                             .center()
-                            .child(svg(icon).width(Size::px(24.)).height(Size::px(24.))),
+                            .child(MaterialIcon::new(icon).size(Size::px(24.))),
                     )
             }))
             .child(
@@ -350,17 +344,10 @@ impl Component for ProfileButtons {
                         move |e| {
                             ContextMenu::open_from_event(
                                 &e,
-                                Menu::new().child(
-                                    MenuButton::new()
-                                        .child(label().font_size(14.).text("Copy User ID"))
-                                        .on_press({
-                                            let id = id.clone();
-
-                                            move |_| {
-                                                Clipboard::set(id.clone()).unwrap();
-                                            }
-                                        }),
-                                ),
+                                Menu::new().child(UserContextMenu {
+                                    user_id: id.clone(),
+                                    server_id: None,
+                                }),
                             );
                         }
                     })
@@ -372,9 +359,8 @@ impl Component for ProfileButtons {
                             .padding((0., 8.))
                             .center()
                             .child(
-                                svg(ellipsis_vertical())
-                                    .width(Size::px(24.))
-                                    .height(Size::px(24.)),
+                                MaterialIcon::new(more_vert())
+                                    .size(Size::px(24.))
                             ),
                     ),
             )
@@ -388,7 +374,7 @@ pub struct ProfileStatus {
 
 impl Component for ProfileStatus {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         card(
             "Status",
@@ -405,7 +391,7 @@ pub struct ProfileBadges {
 
 impl Component for ProfileBadges {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let badge = |badge: v0::UserBadges, value| {
             ((self.badges & badge.clone() as u32) == badge as u32).then(|| {
@@ -449,7 +435,7 @@ pub struct ProfileJoined {
 impl Component for ProfileJoined {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let platform_joined_at = use_hook(|| {
             Timestamp::try_from(
@@ -520,12 +506,12 @@ pub struct ProfileBio {
 
 impl Component for ProfileBio {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         card(
             "Bio",
             &theme,
-            SelectableText::new(self.bio.clone()).font_size(14),
+            SelectableText::new().span(self.bio.clone()).font_size(14),
         )
         .height(Size::Inner)
     }
@@ -539,7 +525,7 @@ pub struct ProfileRoles {
 impl Component for ProfileRoles {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let server = radio.slice_current({
             let member = self.member.clone();

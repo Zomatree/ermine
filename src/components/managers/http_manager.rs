@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::{BASE, HTTP, HttpClient, use_config, use_material_theme};
+use crate::{BASE, HTTP, HttpClient, use_config, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct HttpManager {
@@ -24,7 +24,7 @@ impl ChildrenExt for HttpManager {
 impl Component for HttpManager {
     fn render(&self) -> impl IntoElement {
         let config = use_config();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let future = use_future(move || {
             let config = config.clone();

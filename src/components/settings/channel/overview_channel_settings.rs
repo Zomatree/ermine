@@ -1,14 +1,14 @@
 use crate::{
-    LocalFile,
+    LocalFile, SizeExt,
     components::{
-        Dropdown, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, image,
+        Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
     },
-    http,
+    consume_material_theme, http,
     types::Tag,
-    use_initial, use_material_theme,
+    use_initial,
 };
-use freya::{icons::lucide::x, prelude::*};
+use freya::prelude::*;
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
@@ -19,7 +19,7 @@ pub struct OverviewChannelSettings {
 
 impl Component for OverviewChannelSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut error = use_state(|| None);
 
         let edit_channel = {
@@ -170,7 +170,7 @@ impl Component for OverviewChannelSettings {
                                             .layer(Layer::Relative(1))
                                             .width(Size::Fill)
                                             .height(Size::Fill)
-                                            .child(image(icon))
+                                            .child(file_image(icon))
                                     })),
                             ),
                     )
@@ -194,9 +194,8 @@ impl Component for OverviewChannelSettings {
                                     .height(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
-                                            .width(Size::px(24.))
-                                            .height(Size::px(24.))
+                                        MaterialIcon::new(clear())
+                                            .size(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),
                                     ),
                             ),
@@ -208,10 +207,10 @@ impl Component for OverviewChannelSettings {
                     .placeholder("This channel is about...")
                     .margin((0., 0., 24., 0.)),
             )
-            .maybe_child(is_text_channel.then(|| label().text("Channel Slowmode").font_size(12.)))
             .maybe_child(is_text_channel.then(|| {
                 Dropdown::new(
-                    channel_slowmode,
+                    "Channel Slowmode",
+                    channel_slowmode.into_writable(),
                     vec![
                         0,
                         5,
@@ -225,7 +224,7 @@ impl Component for OverviewChannelSettings {
                         60 * 60 * 2,
                         60 * 60 * 6,
                     ],
-                    |duration| label().text(format!("{duration} seconds")).into_element(),
+                    |duration| format!("{duration} seconds").into_element(),
                 )
             }))
             .child(

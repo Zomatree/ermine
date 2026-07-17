@@ -1,20 +1,15 @@
 use std::borrow::Cow;
 
 use freya::{
-    icons::lucide::{square_arrow_right, x},
     prelude::*,
     radio::use_radio,
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ChannelSettingsPage,
-    components::{
-        OverviewChannelSettings, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-    },
-    theme::Theme,
-    use_material_theme,
+    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt, components::{
+        MaterialIcon, OverviewChannelSettings, PermissionsChannelSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{chevron_right, clear, delete}
+    }, consume_material_theme, theme::Theme
 };
 
 #[derive(PartialEq)]
@@ -26,7 +21,9 @@ impl Component for ChannelSettings {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::ChannelSettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.channel_settings_page);
-        let theme = use_material_theme();
+        let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
+
+        let theme = consume_material_theme();
 
         let close_settings = {
             let current_page = current_page.clone();
@@ -91,7 +88,7 @@ impl Component for ChannelSettings {
                                         &theme,
                                         &[
                                             ChannelSettingsPage::Overview,
-                                            ChannelSettingsPage::Permissions,
+                                            ChannelSettingsPage::Permissions(None),
                                             ChannelSettingsPage::Webhooks,
                                         ],
                                     ))
@@ -115,15 +112,86 @@ impl Component for ChannelSettings {
                                     .width(Size::flex(1.))
                                     .max_width(Size::px(740.))
                                     .child(rect().padding((32., 32.)).child({
-                                        let page = current_page.read().as_ref().unwrap().1;
+                                        let page = current_page.read().as_ref().unwrap().1.clone();
+
+                                        let selected_role =
+                                            if let ChannelSettingsPage::Permissions(Some(role)) =
+                                                &page
+                                            {
+                                                Some(role.clone())
+                                            } else {
+                                                None
+                                            };
+
                                         rect()
                                             .spacing(8.)
                                             .child(
-                                                label()
-                                                    .text(page.title())
+                                                rect()
+                                                    .cross_align(Alignment::Center)
+                                                    .spacing(8.)
                                                     .font_size(22)
-                                                    .line_height(1.75)
-                                                    .font_weight(550),
+                                                    .font_weight(550)
+                                                    .horizontal()
+                                                    .child(label()
+                                                        .text(page.title())
+                                                        .maybe(selected_role.is_some(), |label|
+                                                            label
+                                                                .color(theme.md.outline.as_argb_u32())
+                                                                .on_pointer_enter(move |_| {
+                                                                    Cursor::set(CursorIcon::Pointer);
+                                                                })
+                                                                .on_pointer_leave(move |_| {
+                                                                    Cursor::set(CursorIcon::default());
+                                                                })
+                                                                .on_press({
+                                                                    let mut current_page =
+                                                                        current_page.clone();
+                                                                    move |_| {
+                                                                        if let Some(v) = current_page
+                                                                            .write()
+                                                                            .as_mut()
+                                                                        {
+                                                                            v.1 = ChannelSettingsPage::Permissions(None);
+                                                                        }
+                                                                    }
+                                                                }))
+
+                                                    )
+                                                    .maybe_child(selected_role.is_some().then(
+                                                        || {
+                                                            MaterialIcon::new(chevron_right())
+                                                                .size(Size::px(14.))
+                                                                .color(
+                                                                    theme.md.outline.as_argb_u32(),
+                                                                )
+                                                        },
+                                                    ))
+                                                    .maybe_child(selected_role.map(|role| {
+                                                        label().text(match role {
+                                                            SelectedRole::Default => {
+                                                                "Default Permissions".to_string()
+                                                            }
+                                                            SelectedRole::Role(id) => {
+                                                                let v0::Channel::TextChannel {
+                                                                    server,
+                                                                    ..
+                                                                } = self.channel.read().clone()
+                                                                else {
+                                                                    unreachable!()
+                                                                };
+
+                                                                servers
+                                                                    .read()
+                                                                    .get(&server)
+                                                                    .unwrap()
+                                                                    .roles
+                                                                    .get(&id)
+                                                                    .unwrap()
+                                                                    .name
+                                                                    .clone()
+                                                            }
+                                                        })
+                                                    })),
                                             )
                                             .child(match page {
                                                 ChannelSettingsPage::Overview => {
@@ -132,8 +200,8 @@ impl Component for ChannelSettings {
                                                     }
                                                     .into_element()
                                                 }
-                                                ChannelSettingsPage::Permissions => {
-                                                    "Coming soon!".into_element()
+                                                ChannelSettingsPage::Permissions(selected_role) => {
+                                                    PermissionsChannelSettings { channel: self.channel.clone(), selected_role }.into_element()
                                                 }
                                                 ChannelSettingsPage::Webhooks => {
                                                     "Coming soon!".into_element()
@@ -154,9 +222,8 @@ impl Component for ChannelSettings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    svg(x())
-                                                        .width(Size::px(24.))
-                                                        .height(Size::px(24.)),
+                                                    MaterialIcon::new(clear())
+                                                        .size(Size::px(24.))
                                                 ),
                                         ),
                                 ),
@@ -175,7 +242,7 @@ impl Component for ChannelSettingsButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::ChannelSettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.channel_settings_page);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -194,9 +261,8 @@ impl Component for ChannelSettingsButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(self.page.icon())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
+                        MaterialIcon::new(self.page.icon())
+                            .size(Size::px(20.))
                     )
                     .child(
                         label()
@@ -207,10 +273,11 @@ impl Component for ChannelSettingsButton {
             )
             .on_press({
                 let mut current_page = current_page.clone();
-                let page = self.page;
+                let page = self.page.clone();
+
                 move |_| {
                     if let Some(v) = current_page.write().as_mut() {
-                        v.1 = page;
+                        v.1 = page.clone();
                     }
                 }
             })
@@ -236,7 +303,8 @@ fn settings_category(
             rect().spacing(6.).children(
                 pages
                     .into_iter()
-                    .map(|page| ChannelSettingsButton { page: *page }.into_element()),
+                    .cloned()
+                    .map(|page| ChannelSettingsButton { page }.into_element()),
             ),
         )
 }
@@ -246,7 +314,7 @@ struct DeleteChannelButton {}
 
 impl Component for DeleteChannelButton {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -259,9 +327,8 @@ impl Component for DeleteChannelButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(square_arrow_right())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
+                        MaterialIcon::new(delete())
+                            .size(Size::px(20.))
                     )
                     .child(
                         label()

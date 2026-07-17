@@ -1,7 +1,7 @@
 use freya::prelude::*;
 use stoat_models::v0;
 
-use crate::{components::image, http, use_material_theme};
+use crate::{components::file_image, http, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct Avatar {
@@ -29,13 +29,13 @@ impl Avatar {
 
 impl Component for Avatar {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let image = self
             .member
             .as_ref()
-            .and_then(|member| member.read().avatar.as_ref().map(image))
-            .or_else(|| self.user.read().avatar.as_ref().map(image));
+            .and_then(|member| member.read().avatar.as_ref().map(file_image))
+            .or_else(|| self.user.read().avatar.as_ref().map(file_image));
 
         rect()
             .width(Size::px(self.size))
@@ -51,7 +51,7 @@ impl Component for Avatar {
                 ImageViewer::new(
                     http()
                         .format_default_avatar_url(&self.user.peek().id)
-                        .parse::<Uri>()
+                        .parse::<Url>()
                         .unwrap(),
                 )
                 .sampling_mode(SamplingMode::Trilinear)

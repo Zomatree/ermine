@@ -3,11 +3,10 @@ use freya::{
         AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, ReadAnimatedValue,
         use_animation,
     },
-    icons::lucide::palette,
     prelude::*,
 };
 
-use crate::use_material_theme;
+use crate::{SizeExt, components::{MaterialIcon, material::outlined::color_lens}, consume_material_theme};
 
 #[derive(Clone, PartialEq)]
 pub struct StoatColorPicker {
@@ -47,7 +46,7 @@ impl Component for StoatColorPicker {
         let mut dragging = use_state(DragTarget::default);
         let mut area = use_state(Area::default);
         let mut hue_area = use_state(Area::default);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let is_open = open();
 
@@ -58,7 +57,7 @@ impl Component for StoatColorPicker {
             .background(theme.md.primary.as_argb_u32())
             .color(theme.md.on_primary.as_argb_u32())
             .center()
-            .child(svg(palette()).width(Size::px(24.)).height(Size::px(24.)))
+            .child(MaterialIcon::new(color_lens()).size(Size::px(24.)))
             .on_press(move |_| {
                 open.toggle();
             });
@@ -68,7 +67,7 @@ impl Component for StoatColorPicker {
             .width(Size::fill())
             .corner_radius(4.)
             .on_sized(move |e: Event<SizedEventData>| hue_area.set(e.area))
-            .background_linear_gradient(
+            .background(
                 LinearGradient::new()
                     .angle(-90.)
                     .stop(((255, 0, 0), 0.))
@@ -88,7 +87,7 @@ impl Component for StoatColorPicker {
             .child(
                 rect()
                     .expanded()
-                    .background_linear_gradient(
+                    .background(
                         // left: white -> right: hue color
                         LinearGradient::new()
                             .angle(-90.)
@@ -99,7 +98,7 @@ impl Component for StoatColorPicker {
                         rect()
                             .position(Position::new_absolute())
                             .expanded()
-                            .background_linear_gradient(
+                            .background(
                                 // top: transparent -> bottom: black
                                 LinearGradient::new()
                                     .stop(((255, 255, 255, 0.0), 0.))

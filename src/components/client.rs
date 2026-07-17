@@ -9,12 +9,11 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, ConnectionState, Selection,
+    AppChannel, ConnectionState, Selection, SizeExt,
     components::{
-        ChannelSettings, Discover, FloatingManager, Home, ModalManager, Server, ServerList,
-        ServerSettings, Settings, UserProfile,
+        AttachmentController, ChannelSettings, Discover, FloatingManager, Home, MaterialIcon, ModalManager, Server, ServerList, ServerSettings, Settings, UserProfile, material::filled::description
     },
-    map_readable,
+    consume_material_theme, map_readable,
 };
 
 #[derive(PartialEq)]
@@ -22,6 +21,7 @@ pub struct Client {}
 
 impl Component for Client {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Selection);
         let selected = radio.slice_current(|state| &state.selection);
         let settings = radio.slice(AppChannel::SettingsPage, |state| &state.settings_page);
@@ -37,6 +37,8 @@ impl Component for Client {
         let connection_state = radio.slice_mut(AppChannel::State, |state| &mut state.state);
         let user_profile =
             radio.slice_mut(AppChannel::UserProfile, |state| &mut state.user_profile);
+
+        let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
 
         let show_connection_state_banner = use_state(|| false);
 
@@ -159,7 +161,7 @@ impl Component for Client {
 
                 rect()
                     .position(Position::new_global())
-                    .layer(Layer::RelativeOverlay(1))
+                    .layer(Layer::OverlayLevel(1))
                     .width(Size::window_percent(100.))
                     .height(Size::px(30.))
                     .center()
@@ -172,12 +174,53 @@ impl Component for Client {
                     )
                     .background(background)
             }))
+            .maybe_child(file_hover.read().then(|| {
+                rect()
+                    .position(Position::new_global())
+                    .width(Size::window_percent(100.))
+                    .height(Size::window_percent(100.))
+                    .layer(Layer::OverlayLevel(2))
+                    .background(0xcc000000)
+                    .center()
+                    .on_file_drop({
+                        let file_hover = file_hover.clone();
+
+                        move |e: Event<FileEventData>| {
+                            if let Some(path) = e.file_path.clone()
+                                && let Some(controller) =
+                                    try_consume_root_context::<Option<AttachmentController>>()
+                                        .flatten()
+                            {
+                            file_hover.clone().set(false);
+
+                                spawn(async move {
+                                controller.add(path).await;
+                                });
+                            };
+
+                        }
+                    })
+                    .child(
+                        rect()
+                            .spacing(16.)
+                            .child(
+                                MaterialIcon::new(description())
+                                    .color(theme.md.on_surface.as_argb_u32())
+                                    .size(Size::px(64.)),
+                            )
+                            .child(
+                                label()
+                                    .text("Drop a file")
+                                    .color(theme.md.on_surface.as_argb_u32()),
+                            ),
+                    )
+            }))
             .maybe_child((settings_opacity > 0.).then(|| {
                 rect()
                     .position(Position::new_global())
                     .width(Size::window_percent(100.))
                     .height(Size::window_percent(100.))
-                    .layer(Layer::RelativeOverlay(2))
+                    .layer(Layer::OverlayLevel(3))
                     .opacity(settings_opacity)
                     .child(Settings {})
                     .into_element()
@@ -193,7 +236,7 @@ impl Component for Client {
                             .position(Position::new_global())
                             .width(Size::window_percent(100.))
                             .height(Size::window_percent(100.))
-                            .layer(Layer::RelativeOverlay(3))
+                            .layer(Layer::OverlayLevel(4))
                             .opacity(server_settings_opacity)
                             .child(ServerSettings {
                                 server: map_readable::<HashMap<String, v0::Server>, _>(
@@ -215,7 +258,7 @@ impl Component for Client {
                             .position(Position::new_global())
                             .width(Size::window_percent(100.))
                             .height(Size::window_percent(100.))
-                            .layer(Layer::RelativeOverlay(4))
+                            .layer(Layer::OverlayLevel(5))
                             .opacity(channel_settings_opacity)
                             .child(ChannelSettings {
                                 channel: map_readable::<HashMap<String, v0::Channel>, _>(
@@ -235,7 +278,7 @@ impl Component for Client {
                     .position(Position::new_global())
                     .width(Size::window_percent(100.))
                     .height(Size::window_percent(100.))
-                    .layer(Layer::RelativeOverlay(5))
+                    .layer(Layer::OverlayLevel(6))
                     .child(UserProfile {
                         user: user.into_readable(),
                     })

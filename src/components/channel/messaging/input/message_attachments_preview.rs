@@ -1,14 +1,13 @@
-use freya::{
-    icons::lucide::{circle_x, eye, eye_off, file_text, plus},
-    prelude::*,
-};
+use freya::prelude::*;
 
 use crate::{
+    SizeExt,
     components::{
         Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
+        material::{MaterialIcon, filled::{add, description}, outlined::{cancel, hide_image, image}},
     },
-    use_material_theme,
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -18,7 +17,7 @@ pub struct MessageAttachmentsPreview {
 
 impl Component for MessageAttachmentsPreview {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .horizontal()
@@ -52,7 +51,7 @@ impl Component for MessageAttachmentsPreview {
                                     .width(Size::px(100.))
                                     .height(Size::px(100.))
                                     .center()
-                                    .child(svg(plus()).width(Size::px(48.)).height(Size::px(48.))),
+                                    .child(MaterialIcon::new(add()).size(Size::px(48.))),
                             ),
                     )
                     .child(rect()),
@@ -70,7 +69,7 @@ impl Component for MessageAttachmentPreview {
         let is_image = use_hook(|| infer::is_image(&self.attachment.contents));
         let mut hovering = use_state(|| false);
         let area = use_state(Area::default);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .cross_align(Alignment::Center)
@@ -112,9 +111,8 @@ impl Component for MessageAttachmentPreview {
                                             .height(Size::px(100.))
                                             .center()
                                             .child(
-                                                svg(file_text())
-                                                    .width(Size::px(36.))
-                                                    .height(Size::px(36.)),
+                                                MaterialIcon::new(description())
+                                                    .size(Size::px(36.)),
                                             )
                                             .into_element()
                                     })
@@ -132,9 +130,8 @@ impl Component for MessageAttachmentPreview {
                                     .background(0xcc000000)
                                     .center()
                                     .child(
-                                        svg(circle_x())
-                                            .width(Size::px(36.))
-                                            .height(Size::px(36.))
+                                        MaterialIcon::new(cancel())
+                                            .size(Size::px(36.))
                                             .color(Color::WHITE),
                                     )
                                     .child(
@@ -154,13 +151,14 @@ impl Component for MessageAttachmentPreview {
                                                             )
                                                             .padding(4.)
                                                             .child(
-                                                                svg(if self.attachment.spoiler {
-                                                                    eye_off()
-                                                                } else {
-                                                                    eye()
-                                                                })
-                                                                .width(Size::px(24.))
-                                                                .height(Size::px(24.))
+                                                                MaterialIcon::new(
+                                                                    if self.attachment.spoiler {
+                                                                        hide_image()
+                                                                    } else {
+                                                                        image()
+                                                                    },
+                                                                )
+                                                                .size(Size::px(24.))
                                                                 .color(
                                                                     theme
                                                                         .md

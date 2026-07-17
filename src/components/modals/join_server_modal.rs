@@ -7,7 +7,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, AppState, Selection,
     components::{Dialog, SingleLineEntry, use_modals},
-    http, insert_channel, insert_member, insert_server, insert_user, use_material_theme,
+    http, insert_channel, insert_member, insert_server, insert_user, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -25,7 +25,7 @@ impl Component for JoinServerModal {
         let selection = radio.slice_mut(AppChannel::Selection, |state| &mut state.selection);
 
         let mut modals = use_modals();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let code = use_state(String::new);
         let mut error = use_state(|| None);
 
@@ -53,7 +53,7 @@ impl Component for JoinServerModal {
                     let code = code.read().clone();
 
                     let code = if code.contains('/')
-                        && let Ok(uri) = code.parse::<Uri>()
+                        && let Ok(uri) = code.parse::<Url>()
                     {
                         uri.path()
                             .split('/')

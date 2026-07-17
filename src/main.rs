@@ -1,4 +1,4 @@
-use freya::{prelude::*, webview::WebViewPlugin};
+use freya::{prelude::*, radio::use_init_radio_station, webview::WebViewPlugin};
 use tokio::runtime::Builder;
 
 pub mod components;
@@ -18,13 +18,14 @@ pub use theme::*;
 pub use utils::*;
 
 use crate::components::{
-    HttpManager, MaterialThemeProvider, Root, StoatButtonColorsThemePreference,
-    StoatButtonLayoutThemePreference,
+    HttpManager, MaterialThemeProvider, Root,
 };
 
 pub const BASE: &str = "https://api.stoat.chat";
 
 fn app() -> impl IntoElement {
+    use_init_radio_station::<AppState, AppChannel>(AppState::new);
+
     let config = use_hook(|| {
         let state = State::create(read_config());
         provide_context(state);
@@ -38,40 +39,11 @@ fn app() -> impl IntoElement {
         write_config(&new_value);
     });
 
-    use_init_theme(|| {
-        let mut theme = dark_theme();
-        // theme.colors.text_primary = 0xffe3e1e9.into();
-
-        theme.set(
-            "stoat_button",
-            StoatButtonColorsThemePreference {
-                background: Preference::Specific(Color::TRANSPARENT),
-                hover_background: Preference::Specific(Color::TRANSPARENT),
-                border_fill: Preference::Specific(Color::TRANSPARENT),
-                focus_border_fill: Preference::Specific(Color::TRANSPARENT),
-                color: Preference::Specific(Color::TRANSPARENT),
-            },
-        );
-
-        theme.set(
-            "stoat_button_layout",
-            StoatButtonLayoutThemePreference {
-                margin: Preference::Specific(Gaps::new_all(0.)),
-                corner_radius: Preference::Specific(CornerRadius::new_all(0.)),
-                width: Preference::Specific(Size::Inner),
-                height: Preference::Specific(Size::Inner),
-                padding: Preference::Specific(Gaps::new_all(0.)),
-            },
-        );
-
-        theme
-    });
-
     MaterialThemeProvider::new()
         .child(HttpManager::new().child(Root {}))
         .child(
             rect()
-                .layer(Layer::RelativeOverlay(10))
+                .layer(Layer::OverlayLevel(10))
                 .child(ContextMenuViewer::new()),
         )
 }

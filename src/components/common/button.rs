@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::use_material_theme;
+use crate::consume_material_theme;
 
 define_theme! {
     for = StoatButton;
@@ -38,6 +38,7 @@ pub struct StoatButton {
     theme_layout: Option<StoatButtonLayoutThemePartial>,
     elements: Vec<Element>,
     on_press: Option<EventHandler<Event<PressEventData>>>,
+    on_hover: Option<EventHandler<Event<PointerEventData>>>,
     key: DiffKey,
 }
 
@@ -47,6 +48,7 @@ impl StoatButton {
             theme_colors: None,
             theme_layout: None,
             on_press: None,
+            on_hover: None,
             elements: Vec::default(),
             key: DiffKey::None,
         }
@@ -54,6 +56,11 @@ impl StoatButton {
 
     pub fn on_press(mut self, on_press: impl Into<EventHandler<Event<PressEventData>>>) -> Self {
         self.on_press = Some(on_press.into());
+        self
+    }
+
+    pub fn on_hover(mut self, on_hover: impl Into<EventHandler<Event<PointerEventData>>>) -> Self {
+        self.on_hover = Some(on_hover.into());
         self
     }
 }
@@ -80,7 +87,7 @@ impl Component for StoatButton {
     fn render(&self) -> impl IntoElement {
         let mut hovering = use_state(|| false);
         let a11y_id = use_a11y();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut size = use_state(Size2D::default);
 
         use_drop(move || {
@@ -142,21 +149,26 @@ impl Component for StoatButton {
                 hovering.set(true);
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
-            .on_pointer_enter(move |_| {
+            .on_pointer_enter({let on_hover = self.on_hover.clone(); move |e| {
                 Cursor::set(CursorIcon::Pointer);
-            })
+
+                if let Some(on_hover) = &on_hover {
+                    on_hover.call(e);
+                }
+            }})
             .on_pointer_leave(move |_| {
                 Cursor::set(CursorIcon::default());
             })
+            .on_sized(move |e: Event<SizedEventData>| size.set(e.area.size))
             .child(
                 rect()
-                    .on_sized(move |e: Event<SizedEventData>| size.set(e.inner_sizes))
+                    // .layer(Layer::Relative(-100))
                     .children(self.elements.clone()),
             )
             .child(
                 rect()
                     .position(Position::new_absolute())
-                    .layer(Layer::Relative(i16::MAX - 1))
+                    .layer(Layer::Relative(100))
                     .width(Size::px(size.read().width))
                     .height(Size::px(size.read().height))
                     .interactive(false)

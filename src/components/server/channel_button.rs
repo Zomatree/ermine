@@ -1,19 +1,15 @@
 use std::hash::Hash;
 
 use freya::{
-    icons::lucide::{hash, headset, settings, user_plus},
     prelude::*,
     radio::use_radio,
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge,
-    components::{
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-        StoatTooltip,
-    },
-    get_unread_badge, is_channel_muted, use_material_theme,
+    AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt, calculate_channel_permissions, components::{
+        ChannelContextMenu, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{filled::{grid_3x3, person_add_alt_1, settings}, outlined::headset_mic}
+    }, consume_material_theme, get_unread_badge, is_channel_muted, user_permissions_query
 };
 
 #[derive(PartialEq)]
@@ -25,7 +21,7 @@ impl Component for ChannelButton {
     fn render(&self) -> impl IntoElement {
         let mut config = use_consume::<State<Config>>();
         let mut radio = use_radio(AppChannel::SelectedChannel);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let selected = radio.slice_current(|state| &state.selected_channel);
         let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
         let mutes = radio.slice(AppChannel::Settings("notifications"), |state| {
@@ -79,20 +75,21 @@ impl Component for ChannelButton {
                 let channel = self.channel.clone();
 
                 move |e| {
-                    ContextMenu::open_from_event(
-                        &e,
-                        Menu::new().child(
-                            MenuButton::new()
-                                .child(label().font_size(14.).text("Copy Channel ID"))
-                                .on_press({
-                                    let channel = channel.clone();
+                    let channel = channel.read().clone();
 
-                                    move |_| {
-                                        Clipboard::set(channel.read().id().to_string()).unwrap();
-                                    }
-                                }),
-                        ),
-                    );
+                    spawn(async move {
+                        let mut query = user_permissions_query(radio).channel(channel.clone());
+
+                        let permissions = calculate_channel_permissions(&mut query).await;
+
+                        ContextMenu::open_from_event(
+                            &e,
+                            Menu::new().child(ChannelContextMenu {
+                                channel_id: channel.id().to_string(),
+                                current_permissions: permissions,
+                            }),
+                        );
+                    });
                 }
             })
             .child(
@@ -135,52 +132,50 @@ impl Component for ChannelButton {
                             .font_size(15)
                             .width(Size::Fill)
                             .child(
-                                svg(
+                                MaterialIcon::new(
                                     if matches!(
                                         &*channel.read(),
                                         v0::Channel::TextChannel { voice: Some(_), .. }
                                     ) {
-                                        headset()
+                                        headset_mic()
                                     } else {
-                                        hash()
+                                        grid_3x3()
                                     },
                                 )
-                                .width(Size::px(24.))
-                                .height(Size::px(24.)),
+                                .size(Size::px(24.))
                             )
                             .child(
                                 label()
                                     .text(channel.read().name().unwrap().to_string())
-                                    .width(Size::flex(1.)),
+                                    .text_overflow(TextOverflow::Ellipsis)
+                                    .width(Size::flex(1.))
+                                    .max_lines(1)
                             )
-                            .map(
-                                unread_badge.read().filter(|_| !(selected() || hovering())),
-                                |this, badge| {
-                                    this.color(theme.md.on_surface.as_argb_u32())
-                                        .child(match badge {
-                                            NotificationBadge::Mentions(count) => rect()
-                                                .corner_radius(14.)
-                                                .width(Size::px(14.))
-                                                .height(Size::px(14.))
-                                                .center()
-                                                .background(theme.md.error.as_argb_u32())
-                                                .color(theme.md.on_error.as_argb_u32())
-                                                .color(0xff690005)
-                                                .font_size(8.)
-                                                .child(if count <= 9 {
-                                                    count.to_string()
-                                                } else {
-                                                    "+".to_string()
-                                                }),
-                                            NotificationBadge::Unread => rect()
-                                                .corner_radius(7.)
-                                                .width(Size::px(7.))
-                                                .height(Size::px(7.))
-                                                .background(theme.md.on_surface.as_argb_u32())
-                                                .margin((0., 3.5)),
-                                        })
-                                },
-                            )
+                            .maybe(unread_badge.read().is_some(), |this| {
+                                this.color(theme.md.on_surface.as_argb_u32())
+                            })
+                            .maybe_child(unread_badge.read().filter(|_| !hovering() && !selected()).map(|badge| {
+                                match badge {
+                                    NotificationBadge::Mentions(count) => rect()
+                                        .corner_radius(14.)
+                                        .size(Size::px(14.))
+                                        .center()
+                                        .background(theme.md.error.as_argb_u32())
+                                        .color(theme.md.on_error.as_argb_u32())
+                                        .color(0xff690005)
+                                        .font_size(8.)
+                                        .child(if count <= 9 {
+                                            count.to_string()
+                                        } else {
+                                            "+".to_string()
+                                        }),
+                                    NotificationBadge::Unread => rect()
+                                        .corner_radius(7.)
+                                        .size(Size::px(7.))
+                                        .background(theme.md.on_surface.as_argb_u32())
+                                        .margin((0., 3.5)),
+                                }
+                            }))
                             .maybe_child(hovering().then(|| {
                                 rect()
                                     .horizontal()
@@ -194,9 +189,8 @@ impl Component for ChannelButton {
                                         )
                                         .position(AttachedPosition::Top)
                                         .child(
-                                            svg(user_plus())
-                                                .width(Size::px(16.))
-                                                .height(Size::px(16.))
+                                            MaterialIcon::new(person_add_alt_1())
+                                                .size(Size::px(16.))
                                                 .on_press(|e: Event<PressEventData>| {
                                                     e.stop_propagation();
                                                 }),
@@ -211,7 +205,7 @@ impl Component for ChannelButton {
                                         )
                                         .position(AttachedPosition::Top)
                                         .child(
-                                            svg(settings())
+                                            MaterialIcon::new(settings())
                                                 .width(Size::px(16.))
                                                 .height(Size::px(16.))
                                                 .on_press({

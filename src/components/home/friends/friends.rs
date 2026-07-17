@@ -1,14 +1,16 @@
-use freya::{
-    icons::lucide::{bell, circle_slash, hand, inbox, plus, users_round},
-    prelude::*,
-};
+use freya::prelude::*;
 
 use crate::{
+    SizeExt,
     components::{
-        FriendsList, HideSidebarHeader, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        FriendsList, HideSidebarHeader, MaterialIcon, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{
+            filled::{add, do_not_disturb},
+            outlined::{group, inbox, notifications, waving_hand},
+        },
     },
-    use_material_theme,
+    consume_material_theme,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
@@ -26,7 +28,7 @@ pub struct Friends {}
 impl Component for Friends {
     fn render(&self) -> impl IntoElement {
         let mut page = use_state(FriendPage::default);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .child(
@@ -37,9 +39,7 @@ impl Component for Friends {
                     .spacing(10.)
                     .margin((8., 8., 8., 0.))
                     .cross_align(Alignment::Center)
-                    .child(HideSidebarHeader {
-                        icon: users_round(),
-                    })
+                    .child(HideSidebarHeader { icon: group() })
                     .child(label().text("Friends").font_size(16)),
             )
             .child(
@@ -84,19 +84,18 @@ impl Component for Friends {
                                                             )
                                                             .center()
                                                             .child(
-                                                                svg(plus())
-                                                                    .width(Size::px(24.))
-                                                                    .height(Size::px(24.)),
+                                                                MaterialIcon::new(add())
+                                                                    .size(Size::px(24.)),
                                                             ),
                                                     ),
                                             ),
                                         )
                                         .children(
                                             [
-                                                (hand(), "Online", FriendPage::Online),
+                                                (waving_hand(), "Online", FriendPage::Online),
                                                 (inbox(), "All", FriendPage::All),
-                                                (bell(), "Pending", FriendPage::Pending),
-                                                (circle_slash(), "Blocked", FriendPage::Blocked),
+                                                (notifications(), "Pending", FriendPage::Pending),
+                                                (do_not_disturb(), "Blocked", FriendPage::Blocked),
                                             ]
                                             .into_iter()
                                             .map(
@@ -123,11 +122,8 @@ impl Component for Friends {
                                                                         .width(Size::px(56.))
                                                                         .height(Size::px(32.))
                                                                         .child(
-                                                                            svg(icon)
-                                                                                .width(Size::px(
-                                                                                    24.,
-                                                                                ))
-                                                                                .height(Size::px(
+                                                                            MaterialIcon::new(icon)
+                                                                                .size(Size::px(
                                                                                     24.,
                                                                                 )),
                                                                         ),

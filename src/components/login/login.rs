@@ -1,17 +1,11 @@
 use freya::{
-    icons::lucide::{moon, x},
     prelude::*,
 };
 
 use crate::{
-    Config,
-    components::{
-        SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-    },
-    http,
-    types::{DataLogin, MFAResponse, ResponseLogin},
-    use_material_theme,
+    Config, SizeExt, components::{
+        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, dark_mode}
+    }, consume_material_theme, http, types::{DataLogin, MFAResponse, ResponseLogin}
 };
 
 #[derive(PartialEq)]
@@ -20,7 +14,7 @@ pub struct Login {}
 impl Component for Login {
     fn render(&self) -> impl IntoElement {
         let mut config = use_consume::<State<Config>>();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let email = use_state(String::new);
         let password = use_state(String::new);
@@ -55,13 +49,11 @@ impl Component for Login {
                                     .on_press(move |_| config.write().theme.scheme.toggle())
                                     .child(
                                         rect()
-                                            .width(Size::px(40.))
-                                            .height(Size::px(40.))
+                                            .size(Size::px(40.))
                                             .center()
                                             .child(
-                                                svg(moon())
-                                                    .width(Size::px(24.))
-                                                    .height(Size::px(24.)),
+                                                MaterialIcon::new(dark_mode())
+                                                    .size(Size::px(24.))
                                             ),
                                     ),
                             ),
@@ -152,9 +144,8 @@ impl Component for Login {
                                                     .center()
                                                     .spacing(4.)
                                                     .child(
-                                                        svg(x())
-                                                            .width(Size::px(12.))
-                                                            .height(Size::px(12.)),
+                                                        MaterialIcon::new(clear())
+                                                            .size(Size::px(12.)),
                                                     )
                                                     .child("Exit"),
                                             )

@@ -15,8 +15,7 @@ use freya::{
 use material_colors::{color::Rgb, scheme::Scheme};
 
 use crate::{
-    Config, StoatScheme, ThemeConfig, ThemeScheme, generate_theme, map_readable, theme::Theme,
-    use_config,
+    Config, StoatScheme, ThemeConfig, ThemeScheme, components::{StoatButtonColorsThemePreference, StoatButtonLayoutThemePreference}, generate_theme, map_readable, theme::Theme, use_config
 };
 
 fn generate(theme_config: &ThemeConfig) -> Theme {
@@ -37,6 +36,65 @@ fn generate(theme_config: &ThemeConfig) -> Theme {
 
 static INITIAL_THEME: LazyLock<Arc<RwLock<Option<Theme>>>> =
     LazyLock::new(|| Arc::new(RwLock::new(None)));
+
+
+fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
+    theme.set(
+        "stoat_button",
+        StoatButtonColorsThemePreference {
+            background: Preference::Specific(Color::TRANSPARENT),
+            hover_background: Preference::Specific(Color::TRANSPARENT),
+            border_fill: Preference::Specific(Color::TRANSPARENT),
+            focus_border_fill: Preference::Specific(Color::TRANSPARENT),
+            color: Preference::Specific(Color::TRANSPARENT),
+        },
+    );
+
+    theme.set(
+        "stoat_button_layout",
+        StoatButtonLayoutThemePreference {
+            margin: Preference::Specific(Gaps::new_all(0.)),
+            corner_radius: Preference::Specific(CornerRadius::new_all(0.)),
+            width: Preference::Specific(Size::Inner),
+            height: Preference::Specific(Size::Inner),
+            padding: Preference::Specific(Gaps::new_all(0.)),
+        },
+    );
+
+    // let hover_overlay_r = (material.md.on_surface.red as f32 * 0.08) as u8;
+    // let hover_overlay_g = (material.md.on_surface.green as f32 * 0.08) as u8;
+    // let hover_overlay_b = (material.md.on_surface.blue as f32 * 0.08) as u8;
+
+    // let hover_r = (material.md.surface_container.red + hover_overlay_r).min(255);
+    // let hover_g = (material.md.surface_container.green + hover_overlay_g).min(255);
+    // let hover_b = (material.md.surface_container.blue + hover_overlay_b).min(255);
+
+    // let hover_color = Color::from_rgb(hover_r, hover_g, hover_b);
+
+    // theme.set(
+    //     "menu_item",
+    //     MenuItemThemePreference {
+    //         background: Preference::Specific(Color::TRANSPARENT),
+    //         hover_background: Preference::Specific(hover_color),
+    //         select_background: Preference::Specific(hover_color),
+    //         border_fill: Preference::Specific(Color::TRANSPARENT),
+    //         select_border_fill: Preference::Reference("border_focus"),
+    //         corner_radius: Preference::Specific(CornerRadius::new_all(6.)),
+    //         color: Preference::Reference("text_primary"),
+    //     },
+    // );
+
+    theme.set(
+        "menu_container",
+        MenuContainerThemePreference {
+            background: Preference::Specific(material.md.surface_container.as_argb_u32().into()),
+            padding: Preference::Specific((8., 1.).into()),
+            shadow: Preference::Reference("shadow"),
+            border_fill: Preference::Specific(Color::BLACK),
+            corner_radius: Preference::Specific(CornerRadius::new_all(4.)),
+        },
+    );
+}
 
 #[derive(PartialEq)]
 pub struct MaterialThemeProvider {
@@ -93,8 +151,18 @@ impl Component for MaterialThemeProvider {
             AnimTheme::new(generate(&from), generate(&to))
         });
 
+        let mut freya_theme = use_init_theme(|| {
+            let mut theme = dark_theme();
+
+            update_freya_theme(&mut theme, &anim.read().value);
+
+            theme
+        });
+
         use_side_effect(move || {
             let theme = anim.read().value();
+
+            update_freya_theme(&mut freya_theme.write(), &theme);
 
             state.set(theme);
         });
@@ -103,6 +171,8 @@ impl Component for MaterialThemeProvider {
 
         rect()
             .font_family("Inter")
+            .font_size(14.)
+            .font_weight(400)
             .width(Size::Fill)
             .height(Size::Fill)
             .color(theme.md.on_surface.as_argb_u32())

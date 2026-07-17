@@ -69,6 +69,8 @@ pub fn get_config_path() -> PathBuf {
 
     dir.push("config.json");
 
+    log::debug!("Config file: {dir:?}");
+
     dir
 }
 

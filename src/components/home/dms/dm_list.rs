@@ -1,16 +1,11 @@
 use freya::{
-    icons::lucide::{house, notebook_text, users_round},
     prelude::*,
     radio::use_radio,
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt},
-    http,
-    theme::Theme,
-    use_material_theme,
+    AppChannel, SizeExt, components::{DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt, material::{MaterialIcon, outlined::{group, home, sticky_note_2}}}, consume_material_theme, http, theme::Theme
 };
 
 #[derive(PartialEq)]
@@ -21,7 +16,7 @@ pub struct DMList {
 impl Component for DMList {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let saved_messages = use_memo({
             let radio = radio.clone();
@@ -111,7 +106,7 @@ impl Component for DMList {
                     .spacing(5.)
                     .child(
                         dmlist_nav_button(
-                            house(),
+                            home(),
                             "Home",
                             &theme,
                             &*self.selection.read() == &HomeSelection::Welcome,
@@ -126,7 +121,7 @@ impl Component for DMList {
                     )
                     .child(
                         dmlist_nav_button(
-                            users_round(),
+                            group(),
                             "Friends",
                             &theme,
                             &*self.selection.read() == &HomeSelection::Friends,
@@ -141,7 +136,7 @@ impl Component for DMList {
                     )
                     .child(
                         dmlist_nav_button(
-                            notebook_text(),
+                            sticky_note_2(),
                             "Saved Notes",
                             &theme,
                             saved_messages.read().as_ref().is_some_and(|c| {
@@ -206,7 +201,8 @@ impl Component for DMList {
                             }
                         })
                         .item_size(48.)
-                        .length(channels.read().len()),
+                        .length(channels.read().len())
+
                     ),
             )
     }
@@ -232,7 +228,7 @@ pub fn dmlist_nav_button(
                     .color(theme.md.on_primary_container.as_argb_u32())
             })
             .width(Size::Fill)
-            .child(svg(icon).width(Size::px(24.)).height(Size::px(24.)))
+            .child(MaterialIcon::new(icon).size(Size::px(24.)))
             .child(title),
     )
 }

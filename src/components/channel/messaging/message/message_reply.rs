@@ -1,10 +1,14 @@
-use freya::{icons::lucide::file_text, prelude::*, radio::use_radio};
+use std::collections::HashMap;
+
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, MessageModel},
-    http,
+    AppChannel, OptionalReadable, SizeExt,
+    components::{
+        Avatar, MaterialIcon, MessageModel, UserCard, material::filled::description, use_floating,
+    },
+    http, map_optional_readable, member_display_color,
     types::Tag,
 };
 
@@ -19,6 +23,7 @@ impl Component for MessageReply {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Users);
         let users = radio.slice_mut_current(|state| &mut state.users);
+        let members = radio.slice(AppChannel::Members, |state| &state.members);
 
         let message_cache = radio.slice_mut(AppChannel::ChannelMessageCache, {
             let channel_id = self.channel.peek().id().to_string();
@@ -77,6 +82,70 @@ impl Component for MessageReply {
             }
         });
 
+        let server_id = use_hook({
+            move || {
+                if let v0::Channel::TextChannel { server, .. } = &*self.channel.read() {
+                    Some(server.clone())
+                } else {
+                    None
+                }
+            }
+        });
+
+        let server = use_memo({
+            let server_id = server_id.clone();
+
+            move || {
+                if let Some(server_id) = &server_id {
+                    radio.read().servers.get(server_id).cloned()
+                } else {
+                    None
+                }
+            }
+        });
+
+        let member = use_side_effect_value(move || {
+            let message = reply.read();
+            if let Some(message) = message.cloned()
+                && let Some(server_id) = server_id.clone()
+            {
+                map_optional_readable::<HashMap<String, HashMap<String, v0::Member>>, v0::Member>(
+                    members.clone().into_readable(),
+                    move |members| members.get(&server_id).unwrap().get(&message.author) ,
+                )
+            } else {
+                OptionalReadable::none()
+            }
+        });
+
+        let role_color = use_memo({
+            move || {
+                if let Some(member) = member.read().read()
+                    && let Some(server) = &*server.read()
+                {
+                    member_display_color(&member, server)
+                } else {
+                    None
+                }
+            }
+        });
+
+        let display_name = use_memo({
+            move || {
+                member
+                    .read()
+                    .read()
+                    .and_then(|member| member.nickname.clone())
+                    .unwrap_or_else(|| {
+                        let user = user.read();
+
+                        user.display_name.as_ref().unwrap_or(&user.username).clone()
+                    })
+            }
+        });
+
+        let floating = use_floating();
+
         use_hook(|| {
             let reply = reply.clone();
             let users = users.clone();
@@ -123,6 +192,7 @@ impl Component for MessageReply {
                                         bot: None,
                                         relationship: v0::RelationshipStatus::None,
                                         online: false,
+                                        pronouns: None,
                                     }
                                 } else if let Ok(user) = http().fetch_user(&reply.author).await {
                                     user
@@ -141,6 +211,7 @@ impl Component for MessageReply {
                                         bot: None,
                                         relationship: v0::RelationshipStatus::None,
                                         online: false,
+                                        pronouns: None,
                                     }
                                 };
 
@@ -195,6 +266,21 @@ impl Component for MessageReply {
                                 .horizontal()
                                 .spacing(4.)
                                 .cross_align(Alignment::Center)
+                                .map(role_color.read().cloned(), |this, color| this.color(color))
+                                .on_press({
+                                    let user = self.message.user.clone();
+                                    let member = self.message.member.clone();
+
+                                    move |_| {
+                                        floating.clone().set(Some(
+                                            UserCard {
+                                                user: user.clone(),
+                                                member: member.clone(),
+                                            }
+                                            .into_element(),
+                                        ));
+                                    }
+                                })
                                 .child(Avatar::new(user.clone().into_readable(), None, 14.))
                                 .child(label().line_height(1.25).text({
                                     let user = user.read();
@@ -206,9 +292,9 @@ impl Component for MessageReply {
                                         .as_ref()
                                         .is_some_and(|mentions| mentions.contains(&user.id))
                                     {
-                                        format!("@{}", user.username)
+                                        format!("@{}", display_name.read())
                                     } else {
-                                        user.username.clone()
+                                        display_name.read().to_string()
                                     }
                                 })),
                         )
@@ -224,11 +310,7 @@ impl Component for MessageReply {
                                         .horizontal()
                                         .spacing(4.)
                                         .cross_align(Alignment::Center)
-                                        .child(
-                                            svg(file_text())
-                                                .width(Size::px(16.))
-                                                .height(Size::px(16.)),
-                                        )
+                                        .child(MaterialIcon::new(description()).size(Size::px(16.)))
                                         .child(
                                             label()
                                                 .font_size(14.)

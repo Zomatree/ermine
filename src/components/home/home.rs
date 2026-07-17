@@ -5,7 +5,7 @@ use freya::{prelude::*, radio::use_radio};
 use crate::{
     AppChannel,
     components::{Channel, DMList, Friends, Welcome},
-    use_config, use_material_theme,
+    use_config, consume_material_theme,
 };
 
 #[derive(Default, Clone, PartialEq)]
@@ -32,7 +32,7 @@ impl Component for Home {
     fn render(&self) -> impl IntoElement {
         let config = use_config();
         let radio = use_radio(AppChannel::SelectedChannel);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let selection = use_state(HomeSelection::default);
 

@@ -1,14 +1,9 @@
 use crate::{
-    AppChannel, LocalFile,
-    components::{
-        SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-    },
-    http,
-    types::Tag,
-    use_material_theme,
+    AppChannel, LocalFile, SizeExt, components::{
+        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::delete
+    }, consume_material_theme, http, types::Tag
 };
-use freya::{icons::lucide::trash_2, prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::use_radio};
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
@@ -22,7 +17,7 @@ impl Component for EmojiServerSettings {
         let radio = use_radio(AppChannel::Emojis);
         let emojis = radio.slice_current(|state| &state.emojis);
 
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let mut selected_image = use_state(|| None);
         let mut emoji_name = use_state(String::new);
@@ -169,7 +164,7 @@ impl Component for EmojiServerSettings {
                                                 Tag::Emojis,
                                                 emoji.id
                                             )
-                                            .parse::<Uri>()
+                                            .parse::<Url>()
                                             .unwrap(),
                                         )
                                         .sampling_mode(SamplingMode::Trilinear)
@@ -198,13 +193,11 @@ impl Component for EmojiServerSettings {
                                     })
                                     .child(
                                         rect()
-                                            .width(Size::px(36.))
-                                            .height(Size::px(36.))
+                                            .size(Size::px(36.))
                                             .center()
                                             .child(
-                                                svg(trash_2())
-                                                    .width(Size::px(24.))
-                                                    .height(Size::px(24.))
+                                                MaterialIcon::new(delete())
+                                                    .size(Size::px(24.))
                                                     .color(theme.md.error.as_argb_u32()),
                                             ),
                                     )

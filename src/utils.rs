@@ -89,6 +89,10 @@ impl<T: 'static> OptionalReadable<T> {
         }
     }
 
+    pub fn none() -> Self {
+        Self::new(Box::new(|| None), Box::new(|| None))
+    }
+
     pub fn read(&self) -> Option<ReadableRef<T>> {
         (self.read_fn)()
     }
@@ -325,6 +329,32 @@ pub fn use_initial<T: Clone + 'static>(f: impl FnOnce() -> T) -> Initial<T> {
         Initial { initial, current }
     })
 }
+
+/// Methods for setting an element's width and height.
+pub trait SizeExt
+where
+    Self: ContainerSizeExt,
+{
+    /// Set the element's height and width. See [`Size`].
+    fn size(mut self, size: impl Into<Size>) -> Self {
+        let size = size.into();
+        let layout = self.get_layout();
+
+        layout.layout.width = size.clone();
+        layout.layout.height = size;
+
+        self
+    }
+}
+
+impl<T: ContainerSizeExt> SizeExt for T {}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SelectedRole {
+    Default,
+    Role(String),
+}
+
 
 // pub fn map_optional_readable<T, U>(
 //     readable: Readable<T>,

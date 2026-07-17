@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::http;
 
-pub fn image(file: &v0::File) -> ImageViewer {
+pub fn file_image(file: &v0::File) -> ImageViewer {
     ImageViewer::new(
         format!(
             "{}/{}/{}",
@@ -11,7 +11,7 @@ pub fn image(file: &v0::File) -> ImageViewer {
             &file.tag,
             &file.id
         )
-        .parse::<Uri>()
+        .parse::<Url>()
         .unwrap(),
     )
     .sampling_mode(SamplingMode::Trilinear)

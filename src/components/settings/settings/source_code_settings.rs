@@ -1,11 +1,9 @@
 use freya::{
-    icons::lucide::{bug, cpu, external_link, list_ordered},
     prelude::*,
 };
 
 use crate::{
-    components::{StoatButton, StoatButtonLayoutThemePartialExt},
-    use_material_theme,
+    SizeExt, components::{MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, material::{filled::{list, memory}, outlined::{bug_report, open_in_new}}}, consume_material_theme
 };
 
 #[derive(PartialEq)]
@@ -13,7 +11,7 @@ pub struct SourceCodeSettings {}
 
 impl Component for SourceCodeSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .vertical()
@@ -43,7 +41,7 @@ impl Component for SourceCodeSettings {
                                     .corner_radius(18.)
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
-                                    .child(svg(cpu()).width(Size::px(22.)).height(Size::px(22.))),
+                                    .child(MaterialIcon::new(memory()).size(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -54,9 +52,8 @@ impl Component for SourceCodeSettings {
                                     ),
                             )
                             .child(
-                                svg(external_link())
-                                    .width(Size::px(18.))
-                                    .height(Size::px(18.)),
+                                MaterialIcon::new(open_in_new())
+                                    .size(Size::px(18.))
                             ),
                     ),
             )
@@ -84,9 +81,8 @@ impl Component for SourceCodeSettings {
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
                                     .child(
-                                        svg(list_ordered())
-                                            .width(Size::px(22.))
-                                            .height(Size::px(22.)),
+                                        MaterialIcon::new(list())
+                                            .size(Size::px(22.))
                                     ),
                             )
                             .child(
@@ -96,9 +92,8 @@ impl Component for SourceCodeSettings {
                                     .child(label().font_size(12.).text("Submit feedback.")),
                             )
                             .child(
-                                svg(external_link())
-                                    .width(Size::px(18.))
-                                    .height(Size::px(18.)),
+                                MaterialIcon::new(open_in_new())
+                                    .size(Size::px(18.))
                             ),
                     ),
             )
@@ -125,7 +120,7 @@ impl Component for SourceCodeSettings {
                                     .corner_radius(18.)
                                     .background(theme.md.surface_dim.as_argb_u32())
                                     .center()
-                                    .child(svg(bug()).width(Size::px(22.)).height(Size::px(22.))),
+                                    .child(MaterialIcon::new(bug_report()).size(Size::px(22.))),
                             )
                             .child(
                                 rect()
@@ -138,9 +133,8 @@ impl Component for SourceCodeSettings {
                                     ),
                             )
                             .child(
-                                svg(external_link())
-                                    .width(Size::px(18.))
-                                    .height(Size::px(18.)),
+                                MaterialIcon::new(open_in_new())
+                                    .size(Size::px(18.))
                             ),
                     ),
             )

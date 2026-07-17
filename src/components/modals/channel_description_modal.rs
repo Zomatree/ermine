@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
-use crate::{AppChannel, components::Dialog};
+use crate::{AppChannel, components::{Dialog, MarkdownViewer}};
 
 #[derive(PartialEq)]
 pub struct ChannelDescriptionModal {
@@ -16,6 +16,16 @@ impl Component for ChannelDescriptionModal {
         let channels = radio.read();
 
         let channel = channels.channels.get(&self.channel).unwrap();
+
+        let server = use_hook(|| {
+            if let v0::Channel::TextChannel { server, .. } = channel {
+                let server = server.clone();
+
+                Some(radio.slice(AppChannel::Servers, move |state| state.servers.get(&server).unwrap()).into_readable())
+            } else {
+                None
+            }
+        });
 
         let channel_name = match &channel {
             v0::Channel::DirectMessage { recipients, .. } => {
@@ -49,7 +59,7 @@ impl Component for ChannelDescriptionModal {
 
         Dialog::new()
             .title(label().line_height(2.).text(format!("#{channel_name}")))
-            .body(label().text(channel_description.unwrap_or_default()))
+            .body(MarkdownViewer::new(channel_description.unwrap_or_default(), server))
             .default_action("Close")
     }
 }

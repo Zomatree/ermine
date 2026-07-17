@@ -8,7 +8,7 @@ use freya::{
     prelude::*,
 };
 
-use crate::use_material_theme;
+use crate::consume_material_theme;
 
 #[derive(PartialEq)]
 pub struct SingleLineEntry {
@@ -55,7 +55,7 @@ impl Component for SingleLineEntry {
     fn render(&self) -> impl IntoElement {
         let a11y_id = use_a11y();
         let focus = use_focus(a11y_id);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let title_animation = use_animation_with_dependencies(
             &(!self.value.read().is_empty() || focus.read().is_focused()),

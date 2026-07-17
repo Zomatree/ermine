@@ -1,9 +1,5 @@
 use bytes::Bytes;
 use freya::{
-    icons::lucide::{
-        banknote, bot_message_square, circle_user_round, cloud, cpu, flag, flask_conical, globe,
-        info, list, mail, message_square_diff, mic, palette, shield_check, smile, user_x,
-    },
     prelude::State,
     radio::{RadioChannel, RadioStation},
 };
@@ -17,12 +13,16 @@ use std::{
 };
 
 use stoat_models::v0::{
-    AppendMessage, Channel, Emoji, FieldsChannel, FieldsMessage, FieldsServer, FieldsUser, Member,
-    Message, PartialMessage, RelationshipStatus, Server, User, UserSettings,
+    AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole, FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMember, PartialMessage, Relationship, RelationshipStatus, Server, User, UserSettings
 };
 use stoat_result::ErrorType;
 
-use crate::{Config, components::SelectedRole, http, types::EventV1};
+use crate::{
+    Config, SelectedRole,
+    components::{AttachmentController, ReplyController, material::{filled::{cloud, fact_check, info, list, mail, memory, person_remove}, outlined::{account_circle, color_lens, credit_card, language, mic, rate_review, science, smart_toy, verified_user}, round::{flag, insert_emoticon}}},
+    http,
+    types::EventV1,
+};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ConnectionState {
@@ -77,16 +77,16 @@ impl SettingsPage {
     pub fn icon(&self) -> Bytes {
         match self {
             SettingsPage::Account => Bytes::new(),
-            SettingsPage::Profile => circle_user_round(),
-            SettingsPage::Sessions => shield_check(),
-            SettingsPage::MyBots => bot_message_square(),
-            SettingsPage::Feedback => message_square_diff(),
+            SettingsPage::Profile => account_circle(),
+            SettingsPage::Sessions => verified_user(),
+            SettingsPage::MyBots => smart_toy(),
+            SettingsPage::Feedback => rate_review(),
             SettingsPage::Voice => mic(),
-            SettingsPage::Appearance => palette(),
-            SettingsPage::Language => globe(),
-            SettingsPage::SourceCode => cpu(),
-            SettingsPage::Advanced => flask_conical(),
-            SettingsPage::Donate => banknote(),
+            SettingsPage::Appearance => color_lens(),
+            SettingsPage::Language => language(),
+            SettingsPage::SourceCode => memory(),
+            SettingsPage::Advanced => science(),
+            SettingsPage::Donate => credit_card(),
         }
     }
 }
@@ -99,6 +99,7 @@ pub enum ServerSettingsPage {
     Roles(Option<SelectedRole>),
     Invites,
     Bans,
+    AuditLogs,
 }
 
 impl ServerSettingsPage {
@@ -109,25 +110,27 @@ impl ServerSettingsPage {
             Self::Roles(_) => "Roles",
             Self::Invites => "Invites",
             Self::Bans => "Bans",
+            Self::AuditLogs => "Audit Logs",
         }
     }
 
     pub fn icon(&self) -> Bytes {
         match self {
             Self::Overview => info(),
-            Self::Emojis => smile(),
+            Self::Emojis => insert_emoticon(),
             Self::Roles(_) => flag(),
             Self::Invites => mail(),
-            Self::Bans => user_x(),
+            Self::Bans => person_remove(),
+            Self::AuditLogs => fact_check(),
         }
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum ChannelSettingsPage {
     #[default]
     Overview,
-    Permissions,
+    Permissions(Option<SelectedRole>),
     Webhooks,
 }
 
@@ -135,7 +138,7 @@ impl ChannelSettingsPage {
     pub fn title(&self) -> &'static str {
         match self {
             Self::Overview => "Overview",
-            Self::Permissions => "Permissions",
+            Self::Permissions(_) => "Permissions",
             Self::Webhooks => "Webhooks",
         }
     }
@@ -143,7 +146,7 @@ impl ChannelSettingsPage {
     pub fn icon(&self) -> Bytes {
         match self {
             Self::Overview => info(),
-            Self::Permissions => list(),
+            Self::Permissions(_) => list(),
             Self::Webhooks => cloud(),
         }
     }
@@ -223,6 +226,7 @@ pub struct MessageHandlers {
     pub on_message_unreact: Rc<dyn Fn(String, String, String, String)>,
     pub on_message_remove_reaction: Rc<dyn Fn(String, String, String)>,
     pub on_message_append: Rc<dyn Fn(String, String, AppendMessage)>,
+    pub on_bulk_message_delete: Rc<dyn Fn(String, Vec<String>)>,
 }
 
 impl Debug for MessageHandlers {
@@ -260,6 +264,9 @@ pub struct AppState {
     pub server_settings_page: Option<(String, ServerSettingsPage)>,
     pub channel_settings_page: Option<(String, ChannelSettingsPage)>,
     // pub current_room: Option<(Arc<Room>, PlatformAudio)>,
+    pub users_last_message: Option<EditingMessage>,
+    pub typing: HashMap<String, HashSet<String>>,
+    pub file_hover: bool,
 }
 
 impl AppState {
@@ -282,6 +289,7 @@ impl AppState {
                 bot: None,
                 relationship: RelationshipStatus::None,
                 online: false,
+                pronouns: None,
             },
         );
 
@@ -312,6 +320,9 @@ pub enum AppChannel {
     EditingMessage,
     ChannelSettingsPage,
     CurrentRoom,
+    UsersLastMessage,
+    Typing,
+    FileHover,
 }
 
 impl RadioChannel<AppState> for AppChannel {}
@@ -495,6 +506,123 @@ pub fn remove_emoji(emoji_id: &str, mut station: AppStation) {
         .write_channel(AppChannel::Emojis)
         .emojis
         .remove(emoji_id);
+}
+
+pub fn delete_member(server_id: &str, user_id: &str, mut station: AppStation) {
+    if let Some(members) = station
+        .write_channel(AppChannel::Members)
+        .members
+        .get_mut(server_id)
+    {
+        members.remove(user_id);
+    }
+}
+
+pub fn delete_server(server_id: &str, mut station: AppStation) {
+    let server = station
+        .write_channel(AppChannel::Servers)
+        .servers
+        .remove(server_id);
+
+    if let Some(server) = server {
+        station
+            .write_channel(AppChannel::Members)
+            .members
+            .remove(server_id);
+
+        {
+            let mut state = station.write_channel(AppChannel::Selection);
+
+            if let Selection::Server(id) = &state.selection
+                && id == server_id
+            {
+                state.selection = Selection::Home;
+            };
+        }
+
+        {
+            let mut state = station.write_channel(AppChannel::ServerSettingsPage);
+
+            if let Some((id, _)) = &state.server_settings_page
+                && id == server_id
+            {
+                state.server_settings_page = None;
+            };
+        }
+
+        for channel_id in &server.channels {
+            delete_channel(channel_id, station);
+        }
+    }
+}
+
+pub fn add_typing(channel_id: String, user_id: String, mut station: AppStation) {
+    station
+        .write_channel(AppChannel::Typing)
+        .typing
+        .entry(channel_id)
+        .or_default()
+        .insert(user_id);
+}
+
+pub fn remove_typing(channel_id: &str, user_id: &str, mut station: AppStation) {
+    if let Some(set) = station
+        .write_channel(AppChannel::Typing)
+        .typing
+        .get_mut(channel_id)
+    {
+        set.remove(user_id);
+    };
+}
+
+pub fn update_server_member(
+    member_id: &MemberCompositeKey,
+    mut station: AppStation,
+    f: impl FnOnce(&mut Member),
+) {
+    if let Some(members) = station
+        .write_channel(AppChannel::Members)
+        .members
+        .get_mut(&member_id.server)
+        && let Some(member) = members.get_mut(&member_id.user)
+    {
+        f(member)
+    }
+}
+
+pub fn delete_channel(channel_id: &str, mut station: AppStation) {
+    station
+        .write_channel(AppChannel::Channels)
+        .channels
+        .remove(channel_id);
+    station
+        .write_channel(AppChannel::ChannelMessageCache)
+        .channel_message_cache
+        .remove(channel_id);
+    station
+        .write_channel(AppChannel::ChannelStates)
+        .channel_states
+        .remove(channel_id);
+
+    {
+        let mut state = station.write_channel(AppChannel::SelectedChannel);
+
+        if let Some(id) = &state.selected_channel
+            && id == channel_id
+        {
+            state.selected_channel = None;
+        };
+    }
+
+    {
+        let mut state = station.write_channel(AppChannel::ChannelSettingsPage);
+
+        if let Some((id, _)) = &state.channel_settings_page
+            && id == channel_id
+        {
+            state.channel_settings_page = None;
+        };
+    }
 }
 
 pub async fn update_state(
@@ -699,6 +827,9 @@ pub async fn update_state(
                         ),
                         FieldsChannel::Voice => {
                             set_enum_varient_values!(channel, voice, None, (Channel::TextChannel))
+                        },
+                        FieldsChannel::Slowmode => {
+                            set_enum_varient_values!(channel, slowmode, None, (Channel::TextChannel))
                         }
                     }
                 }
@@ -859,6 +990,7 @@ pub async fn update_state(
                         FieldsUser::ProfileContent => {}
                         FieldsUser::ProfileBackground => {}
                         FieldsUser::DisplayName => user.display_name = None,
+                        FieldsUser::Pronouns => user.pronouns = None,
                         FieldsUser::Internal => {}
                     }
                 }
@@ -870,22 +1002,164 @@ pub async fn update_state(
         EventV1::EmojiDelete { id } => {
             remove_emoji(&id, station);
         }
-        // EventV1::ChannelStartTyping { id, user } => {
-        //     context
-        //         .notifiers
-        //         .invoke_typing_start_waiters(&(id.clone(), user.clone()))
-        //         .await;
+        EventV1::ServerDelete { id } => delete_server(&id, station),
+        EventV1::ServerMemberLeave { id, user, reason } => {
+            if &user == station.peek().user_id.as_ref().unwrap() {
+                delete_server(&id, station)
+            } else {
+                delete_member(&id, &user, station)
+            }
+        }
+        EventV1::ChannelStartTyping { id, user } => add_typing(id, user, station),
+        EventV1::ChannelStopTyping { id, user } => remove_typing(&id, &user, station),
+        EventV1::BulkMessageDelete { channel, ids } => {
+            if let Some(channel_state) = station
+                .write_channel(AppChannel::ChannelStates)
+                .channel_states
+                .get_mut(&channel)
+            {
+                channel_state.messages.retain(|m| !ids.contains(&m.id));
+            } else if let Some(handle) = &station.read().message_handlers {
+                (handle.on_bulk_message_delete)(channel, ids)
+            }
+        }
+        EventV1::ServerMemberUpdate { id, data, clear } => {
+            update_server_member(&id, station, |member| {
+                member.apply_options(data);
 
-        //     handle_event!(handler, context, typing_start, (id, user))
-        // }
-        // EventV1::ChannelStopTyping { id, user } => {
-        //     context
-        //         .notifiers
-        //         .invoke_typing_stop_waiters(&(id.clone(), user.clone()))
-        //         .await;
+                for field in clear {
+                    match field {
+                        FieldsMember::Nickname => member.nickname = None,
+                        FieldsMember::Avatar => member.avatar = None,
+                        FieldsMember::Roles => member.roles.clear(),
+                        FieldsMember::Timeout => member.timeout = None,
+                        FieldsMember::CanReceive => member.can_receive = false,
+                        FieldsMember::CanPublish => member.can_publish = false,
+                        FieldsMember::JoinedAt => {}
+                        FieldsMember::VoiceChannel => {}
+                        FieldsMember::Pronouns => member.pronouns = None,
 
-        //     handle_event!(handler, context, typing_stop, (id, user))
-        // }
+                    }
+                }
+            });
+        }
+        EventV1::ServerMemberJoin { id: _, member, .. } => {
+            insert_member(member, station);
+        }
+        EventV1::ChannelDelete { id } => {
+            delete_channel(&id, station);
+        }
+        EventV1::ChannelGroupJoin { id, user } => {
+            update_channel(&id, station, |channel| {
+                if let Channel::Group { recipients, .. } = channel {
+                    recipients.push(user);
+                }
+            });
+        }
+        EventV1::ChannelGroupLeave { id, user } => {
+            update_channel(&id, station, |channel| {
+                if let Channel::Group { recipients, .. } = channel {
+                    recipients.retain(|u| u != &user);
+                }
+            });
+        }
+        EventV1::ServerRoleDelete { id, role_id } => {
+            update_server(&id, station, |server| {
+                server.roles.remove(&role_id);
+            });
+        }
+        EventV1::ServerRoleRanksUpdate { id, ranks } => {
+            update_server(&id, station, |server| {
+                for (idx, role_id) in ranks.iter().enumerate() {
+                    if let Some(role) = server.roles.get_mut(role_id) {
+                        role.rank = idx as i64;
+                    };
+                }
+            });
+        }
+        EventV1::ServerRoleUpdate {
+            id,
+            role_id,
+            data,
+            clear,
+        } => {
+            update_server(&id, station, |server| {
+                if let Some(role) = server.roles.get_mut(&role_id) {
+                    role.apply_options(data);
+
+                    for field in clear {
+                        match field {
+                            FieldsRole::Colour => role.colour = None,
+                            FieldsRole::Icon => role.icon = None,
+                        }
+                    }
+                }
+            });
+        }
+        EventV1::ReportCreate(_) => {}
+        EventV1::UserMoveVoiceChannel {
+            node,
+            from,
+            to,
+            token,
+        } => {
+            // TDODO
+        }
+        EventV1::UserPlatformWipe { user_id, flags } => {
+            // TODO
+        }
+        EventV1::UserRelationship { id, user } => {
+            update_user(
+                &id,
+                station,
+                |ourself| {
+                    if let Some(rel) = ourself
+                        .relations
+                        .iter_mut()
+                        .find(|rel| &rel.user_id == &user.id)
+                    {
+                        rel.status = user.relationship.clone();
+                    } else {
+                        ourself.relations.push(Relationship {
+                            user_id: user.id.clone(),
+                            status: user.relationship.clone(),
+                        });
+                    }
+                },
+            );
+            insert_user(user, station);
+        }
+        EventV1::UserVoiceStateUpdate {
+            id,
+            channel_id,
+            data,
+        } => {
+            // TODO
+        }
+        EventV1::VoiceChannelJoin { id, state } => {
+            // TODO
+        }
+        EventV1::VoiceChannelLeave { id, user } => {
+            // TODO
+        }
+        EventV1::VoiceChannelMove {
+            user,
+            from,
+            to,
+            state,
+        } => {
+            // TODO
+        }
+        EventV1::WebhookCreate(webhook) => {
+            // TODO
+        }
+        EventV1::WebhookDelete { id } => {
+            // TODO
+        }
+        EventV1::WebhookUpdate { id, data, remove } => {
+            // TODO
+        }
+
         _ => {}
     }
 }

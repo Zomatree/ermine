@@ -12,9 +12,10 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, ChannelState,
+    AppChannel, ChannelState, EditingMessage,
     components::{
-        Deferred, Message, MessageActions, MessageList, ReplyController, TrailingMessage,
+        ChannelTyping, Deferred, Message, MessageActions, MessageList, ReplyController,
+        TrailingMessage,
     },
     http, map_readable,
     types::Tag,
@@ -32,7 +33,6 @@ pub struct MessageModel {
     pub message: v0::Message,
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
-    // pub replies: Vec<(String, Option<MessageModel>)>,
 }
 
 impl Debug for MessageModel {
@@ -41,7 +41,6 @@ impl Debug for MessageModel {
             .field("message", &self.message)
             .field("user", &self.user.peek())
             .field("member", &self.member.as_ref().map(|m| m.peek()))
-            // .field("replies", &self.replies)
             .finish()
     }
 }
@@ -65,9 +64,14 @@ let messages_models = use_state(Vec::<MessageModel>::new);
 impl Component for ChannelMessages {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::ChannelStates);
+        let user_id = radio.slice(AppChannel::UserId, |state| &state.user_id);
+        let mut users_last_message = radio.slice_mut(AppChannel::UsersLastMessage, |state| {
+            &mut state.users_last_message
+        });
 
         let at_start = use_state(|| false);
         let at_end = use_state(|| false);
+        let at_bottom = use_state(|| false);
         let fetching = use_state(|| None::<FetchDirection>);
         let failed = use_state(|| false);
         let messages = use_state(VecDeque::<v0::Message>::new);
@@ -77,6 +81,37 @@ impl Component for ChannelMessages {
         let mut scroll_controller = use_scroll_controller(|| ScrollConfig {
             default_vertical_position: ScrollPosition::End,
             default_horizontal_position: ScrollPosition::End,
+        });
+
+        let mut ack_task = use_state(|| None::<TaskHandle>);
+        let mut last_acked = use_state(|| None::<String>);
+
+        use_side_effect({
+            let messages = messages.clone();
+            let platform = Platform::get();
+
+            move || {
+                let is_focused = (platform.is_app_focused)();
+                let messages = messages.read();
+
+                if at_bottom()
+                    && is_focused
+                    && let Some(message) = messages.front()
+                    && last_acked.read().as_ref().is_none_or(|id| id < &message.id)
+                {
+                    let message_id = message.id.clone();
+                    let channel_id = message.channel.clone();
+
+                    drop(messages);
+
+                    ack_task.take().map(|task| task.cancel());
+                    last_acked.set(Some(message_id.clone()));
+
+                    ack_task.set(Some(spawn(async move {
+                        http().ack_channel(&channel_id, &message_id).await.unwrap();
+                    })));
+                }
+            }
         });
 
         use_side_effect({
@@ -100,6 +135,27 @@ impl Component for ChannelMessages {
                         cache.insert(message.id.clone(), message);
                     };
                 }
+            }
+        });
+
+        use_side_effect({
+            let messages = messages.clone();
+            let user_id = user_id.read().clone().unwrap();
+
+            move || {
+                let messages = messages.read();
+                let mut found_message = None;
+
+                if at_end() {
+                    if let Some(message) = messages.iter().find(|m| m.author == user_id) {
+                        found_message = Some(EditingMessage {
+                            id: message.id.clone(),
+                            content: message.content.clone().unwrap_or_default(),
+                        });
+                    }
+                };
+
+                *users_last_message.write() = found_message;
             }
         });
 
@@ -377,8 +433,6 @@ impl Component for ChannelMessages {
                     }
 
                     if !new_messages.is_empty() {
-                        println!("{} {}", new_messages.len(), messages.read().len());
-
                         let cutoff =
                             (new_messages.len() + messages.read().len()).saturating_sub(75);
 
@@ -491,8 +545,6 @@ impl Component for ChannelMessages {
                     };
 
                     if !new_messages.is_empty() {
-                        println!("{} {}", new_messages.len(), messages.read().len());
-
                         let cutoff =
                             (new_messages.len() + messages.read().len()).saturating_sub(75);
 
@@ -655,6 +707,20 @@ impl Component for ChannelMessages {
                             }
                         }
                     }),
+                    on_bulk_message_delete: Rc::new({
+                        let messages = messages.clone();
+                        let channel = channel.clone();
+                        move |channel_id, message_ids| {
+                            if channel.id() != &channel_id {
+                                return;
+                            };
+
+                            messages
+                                .clone()
+                                .write()
+                                .retain(|m| !message_ids.contains(&m.id));
+                        }
+                    }),
                 });
 
                 case_initial(None);
@@ -750,6 +816,7 @@ impl Component for ChannelMessages {
                                         bot: None,
                                         relationship: v0::RelationshipStatus::None,
                                         online: false,
+                                        pronouns: None,
                                     }
                                 } else if let Ok(user) = http().fetch_user(&message.author).await {
                                     user
@@ -768,6 +835,7 @@ impl Component for ChannelMessages {
                                         bot: None,
                                         relationship: v0::RelationshipStatus::None,
                                         online: false,
+                                        pronouns: None,
                                     }
                                 };
 
@@ -994,13 +1062,14 @@ impl Component for ChannelMessages {
                 },
                 at_start.clone().into_readable(),
                 at_end.into_readable(),
+                at_bottom.into_writable(),
                 permit_fetching,
                 scroll_controller,
             )
             .child(
                 Deferred::new().child(
                     rect()
-                        .padding((16., 0., 26., 0.))
+                        .padding((16., 0., 0., 0.))
                         .maybe_child(at_start.read().then(|| {
                             rect()
                                 .margin((18., 16., 10., 16.))
@@ -1040,7 +1109,11 @@ impl Component for ChannelMessages {
                                         .text("This is the start of your conversation."),
                                 )
                         }))
-                        .child(rect().children(message_views.read().iter().cloned())),
+                        .child(rect().children(message_views.read().iter().cloned()))
+                        .child(ChannelTyping {
+                            channel: self.channel.clone(),
+                            server: self.server.clone(),
+                        }),
                 ),
             ),
         )

@@ -1,18 +1,14 @@
-use freya::{
-    icons::lucide::{
-        arrow_left, arrow_right, circle_x, image, info, key, pin, pin_off, plus, shield_x, tag,
-        text_align_start, volume_2, x,
-    },
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{Avatar, MessageContent, MessageModel, MessageReply, UserCard, use_floating},
-    member_display_color, use_material_theme,
+    components::{
+        Avatar, MessageContent, MessageModel, MessageReply, SystemMessage, UserCard,
+        UserContextMenu, use_floating,
+    },
+    consume_material_theme, member_display_color,
 };
 
 #[derive(PartialEq)]
@@ -24,18 +20,25 @@ pub struct Message {
 impl Component for Message {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
-        let users = radio.slice(AppChannel::Users, |state| &state.users);
 
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
+
+        let server_id = use_hook({
+            move || {
+                if let Some(member) = &self.message.member {
+                    Some(member.read().id.server.clone())
+                } else {
+                    None
+                }
+            }
+        });
 
         let server = use_memo({
-            let member = self.message.member.clone();
+            let server_id = server_id.clone();
 
             move || {
-                if let Some(member) = &member {
-                    let member = member.read();
-
-                    radio.read().servers.get(&member.id.server).cloned()
+                if let Some(server_id) = &server_id {
+                    radio.read().servers.get(server_id).cloned()
                 } else {
                     None
                 }
@@ -90,136 +93,8 @@ impl Component for Message {
             }
         };
 
-        if let Some(system) = &self.message.message.system {
-            rect()
-                .horizontal()
-                .spacing(8.)
-                .font_size(14.)
-                .child(
-                    rect()
-                        .width(Size::px(70.))
-                        .height(Size::px(20.))
-                        .center()
-                        .color(theme.md.primary.as_argb_u32())
-                        .child(
-                            svg(match system {
-                                v0::SystemMessage::Text { .. } => info(),
-                                v0::SystemMessage::UserAdded { .. } => plus(),
-                                v0::SystemMessage::UserRemove { .. } => x(),
-                                v0::SystemMessage::UserJoined { .. } => arrow_right(),
-                                v0::SystemMessage::UserLeft { .. } => arrow_left(),
-                                v0::SystemMessage::UserKicked { .. } => circle_x(),
-                                v0::SystemMessage::UserBanned { .. } => shield_x(),
-                                v0::SystemMessage::ChannelRenamed { .. } => tag(),
-                                v0::SystemMessage::ChannelDescriptionChanged { .. } => {
-                                    text_align_start()
-                                }
-                                v0::SystemMessage::ChannelIconChanged { .. } => image(),
-                                v0::SystemMessage::ChannelOwnershipChanged { .. } => key(),
-                                v0::SystemMessage::MessagePinned { .. } => pin(),
-                                v0::SystemMessage::MessageUnpinned { .. } => pin_off(),
-                                v0::SystemMessage::CallStarted { .. } => volume_2(),
-                            })
-                            .width(Size::px(16.))
-                            .height(Size::px(16.)),
-                        ),
-                )
-                .child(match system {
-                    v0::SystemMessage::Text { content } => {
-                        rect().child(label().text(content.clone()))
-                    }
-                    v0::SystemMessage::UserAdded { id, by } => {
-                        let user = users.read().get(id).unwrap().clone();
-                        let by = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!(
-                            "{} has been added by {}",
-                            user.username, by.username
-                        )))
-                    }
-                    v0::SystemMessage::UserRemove { id, by } => {
-                        let user = users.read().get(id).unwrap().clone();
-                        let by = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!(
-                            "{} has been removed by {}",
-                            user.username, by.username
-                        )))
-                    }
-                    v0::SystemMessage::UserJoined { id } => {
-                        let user = users.read().get(id).unwrap().clone();
-
-                        rect().child(label().text(format!("{} joined the server", user.username)))
-                    }
-                    v0::SystemMessage::UserLeft { id } => {
-                        let user = users.read().get(id).unwrap().clone();
-
-                        rect().child(label().text(format!("{} left the server", user.username)))
-                    }
-                    v0::SystemMessage::UserKicked { id } => {
-                        let user = users.read().get(id).unwrap().clone();
-
-                        rect().child(
-                            label()
-                                .text(format!("{} has been kicked from the server", user.username)),
-                        )
-                    }
-                    v0::SystemMessage::UserBanned { id } => {
-                        let user = users.read().get(id).unwrap().clone();
-
-                        rect().child(
-                            label()
-                                .text(format!("{} has been banned from the server", user.username)),
-                        )
-                    }
-                    v0::SystemMessage::ChannelRenamed { name, by } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!(
-                            "{} updated the group name to {}",
-                            user.username, name
-                        )))
-                    }
-                    v0::SystemMessage::ChannelDescriptionChanged { by } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(
-                            label()
-                                .text(format!("{} updated the group description", user.username)),
-                        )
-                    }
-                    v0::SystemMessage::ChannelIconChanged { by } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(
-                            label().text(format!("{} updated the group icon", user.username)),
-                        )
-                    }
-                    v0::SystemMessage::ChannelOwnershipChanged { from, to } => {
-                        let from = users.read().get(from).unwrap().clone();
-                        let to = users.read().get(to).unwrap().clone();
-
-                        rect().child(label().text(format!(
-                            "{} transferred group ownership to {}",
-                            from.username, to.username
-                        )))
-                    }
-                    v0::SystemMessage::MessagePinned { id, by } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!("{} pinned", user.username)))
-                    }
-                    v0::SystemMessage::MessageUnpinned { id, by } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!("{} unpinned", user.username)))
-                    }
-                    v0::SystemMessage::CallStarted { by, finished_at } => {
-                        let user = users.read().get(by).unwrap().clone();
-
-                        rect().child(label().text(format!("{} started a call", user.username)))
-                    }
-                })
+        if let Some(system) = self.message.message.system.clone() {
+            SystemMessage { message: self.message.clone(), system, server_id: server_id.clone() }.into_element()
         } else {
             rect()
                 .child(
@@ -257,6 +132,24 @@ impl Component for Message {
                                         .on_press({
                                             let open_profile = open_profile.clone();
                                             move |_| open_profile()
+                                        })
+                                        .on_secondary_down({
+                                            let user = self.message.user.clone();
+                                            let server = server.clone();
+
+                                            move |e: Event<PressEventData>| {
+                                                e.stop_propagation();
+                                                ContextMenu::open_from_event(
+                                                    &e,
+                                                    Menu::new().child(UserContextMenu {
+                                                        user_id: user.read().id.clone(),
+                                                        server_id: server
+                                                            .read()
+                                                            .as_ref()
+                                                            .map(|s| s.id.clone()),
+                                                    }),
+                                                );
+                                            }
                                         })
                                         .child(Avatar::new(
                                             self.message.user.clone(),
@@ -355,6 +248,11 @@ impl Component for Message {
                                 }),
                         ),
                 )
+                .into_element()
         }
+    }
+
+    fn render_key(&self) -> DiffKey {
+        (&self.message.message.id).into()
     }
 }

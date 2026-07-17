@@ -3,10 +3,9 @@ use std::{cell::RefCell, rc::Rc};
 use freya::prelude::*;
 
 use crate::{
-    components::{
-        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal, DeleteInviteModal, DeleteMessageModal, JoinServerModal, ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt
-    },
-    use_material_theme,
+    Error, components::{
+        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal, DeleteCategoryModal, DeleteChannelModal, DeleteInviteModal, DeleteMessageModal, ErrorModal, InviteInfoModal, JoinServerModal, LeaveGroupModal, LeaveServerModal, RenameCategoryModal, ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt
+    }, consume_material_theme
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -19,6 +18,13 @@ pub enum ModalValue {
     CreateRole { server: String },
     DeleteMessage { channel: String, message: String },
     DeleteInvite { invite: String },
+    LeaveServer { server: String },
+    RenameCategory { server: String, category: String },
+    DeleteCategory { server: String, category: String },
+    InviteInfo { code: String },
+    LeaveGroup { channel: String },
+    DeleteChannel { channel: String },
+    Error { error: Error },
 }
 
 #[derive(Clone)]
@@ -61,7 +67,7 @@ impl Component for ModalManager {
         let modal = controller.read().get_modal();
 
         rect()
-            .layer(Layer::RelativeOverlay(7))
+            .layer(Layer::OverlayLevel(8))
             .maybe_child(modal.map(|value| {
                 Modal {
                     value: value.clone(),
@@ -78,7 +84,7 @@ struct Modal {
 
 impl Component for Modal {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut controller = use_modals();
 
         let on_global_key_down = move |e: Event<KeyboardEventData>| {
@@ -132,10 +138,31 @@ impl Component for Modal {
                                     }
                                     ModalValue::DeleteMessage { channel, message } => {
                                         DeleteMessageModal { channel, message }.into_element()
-                                    },
-                                    ModalValue::DeleteInvite { invite } => DeleteInviteModal {
-                                        invite
-                                    }.into_element()
+                                    }
+                                    ModalValue::DeleteInvite { invite } => {
+                                        DeleteInviteModal { invite }.into_element()
+                                    }
+                                    ModalValue::LeaveServer { server } => {
+                                        LeaveServerModal { server }.into_element()
+                                    }
+                                    ModalValue::RenameCategory { server, category } => {
+                                        RenameCategoryModal { server, category }.into_element()
+                                    }
+                                    ModalValue::DeleteCategory { server, category } => {
+                                        DeleteCategoryModal { server, category }.into_element()
+                                    }
+                                    ModalValue::Error { error } => {
+                                        ErrorModal { error }.into_element()
+                                    }
+                                    ModalValue::InviteInfo { code } => {
+                                        InviteInfoModal { code }.into_element()
+                                    }
+                                    ModalValue::LeaveGroup { channel } => {
+                                        LeaveGroupModal { channel }.into_element()
+                                    }
+                                    ModalValue::DeleteChannel { channel } => {
+                                        DeleteChannelModal { channel }.into_element()
+                                    }
                                 }),
                         ),
                 ),
@@ -211,7 +238,7 @@ impl Dialog {
 
 impl Component for Dialog {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut controller = use_modals();
 
         rect()

@@ -2,11 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{MessageModel, NetworkSvg, StoatButton, StoatButtonLayoutThemePartialExt},
-    http,
-    types::Tag,
-    use_material_theme,
+    AppChannel, SizeExt, components::{MessageModel, StoatButton, StoatButtonLayoutThemePartialExt}, consume_material_theme, http, types::Tag
 };
 
 #[derive(PartialEq)]
@@ -19,7 +15,7 @@ impl Component for MessageReactions {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
         let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         rect()
             .spacing(4.)
@@ -82,10 +78,10 @@ impl Component for MessageReactions {
                                         Tag::Emojis
                                     );
 
-                                    ImageViewer::new(url.parse::<Uri>().unwrap())
+                                    ImageViewer::new(url.parse::<Url>().unwrap())
                                         .sampling_mode(SamplingMode::Trilinear)
-                                        .width(Size::px(16.8))
-                                        .height(Size::px(16.8))
+                                        .size(Size::px(16.8))
+                                        .error_renderer(|_| rect().size(Size::px(16.8)).into_element())
                                         .into_element()
                                 } else {
                                     let codes = emoji
@@ -98,9 +94,10 @@ impl Component for MessageReactions {
                                         "https://static.stoat.chat/emoji/fluent-3d/{codes}.svg?v=1"
                                     );
 
-                                    NetworkSvg::new(url.parse::<Uri>().unwrap())
-                                        .width(Size::px(16.8))
-                                        .height(Size::px(16.8))
+                                    SvgViewer::new(url.parse::<Url>().unwrap())
+                                        .parallel(true)
+                                        .size(Size::px(16.8))
+                                        .error_renderer(|_| rect().size(Size::px(16.8)).into_element())
                                         .into_element()
                                 }
                             }))

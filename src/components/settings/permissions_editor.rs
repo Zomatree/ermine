@@ -1,10 +1,9 @@
 use freya::{
-    icons::lucide::{check, square_dashed, x},
     prelude::*,
 };
 use stoat_permissions::OverrideField;
 
-use crate::{components::checkbox::StoatCheckbox, use_material_theme};
+use crate::{SizeExt, components::{MaterialIcon, checkbox::StoatCheckbox, material::{filled::{check, clear}, outlined::check_box_outline_blank}}, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct PermissionsEditor {
@@ -329,7 +328,7 @@ struct PermissionOverriteSwitchOverride {
 
 impl Component for PermissionOverriteSwitchOverride {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut hover = use_state(|| false);
         let a11y_id = use_a11y();
 
@@ -413,13 +412,12 @@ impl Component for PermissionOverriteSwitchOverride {
                 }
             })
             .child(
-                svg(match self.value {
+                MaterialIcon::new(match self.value {
                     Some(true) => check(),
-                    None => square_dashed(),
-                    Some(false) => x(),
+                    None => check_box_outline_blank(),
+                    Some(false) => clear(),
                 })
-                .width(Size::px(24.))
-                .height(Size::px(24.)),
+                .size(Size::px(24.))
             )
             .maybe_child(hover().then(|| {
                 rect()

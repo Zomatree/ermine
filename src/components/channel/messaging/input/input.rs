@@ -1,4 +1,4 @@
-use std::{fmt::Debug, mem};
+use std::{fmt::Debug, mem, path::PathBuf};
 
 use freya::{
     prelude::*,
@@ -7,6 +7,7 @@ use freya::{
 use indexmap::IndexMap;
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
+use tokio::sync::oneshot;
 
 use crate::{
     components::{
@@ -143,28 +144,41 @@ impl AttachmentController {
         });
     }
 
+    pub async fn add(&self, path: PathBuf) {
+        let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+
+        let (tx, rx) = oneshot::channel();
+
+        std::thread::spawn(move || {
+            let contents = std::fs::read(path).unwrap();
+
+            tx.send(Bytes::from(contents))
+        });
+
+        let contents = rx.await.unwrap();
+
+        let id = rand::random();
+
+        let (filename, spoiler) = if let Some(filename) = filename.strip_prefix("SPOILER_") {
+            (filename.to_string(), true)
+        } else {
+            (filename, false)
+        };
+
+        let attachment = Attachment {
+            controller: *self,
+            id,
+            filename,
+            spoiler,
+            contents: contents,
+        };
+
+        self.0.clone().write().insert(id, attachment);
+    }
+
     pub async fn prompt(&self) {
         if let Some(file) = AsyncFileDialog::new().pick_file().await {
-            let contents = file.read().await.into();
-            let filename = file.file_name();
-
-            let id = rand::random();
-
-            let (filename, spoiler) = if let Some(filename) = filename.strip_prefix("SPOILER_") {
-                (filename.to_string(), true)
-            } else {
-                (filename, false)
-            };
-
-            let attachment = Attachment {
-                controller: *self,
-                id,
-                filename,
-                spoiler,
-                contents,
-            };
-
-            self.0.clone().write().insert(id, attachment);
+            self.add(file.path().to_path_buf()).await;
         };
     }
 }
@@ -190,6 +204,8 @@ impl Component for MessageInput {
 
         let is_server = matches!(&*self.channel.read(), v0::Channel::TextChannel { .. });
 
+        let mut autocomplete_visible = use_state(|| false);
+
         let autocomplete = use_side_effect_value(move || {
             let editor = editable.editor().read();
             let text = editor.rope().to_string();
@@ -206,10 +222,12 @@ impl Component for MessageInput {
                     Some('%') if is_server => Some(AutocompleteType::Role),
                     _ => None,
                 } {
+                    autocomplete_visible.set(true);
                     return Some((ty, last_section[1..].to_string()));
                 };
             };
 
+            autocomplete_visible.set(false);
             None
         });
 
@@ -221,6 +239,7 @@ impl Component for MessageInput {
                     .read()
                     .cloned()
                     .map(|(autocomplete, query)| Autocomplete {
+                        visible: autocomplete_visible,
                         autocomplete,
                         query,
                         editable,
@@ -248,6 +267,7 @@ impl Component for MessageInput {
             })))
             .child(Textbox {
                 editable,
+                autocomplete_visible,
                 replies: self.replies,
                 attachments: self.attachments,
                 channel: self.channel.clone(),

@@ -1,12 +1,9 @@
 use std::borrow::Cow;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, use_modals},
-    http, use_material_theme,
+    AppChannel, SizeExt, components::{Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, material::{filled::content_copy, outlined::delete}, use_modals}, consume_material_theme, http
 };
 use freya::{
-    icons::lucide::{copy, trash},
     prelude::*,
     radio::use_radio,
 };
@@ -26,7 +23,7 @@ pub struct InviteServerSettings {
 
 impl Component for InviteServerSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut modals = use_modals();
         let radio = use_radio(AppChannel::Users);
         let users = radio.slice_current(|state| &state.users);
@@ -190,15 +187,13 @@ impl Component for InviteServerSettings {
                                                 })
                                                 .child(
                                                     rect()
-                                                        .width(Size::px(36.))
-                                                        .height(Size::px(36.))
+                                                        .size(Size::px(36.))
                                                         .background(theme.md.secondary_container.as_argb_u32())
                                                         .color(theme.md.on_secondary_container.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(copy())
-                                                                .width(Size::px(24.))
-                                                                .height(Size::px(24.)),
+                                                            MaterialIcon::new(content_copy())
+                                                                .size(Size::px(24.))
                                                         ),
                                                 ),
                                         )
@@ -218,15 +213,13 @@ impl Component for InviteServerSettings {
                                                 })
                                                 .child(
                                                     rect()
-                                                        .width(Size::px(36.))
-                                                        .height(Size::px(36.))
+                                                        .size(Size::px(36.))
                                                         .background(theme.md.primary.as_argb_u32())
                                                         .color(theme.md.on_primary.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(trash())
-                                                                .width(Size::px(24.))
-                                                                .height(Size::px(24.)),
+                                                            MaterialIcon::new(delete())
+                                                                .size(Size::px(24.))
                                                         ),
                                                 ),
                                         ),

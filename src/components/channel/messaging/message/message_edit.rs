@@ -23,6 +23,9 @@ impl Component for MessageEdit {
 
         let holder = use_state(ParagraphHolder::default);
         let mut editable = use_editable(|| self.content.clone(), EditableConfig::new);
+
+        use_hook(|| editable.editor_mut().write().move_cursor_to(self.content.len()));
+
         let a11y_id = use_a11y();
 
         let save_message = {
@@ -59,6 +62,8 @@ impl Component for MessageEdit {
             }
         };
 
+        use_hook(|| a11y_id.request_focus());
+
         rect()
             .spacing(4.)
             .child(
@@ -73,7 +78,9 @@ impl Component for MessageEdit {
                             .width(Size::Fill)
                             .a11y_id(a11y_id)
                             .a11y_auto_focus(true)
+                            .a11y_focusable(true)
                             .cursor_index(editable.editor().read().cursor_pos())
+                            // .on_sized(move |_| a11y_id.request_focus())
                             .highlights(
                                 editable
                                     .editor()

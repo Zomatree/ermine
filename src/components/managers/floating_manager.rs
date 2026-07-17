@@ -12,7 +12,7 @@ impl Component for FloatingManager {
         let element = use_floating();
 
         rect()
-            .layer(Layer::RelativeOverlay(6))
+            .layer(Layer::OverlayLevel(7))
             .maybe_child(element.read().cloned().map(|element| Floating {
                 element,
                 mouse_pos: *mouse_pos.read(),

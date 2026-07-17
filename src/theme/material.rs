@@ -12,8 +12,6 @@ pub fn default_theme_source() -> u32 {
     0x5470ec
 }
 
-pub fn use_material_theme() -> crate::theme::Theme {
-    let state = consume_context::<State<crate::theme::Theme>>();
-
-    *state.read()
+pub fn consume_material_theme() -> crate::theme::Theme {
+    *consume_context::<State<crate::theme::Theme>>().read()
 }

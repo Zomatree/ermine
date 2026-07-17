@@ -1,10 +1,9 @@
 use freya::{
-    icons::lucide::{chevron_down, users_round},
     prelude::*,
     radio::use_radio,
 };
 
-use crate::{AppChannel, components::Avatar, use_material_theme};
+use crate::{AppChannel, SizeExt, components::{Avatar, MaterialIcon, material::{filled::expand_more, outlined::groups}}, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct ProfileSettings {}
@@ -17,7 +16,7 @@ impl Component for ProfileSettings {
             state.users.get(&*user_id.read()).unwrap()
         });
 
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let user_value = user.read();
 
@@ -83,9 +82,8 @@ impl Component for ProfileSettings {
                                     .color(theme.md.on_surface.as_argb_u32())
                                     .center()
                                     .child(
-                                        svg(users_round())
-                                            .width(Size::px(22.))
-                                            .height(Size::px(22.)),
+                                        MaterialIcon::new(groups())
+                                            .size(Size::px(22.))
                                     ),
                             )
                             .child(
@@ -107,9 +105,8 @@ impl Component for ProfileSettings {
                                     ),
                             )
                             .child(
-                                svg(chevron_down())
-                                    .width(Size::px(18.))
-                                    .height(Size::px(18.)),
+                                MaterialIcon::new(expand_more())
+                                    .size(Size::px(18.))
                             ),
                     ),
             )

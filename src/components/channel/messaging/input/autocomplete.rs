@@ -1,5 +1,4 @@
 use freya::{
-    icons::lucide::hash,
     prelude::*,
     radio::use_radio,
     text_edit::{TextEditor, UseEditable},
@@ -7,9 +6,12 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{AutocompleteType, Avatar, StoatButton},
-    parse_fill, use_material_theme,
+    AppChannel, SizeExt,
+    components::{
+        AutocompleteType, Avatar, StoatButton, StoatButtonColorsThemePartialExt,
+        material::{MaterialIcon, filled::grid_3x3},
+    },
+    consume_material_theme, parse_fill,
 };
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -23,6 +25,7 @@ enum AutocompleteEntry {
 #[derive(PartialEq)]
 pub struct Autocomplete {
     pub autocomplete: AutocompleteType,
+    pub visible: State<bool>,
     pub query: String,
     pub editable: UseEditable,
     pub channel: Readable<v0::Channel>,
@@ -37,14 +40,21 @@ impl Component for Autocomplete {
         let emojis = radio.slice(AppChannel::Emojis, |state| &state.emojis);
         let channels = radio.slice(AppChannel::Channels, |state| &state.channels);
 
+        let a11y_id = use_a11y();
+
         let server = if let v0::Channel::TextChannel { server, .. } = &*self.channel.read() {
             Some(server.clone())
         } else {
             None
         };
 
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
+
         let mut area = use_state(Area::default);
+
+        let mut selected_idx = use_state(|| 0usize);
+
+        // use_hook(|| a11y_id.request_focus());
 
         let entries = use_hook({
             let members = members.clone();
@@ -118,6 +128,15 @@ impl Component for Autocomplete {
 
         let query = use_reactive(&self.query);
 
+        use_side_effect({
+            let mut visible = self.visible;
+            move || {
+                query.read();
+                selected_idx.set(0);
+                visible.set(true);
+            }
+        });
+
         let filtered = use_memo({
             let server = server.clone();
             let users = users.clone();
@@ -163,110 +182,167 @@ impl Component for Autocomplete {
             }
         });
 
-        rect()
-            .height(Size::px((filtered.read().len() * 32 + 16).min(176) as f32))
-            .padding((8., 0.))
-            .width(Size::Fill)
-            .background(theme.md.primary_container.as_argb_u32())
-            .opacity(
-                if area.read().height() != 0. && filtered.read().len() != 0 {
-                    1.
-                } else {
-                    0.
-                },
-            )
-            .color(theme.md.on_primary_container.as_argb_u32())
-            .corner_radius(16.)
-            .overflow(Overflow::Clip)
-            .content(Content::Flex)
-            .content(Content::Flex)
-            .font_size(14)
-            .position(Position::new_absolute().top(-(area.read().height() + 8.)))
-            .layer(Layer::Overlay)
-            .on_sized(move |e: Event<SizedEventData>| area.set(e.area))
-            .child(
-                VirtualScrollView::new({
-                    let mut editable = self.editable;
-                    let query = self.query.clone();
-                    let server = server.clone();
+        let insert_autocomplete_value = {
+            let editable = self.editable.clone();
+            let query = self.query.clone();
 
-                    move |idx, _| {
-                        let filtered = filtered.read();
+            move |entry| {
+                let text = match entry {
+                    AutocompleteEntry::User(id) => format!("<@{id}> "),
+                    AutocompleteEntry::Channel(id) => format!("<#{id}> "),
+                    AutocompleteEntry::Emoji(_) => todo!(),
+                    AutocompleteEntry::Role(id) => format!("<%{id}> "),
+                };
 
-                        let entry = &filtered[idx];
+                let mut editor = editable.clone().editor_mut().write();
+                let end_pos = editor.selection().end();
+                let start_pos = end_pos - query.len() - 1;
 
-                        StoatButton::new()
-                            .on_press({
-                                let entry = entry.clone();
-                                let query = query.clone();
+                editor.remove(start_pos..end_pos);
+                editor.insert(&text, start_pos);
+                editor.selection_mut().move_to(start_pos + text.len());
+                editor.selection_mut().set_as_cursor();
+            }
+        };
 
-                                move |_| {
-                                    let text = match &entry {
-                                        AutocompleteEntry::User(id) => format!("<@{id}> "),
-                                        AutocompleteEntry::Channel(id) => format!("<#{id}> "),
-                                        AutocompleteEntry::Emoji(_) => todo!(),
-                                        AutocompleteEntry::Role(id) => format!("<%{id}> "),
-                                    };
+        if (self.visible)() {
+            rect()
+                .a11y_id(a11y_id)
+                .height(Size::px((filtered.read().len() * 32 + 16).min(176) as f32))
+                .padding((8., 0.))
+                .width(Size::Fill)
+                .background(theme.md.primary_container.as_argb_u32())
+                .opacity(
+                    if area.read().height() != 0. && filtered.read().len() != 0 {
+                        1.
+                    } else {
+                        0.
+                    },
+                )
+                .color(theme.md.on_primary_container.as_argb_u32())
+                .corner_radius(16.)
+                .overflow(Overflow::Clip)
+                .content(Content::Flex)
+                .content(Content::Flex)
+                .font_size(14)
+                .position(Position::new_absolute().top(-(area.read().height() + 8.)))
+                .layer(Layer::Overlay)
+                .on_sized(move |e: Event<SizedEventData>| area.set(e.area))
+                .on_global_pointer_down({
+                    let mut visible = self.visible;
+                    move |e: Event<PointerEventData>| {
+                        if !area().contains(e.global_location().to_f32()) {
+                            visible.set(false);
+                        }
+                    }
+                })
+                .on_global_key_down({
+                    let insert_autocomplete_value = insert_autocomplete_value.clone();
 
-                                    let mut editor = editable.editor_mut().write();
-                                    let end_pos = editor.selection().end();
-                                    let start_pos = end_pos - query.len() - 1;
+                    move |e: Event<KeyboardEventData>| {
+                        println!("autocomplete down");
+                        if e.key == Key::Named(NamedKey::ArrowUp) {
+                            let mut idx = selected_idx.write();
+                            *idx = idx.wrapping_sub(1).min(filtered.read().len() - 1);
+                            e.stop_propagation();
+                            e.prevent_default();
+                        } else if e.key == Key::Named(NamedKey::ArrowDown) {
+                            let mut idx = selected_idx.write();
 
-                                    editor.remove(start_pos..end_pos);
-                                    editor.insert(&text, start_pos);
-                                    editor.selection_mut().move_to(start_pos + text.len());
-                                    editor.selection_mut().set_as_cursor();
-                                }
-                            })
-                            .child(match entry {
-                                AutocompleteEntry::User(user) => {
-                                    let users = users.read();
-                                    let user = users.get(user).unwrap();
+                            *idx = idx.wrapping_add(1);
 
-                                    rect()
-                                        .horizontal()
-                                        .cross_align(Alignment::Center)
-                                        .padding((4., 16.))
-                                        .spacing(8.)
-                                        .width(Size::Fill)
-                                        .child(Avatar::new(user.clone().into_readable(), None, 24.))
-                                        .child(label().font_size(14.).text(user.username.clone()))
-                                }
-                                AutocompleteEntry::Channel(channel) => {
-                                    let channels = channels.read();
-                                    let channel = channels.get(channel).unwrap();
+                            if *idx >= filtered.read().len() {
+                                *idx = 0;
+                            }
+                            e.stop_propagation();
+                            e.prevent_default();
+                        } else if e.key == Key::Named(NamedKey::Enter) {
+                            let filtered = filtered.read();
+                            insert_autocomplete_value(filtered[selected_idx()].clone());
+                            e.stop_propagation();
+                            e.prevent_default();
+                        }
+                    }
+                })
+                .child(
+                    VirtualScrollView::new({
+                        let server = server.clone();
 
-                                    rect()
-                                        .horizontal()
-                                        .cross_align(Alignment::Center)
-                                        .padding((4., 16.))
-                                        .spacing(8.)
-                                        .width(Size::Fill)
-                                        .child(
-                                            svg(hash()).width(Size::px(24.)).height(Size::px(24.)),
-                                        )
-                                        .child(
-                                            label()
-                                                .font_size(14.)
-                                                .text(channel.name().unwrap().to_string()),
-                                        )
-                                }
-                                AutocompleteEntry::Emoji(_) => todo!(),
-                                AutocompleteEntry::Role(role) => {
-                                    let servers = servers.read();
-                                    let server = servers.get(server.as_ref().unwrap()).unwrap();
+                        move |idx, _| {
+                            let filtered = filtered.read();
 
-                                    let role = server.roles.get(role).unwrap();
+                            let entry = &filtered[idx];
 
-                                    let mut color = rect()
-                                        .margin(6.)
-                                        .corner_radius(6.)
-                                        .width(Size::px(12.))
-                                        .height(Size::px(12.));
+                            StoatButton::new()
+                                .on_hover(move |_| selected_idx.set(idx))
+                                .maybe(selected_idx() == idx, |this| {
+                                    this.background(
+                                        Color::from(theme.md.on_surface.as_argb_u32()).with_a(20),
+                                    )
+                                })
+                                .on_press({
+                                    let entry = entry.clone();
+                                    let insert_autocomplete_value =
+                                        insert_autocomplete_value.clone();
+                                    move |_| insert_autocomplete_value(entry.clone())
+                                })
+                                .child(match entry {
+                                    AutocompleteEntry::User(user) => {
+                                        let users = users.read();
+                                        let user = users.get(user).unwrap();
 
-                                    color.get_style().background =
-                                        role.colour.as_deref().and_then(parse_fill).unwrap_or_else(
-                                            || {
+                                        rect()
+                                            .horizontal()
+                                            .cross_align(Alignment::Center)
+                                            .padding((4., 16.))
+                                            .spacing(8.)
+                                            .width(Size::Fill)
+                                            .child(Avatar::new(
+                                                user.clone().into_readable(),
+                                                None,
+                                                24.,
+                                            ))
+                                            .child(
+                                                label().font_size(14.).text(user.username.clone()),
+                                            )
+                                    }
+                                    AutocompleteEntry::Channel(channel) => {
+                                        let channels = channels.read();
+                                        let channel = channels.get(channel).unwrap();
+
+                                        rect()
+                                            .horizontal()
+                                            .cross_align(Alignment::Center)
+                                            .padding((4., 16.))
+                                            .spacing(8.)
+                                            .width(Size::Fill)
+                                            .child(
+                                                MaterialIcon::new(grid_3x3()).size(Size::px(24.)),
+                                            )
+                                            .child(
+                                                label()
+                                                    .font_size(14.)
+                                                    .text(channel.name().unwrap().to_string()),
+                                            )
+                                    }
+                                    AutocompleteEntry::Emoji(_) => todo!(),
+                                    AutocompleteEntry::Role(role) => {
+                                        let servers = servers.read();
+                                        let server = servers.get(server.as_ref().unwrap()).unwrap();
+
+                                        let role = server.roles.get(role).unwrap();
+
+                                        let mut color = rect()
+                                            .margin(6.)
+                                            .corner_radius(6.)
+                                            .width(Size::px(12.))
+                                            .height(Size::px(12.));
+
+                                        color.get_style().background = role
+                                            .colour
+                                            .as_deref()
+                                            .and_then(parse_fill)
+                                            .unwrap_or_else(|| {
                                                 Fill::Color(
                                                     theme
                                                         .md
@@ -274,24 +350,26 @@ impl Component for Autocomplete {
                                                         .as_argb_u32()
                                                         .into(),
                                                 )
-                                            },
-                                        );
+                                            });
 
-                                    rect()
-                                        .horizontal()
-                                        .cross_align(Alignment::Center)
-                                        .padding((4., 16.))
-                                        .spacing(8.)
-                                        .width(Size::Fill)
-                                        .child(color)
-                                        .child(label().font_size(14.).text(role.name.clone()))
-                                }
-                            })
-                            .into_element()
-                    }
-                })
-                .length(filtered.read().len())
-                .item_size(32.),
-            )
+                                        rect()
+                                            .horizontal()
+                                            .cross_align(Alignment::Center)
+                                            .padding((4., 16.))
+                                            .spacing(8.)
+                                            .width(Size::Fill)
+                                            .child(color)
+                                            .child(label().font_size(14.).text(role.name.clone()))
+                                    }
+                                })
+                                .into_element()
+                        }
+                    })
+                    .length(filtered.read().len())
+                    .item_size(32.),
+                )
+        } else {
+            rect()
+        }
     }
 }

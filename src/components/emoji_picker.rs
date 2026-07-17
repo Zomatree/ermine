@@ -2,11 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{NetworkSvg, StoatButton, StoatButtonLayoutThemePartialExt, server_icon},
-    get_unicode_emojis, http,
-    types::Tag,
-    use_material_theme,
+    AppChannel, SizeExt, components::{StoatButton, StoatButtonLayoutThemePartialExt, server_icon}, consume_material_theme, get_unicode_emojis, http, types::Tag
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -36,7 +32,7 @@ impl Component for EmojiPicker {
         let radio = use_radio(AppChannel::Emojis);
         let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
         let emojis = radio.slice_current(|state| &state.emojis);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let filter = use_state(String::new);
 
@@ -200,7 +196,7 @@ impl Component for EmojiPicker {
                                         Tag::Emojis,
                                         &emoji.id,
                                     )
-                                    .parse::<Uri>()
+                                    .parse::<Url>()
                                     .unwrap(),
                                 )
                                 .sampling_mode(SamplingMode::Trilinear)
@@ -235,9 +231,9 @@ impl Component for EmojiPicker {
                                 );
 
                                 StoatButton::new().corner_radius(8.).child(rect().padding(4.).child(
-                                    NetworkSvg::new(url.parse::<Uri>().unwrap())
-                                        .width(Size::px(32.))
-                                        .height(Size::px(32.))
+                                    SvgViewer::new(url.parse::<Url>().unwrap())
+                                        .parallel(true)
+                                        .size(Size::px(32.))
                                 ))
                                 .on_press({let value = value.clone(); let on_select = on_select.clone(); move |_| on_select.call(value.clone())})
                                         .into_element()

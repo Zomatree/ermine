@@ -9,7 +9,7 @@ use crate::{
     components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
     http,
     theme::Theme,
-    use_material_theme,
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -18,7 +18,7 @@ pub struct CurrentUserButton {}
 impl Component for CurrentUserButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let current_user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
         let current_user = radio.slice(AppChannel::Users, move |state| {
@@ -189,6 +189,7 @@ fn presence_button(value: v0::Presence, theme: &Theme) -> StoatButton {
                                     profile: None,
                                     badges: None,
                                     flags: None,
+                                    pronouns: None,
                                     remove: Vec::new(),
                                 },
                             )

@@ -2,11 +2,10 @@ use std::time::Duration;
 
 use freya::{
     animation::{AnimColor, AnimatedValue, Ease, OnChange, OnCreation, use_animation},
-    icons::lucide::{square, square_check},
     prelude::*,
 };
 
-use crate::use_material_theme;
+use crate::{SizeExt, components::{MaterialIcon, material::outlined::{check_box, check_box_outline_blank}}, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct StoatCheckbox {
@@ -33,7 +32,7 @@ impl Component for StoatCheckbox {
     fn render(&self) -> impl IntoElement {
         let mut hover = use_state(|| false);
         let a11y_id = use_a11y();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let animation = use_animation({
             let value = self.value.clone();
@@ -95,13 +94,12 @@ impl Component for StoatCheckbox {
                             .center()
                             .color(color)
                             .child(
-                                svg(if *self.value.read() {
-                                    square_check()
+                                MaterialIcon::new(if *self.value.read() {
+                                    check_box()
                                 } else {
-                                    square()
+                                    check_box_outline_blank()
                                 })
-                                .width(Size::px(24.))
-                                .height(Size::px(24.)),
+                                .size(Size::px(24.)),
                             ),
                     )
                     .maybe_child(hover().then(|| {

@@ -7,7 +7,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, AppState, Selection,
     components::{Dialog, SingleLineEntry, use_modals},
-    http, insert_channel, insert_member, insert_server, use_material_theme,
+    http, insert_channel, insert_member, insert_server, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -25,7 +25,7 @@ impl Component for CreateServerModal {
         let selection = radio.slice_mut(AppChannel::Selection, |state| &mut state.selection);
 
         let mut modals = use_modals();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let name = use_state(String::new);
         let mut error = use_state(|| None);
 

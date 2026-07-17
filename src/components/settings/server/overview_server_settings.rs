@@ -1,16 +1,9 @@
-use std::borrow::Cow;
-
 use crate::{
-    AppChannel, LocalFile,
-    components::{
-        SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, image,
-    },
-    http,
-    types::Tag,
-    use_initial, use_material_theme,
+    AppChannel, LocalFile, SizeExt, components::{
+        Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image, material::filled::clear
+    }, consume_material_theme, http, types::Tag, use_initial
 };
-use freya::{icons::lucide::x, prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::use_radio};
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
@@ -21,7 +14,7 @@ pub struct OverviewServerSettings {
 
 impl Component for OverviewServerSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut error = use_state(|| None);
 
         let edit_server = {
@@ -169,7 +162,7 @@ impl Component for OverviewServerSettings {
                                             .layer(Layer::Relative(1))
                                             .width(Size::Fill)
                                             .height(Size::Fill)
-                                            .child(image(icon))
+                                            .child(file_image(icon))
                                     })),
                             ),
                     )
@@ -193,9 +186,8 @@ impl Component for OverviewServerSettings {
                                     .height(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
-                                            .width(Size::px(24.))
-                                            .height(Size::px(24.))
+                                        MaterialIcon::new(clear())
+                                            .size(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),
                                     ),
                             ),
@@ -248,7 +240,7 @@ impl Component for OverviewServerSettings {
                                             .layer(Layer::Relative(1))
                                             .width(Size::Fill)
                                             .height(Size::Fill)
-                                            .child(image(icon).aspect_ratio(AspectRatio::Max))
+                                            .child(file_image(icon).aspect_ratio(AspectRatio::Max))
                                     })),
                             ),
                     )
@@ -272,9 +264,8 @@ impl Component for OverviewServerSettings {
                                     .height(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
-                                            .width(Size::px(24.))
-                                            .height(Size::px(24.))
+                                        MaterialIcon::new(clear())
+                                            .size(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),
                                     ),
                             ),
@@ -287,23 +278,23 @@ impl Component for OverviewServerSettings {
                     .margin((0., 0., 24., 0.)),
             )
             .child(label().text("System message channels").font_size(14.))
-            .child(label().text("User Joined").font_size(12.))
             .child(SystemMessagesChannelSelector::new(
+                "User Joined",
                 self.server.clone(),
                 user_joined,
             ))
-            .child(label().text("User Left").font_size(12.))
             .child(SystemMessagesChannelSelector::new(
+                "User Left",
                 self.server.clone(),
                 user_left,
             ))
-            .child(label().text("User Kicked").font_size(12.))
             .child(SystemMessagesChannelSelector::new(
+                "User Kicked",
                 self.server.clone(),
                 user_kicked,
             ))
-            .child(label().text("User Banned").font_size(12.))
             .child(SystemMessagesChannelSelector::new(
+                "User Banned",
                 self.server.clone(),
                 user_banned,
             ))
@@ -435,16 +426,19 @@ impl Component for OverviewServerSettings {
 
 #[derive(PartialEq)]
 struct SystemMessagesChannelSelector {
+    title: &'static str,
     server: Readable<v0::Server>,
     value: Writable<Option<String>>,
 }
 
 impl SystemMessagesChannelSelector {
     pub fn new(
+        title: &'static str,
         server: impl Into<Readable<v0::Server>>,
         value: impl Into<Writable<Option<String>>>,
     ) -> Self {
         Self {
+            title,
             server: server.into(),
             value: value.into(),
         }
@@ -455,68 +449,39 @@ impl Component for SystemMessagesChannelSelector {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
         let channels = radio.slice_current(|state| &state.channels);
-        let theme = use_material_theme();
 
-        let current_value = &*self.value.read();
+        let options = use_memo({
+            let server = self.server.clone();
+            let channels = channels.clone();
 
-        Select::new()
-            .width(Size::Fill)
-            .background_button(theme.md.surface_container_highest.as_argb_u32())
-            .hover_background(theme.md.surface_container_highest.as_argb_u32())
-            .select_background(theme.md.surface_container.as_argb_u32())
-            .selected_item(
-                rect()
-                    .padding((8., 6.))
-                    .width(Size::Fill)
-                    .child(label().text(
-                        if let Some(id) = &*current_value
-                            && let Some(channel) = channels.read().get(id)
-                        {
-                            Cow::Owned(channel.name().unwrap().to_string())
-                        } else {
-                            Cow::Borrowed("Disabled")
-                        },
-                    )),
-            )
-            .child(
-                MenuItem::new()
-                    .selected(current_value.is_none())
-                    .background(theme.md.surface_container.as_argb_u32())
-                    .select_background(Color::lerp(
-                        theme.md.primary.as_argb_u32().into(),
-                        Color::TRANSPARENT,
-                        0.12,
-                    ))
-                    .on_press({
-                        let mut value = self.value.clone();
-                        move |_| value.set(None)
-                    })
-                    .child("Disabled")
-                    .into_element(),
-            )
-            .children(
-                self.server
+            move || {
+                let channels = channels.read();
+                let mut options = vec![None];
+
+                options.extend(server
                     .read()
                     .channels
                     .iter()
                     .filter_map(|id| {
                         channels
-                            .read()
                             .get(id)
-                            .map(|c| (c.id().to_string(), c.name().unwrap().to_string()))
-                    })
-                    .map(move |(id, name)| {
-                        MenuItem::new()
-                            .selected(current_value.as_ref().is_some_and(|c| c == &id))
-                            .background(theme.md.surface_container.as_argb_u32())
-                            .select_background(theme.md.primary.as_u32() | (0xb9 << 24))
-                            .on_press({
-                                let mut value = self.value.clone();
-                                move |_| value.set(Some(id.clone()))
-                            })
-                            .child(name)
-                            .into_element()
-                    }),
-            )
+                            .map(|c| Some(c.id().to_string()))
+                    }));
+
+                options
+            }
+        });
+
+        Dropdown::new(
+            self.title,
+            self.value.clone(),
+            options.read().cloned(),
+            move |channel| {
+                match channel {
+                    Some(id) => channels.read().get(id).unwrap().name().unwrap().to_string().into_element(),
+                    None => "Disabled".into_element()
+                }
+            },
+        )
     }
 }

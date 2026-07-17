@@ -7,7 +7,7 @@ use crate::{
         ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfileRoles,
         ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, use_floating,
     },
-    http, use_material_theme,
+    http, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -20,7 +20,7 @@ impl Component for UserCard {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserProfile);
         let open_profile = radio.slice_mut_current(|state| &mut state.user_profile);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let user = use_memo({
             let user = self.user.clone();

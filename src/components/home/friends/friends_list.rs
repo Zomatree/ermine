@@ -20,7 +20,6 @@ impl Component for FriendsList {
             state
                 .users
                 .get(user_id.read().as_str())
-                .inspect(|user| println!("{user:?}"))
                 .unwrap()
         });
 

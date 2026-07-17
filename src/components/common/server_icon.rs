@@ -1,11 +1,11 @@
 use freya::prelude::*;
 use stoat_models::v0::Server;
 
-use crate::{components::image, theme::Theme};
+use crate::{components::file_image, theme::Theme};
 
 pub fn server_icon(server: &Server, theme: &Theme) -> impl IntoElement {
     rect().child(match &server.icon {
-        Some(file) => image(file).into_element(),
+        Some(file) => file_image(file).into_element(),
         None => rect()
             .background(theme.md.surface_container_low.as_argb_u32())
             .width(Size::Fill)

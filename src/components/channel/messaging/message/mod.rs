@@ -8,6 +8,7 @@ pub mod message_group;
 pub mod message_reactions;
 pub mod message_reply;
 pub mod trailing_message;
+pub mod system_message;
 
 pub use message::*;
 pub use message_actions::*;
@@ -19,3 +20,4 @@ pub use message_group::*;
 pub use message_reactions::*;
 pub use message_reply::*;
 pub use trailing_message::*;
+pub use system_message::*;

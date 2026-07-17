@@ -1,21 +1,18 @@
 use std::borrow::Cow;
 
-use freya::{
-    icons::lucide::{chevron_right, square_arrow_right, x},
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ServerSettingsPage,
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
     components::{
-        EmojiServerSettings, InviteServerSettings, OverviewServerSettings, RoleServerSettings,
-        SelectedRole, StoatButton, StoatButtonColorsThemePartialExt,
+        AuditLogServerSettings, EmojiServerSettings, InviteServerSettings, MaterialIcon,
+        OverviewServerSettings, RoleServerSettings, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
+        material::filled::{chevron_right, clear, delete},
     },
+    consume_material_theme,
     theme::Theme,
-    use_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -27,7 +24,7 @@ impl Component for ServerSettings {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::ServerSettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.server_settings_page);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let close_settings = {
             let current_page = current_page.clone();
@@ -92,6 +89,11 @@ impl Component for ServerSettings {
                                         "CUSTOMISATION",
                                         &theme,
                                         &[ServerSettingsPage::Emojis],
+                                    ))
+                                    .child(settings_category(
+                                        "MODERATION",
+                                        &theme,
+                                        &[ServerSettingsPage::AuditLogs],
                                     ))
                                     .child(settings_category(
                                         "USER MANAGEMENT",
@@ -164,9 +166,8 @@ impl Component for ServerSettings {
                                                     )
                                                     .maybe_child(selected_role.is_some().then(
                                                         || {
-                                                            svg(chevron_right())
-                                                                .width(Size::px(14.))
-                                                                .height(Size::px(14.))
+                                                            MaterialIcon::new(chevron_right())
+                                                                .size(Size::px(14.))
                                                                 .color(theme.md.outline.as_argb_u32())
                                                         },
                                                     ))
@@ -215,6 +216,9 @@ impl Component for ServerSettings {
                                                 }
                                                 ServerSettingsPage::Bans => {
                                                     "Coming soon!".into_element()
+                                                },
+                                                ServerSettingsPage::AuditLogs => {
+                                                    AuditLogServerSettings {  server: self.server.clone() }.into_element()
                                                 }
                                             })
                                     })),
@@ -232,9 +236,8 @@ impl Component for ServerSettings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    svg(x())
-                                                        .width(Size::px(24.))
-                                                        .height(Size::px(24.)),
+                                                    MaterialIcon::new(clear())
+                                                        .size(Size::px(24.))
                                                 ),
                                         ),
                                 ),
@@ -253,7 +256,7 @@ impl Component for ServerSettingsButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::ServerSettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.server_settings_page);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -271,11 +274,7 @@ impl Component for ServerSettingsButton {
                     .padding((6., 8.))
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        svg(self.page.icon())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
-                    )
+                    .child(MaterialIcon::new(self.page.icon()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)
@@ -324,7 +323,7 @@ struct DeleteServerButton {}
 
 impl Component for DeleteServerButton {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -336,11 +335,7 @@ impl Component for DeleteServerButton {
                     .horizontal()
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(
-                        svg(square_arrow_right())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
-                    )
+                    .child(MaterialIcon::new(delete()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)

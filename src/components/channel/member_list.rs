@@ -6,7 +6,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel,
     components::{
-        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, image, use_floating,
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, UserContextMenu, file_image,
+        use_floating,
     },
     http, member_display_color,
 };
@@ -43,13 +44,17 @@ impl Component for MemberList {
             move |state| state.members.get(&server.peek().id).unwrap()
         });
 
+        let users = radio.slice_mut(AppChannel::Users, |state| &mut state.users);
+
         use_future({
             let radio = radio.clone();
             let server = self.server.clone();
+            let users = users.clone();
 
             move || {
                 let mut radio = radio.clone();
                 let server = server.clone();
+                let mut users = users.clone();
 
                 async move {
                     let server_id = server.peek().id.clone();
@@ -64,13 +69,13 @@ impl Component for MemberList {
                         .await
                         .unwrap();
 
-                    let mut state = radio.write_channel(AppChannel::Users);
+                    let mut users = users.write();
 
                     for user in response.users {
-                        state.users.insert(user.id.clone(), user);
+                        users.insert(user.id.clone(), user);
                     }
 
-                    drop(state);
+                    drop(users);
 
                     let mut state = radio.write_channel(AppChannel::Members);
                     let server_members = state.members.get_mut(&server_id).unwrap();
@@ -99,6 +104,7 @@ impl Component for MemberList {
 
         let groups = use_memo({
             let slice = slice.clone();
+            let users = users.clone();
 
             move || {
                 let members = slice.read();
@@ -112,13 +118,7 @@ impl Component for MemberList {
                 }
 
                 'a: for member in members.values() {
-                    let user_slice = radio.slice(AppChannel::Users, {
-                        let user_id = member.id.user.clone();
-                        move |state| state.users.get(&user_id).unwrap()
-                    });
-                    let user = user_slice.read();
-
-                    if !user.online {
+                    if users.read().get(&member.id.user).is_none_or(|u| !u.online) {
                         continue;
                     };
 
@@ -290,7 +290,7 @@ impl Component for MemberList {
                             .padding((0., 14.))
                             .main_align(Alignment::End)
                             .maybe_child(icon.map(|icon| {
-                                image(&icon).width(Size::px(16.)).height(Size::px(16.))
+                                file_image(&icon).width(Size::px(16.)).height(Size::px(16.))
                             }))
                             .child(label().text(format!("{name} - {count}")).font_size(11.))
                             .into_element(),
@@ -370,22 +370,15 @@ impl Component for MemberListMember {
                             .spacing(8.)
                             .on_secondary_down({
                                 let user = self.user.clone();
+                                let server = self.server.clone();
 
                                 move |e| {
                                     ContextMenu::open_from_event(
                                         &e,
-                                        Menu::new().child(
-                                            MenuButton::new()
-                                                .child(label().font_size(14.).text("Copy User ID"))
-                                                .on_press({
-                                                    let user = user.clone();
-
-                                                    move |_| {
-                                                        Clipboard::set(user.read().id.clone())
-                                                            .unwrap();
-                                                    }
-                                                }),
-                                        ),
+                                        Menu::new().child(UserContextMenu {
+                                            user_id: user.read().id.clone(),
+                                            server_id: Some(server.read().id.clone()),
+                                        }),
                                     );
                                 }
                             })

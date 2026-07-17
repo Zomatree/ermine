@@ -1,7 +1,11 @@
-use freya::{icons::lucide::chevron_left, prelude::*};
+use freya::prelude::*;
 
 use crate::{
-    components::{StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
+    SizeExt,
+    components::{
+        StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{MaterialIcon, filled::chevron_left},
+    },
     use_config,
 };
 
@@ -35,15 +39,13 @@ impl Component for HideSidebarHeader {
                         .padding((0., 4.))
                         .horizontal()
                         .child(
-                            svg(chevron_left())
-                                .width(Size::px(18.))
-                                .height(Size::px(18.))
-                                .rotate(if hide_channel_list { 180. } else { 0. }),
+                            MaterialIcon::new(chevron_left())
+                                .size(Size::px(18.))
+                                .rotation(if hide_channel_list { 180. } else { 0. }),
                         )
                         .child(
-                            svg(self.icon.clone())
-                                .width(Size::px(24.))
-                                .height(Size::px(24.)),
+                            MaterialIcon::new(self.icon.clone())
+                                .size(Size::px(24.))
                         ),
                 ),
         )

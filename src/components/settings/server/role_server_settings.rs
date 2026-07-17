@@ -1,5 +1,4 @@
 use freya::{
-    icons::lucide::{chevron_right, list, user_plus, x},
     prelude::*,
     radio::use_radio,
 };
@@ -8,20 +7,10 @@ use stoat_models::v0;
 use stoat_permissions::{DataPermissionsValue, Override};
 
 use crate::{
-    AppChannel, LocalFile, ServerSettingsPage, Tag,
-    components::{
-        ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
-        checkbox::StoatCheckbox, image, use_modals,
-    },
-    http, parse_fill, use_initial, use_material_theme,
+    AppChannel, LocalFile, SelectedRole, ServerSettingsPage, SizeExt, Tag, components::{
+        MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker, checkbox::StoatCheckbox, file_image, material::{filled::{chevron_right, clear, list}, outlined::group_add}, use_modals
+    }, consume_material_theme, http, parse_fill, use_initial
 };
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SelectedRole {
-    Default,
-    Role(String),
-}
 
 #[derive(PartialEq)]
 pub struct RoleServerSettings {
@@ -31,7 +20,7 @@ pub struct RoleServerSettings {
 
 impl Component for RoleServerSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut modals = use_modals();
         let mut radio = use_radio(AppChannel::ServerSettingsPage);
 
@@ -106,9 +95,8 @@ impl Component for RoleServerSettings {
                                                         .color(theme.md.on_surface.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(list())
-                                                                .width(Size::px(22.))
-                                                                .height(Size::px(22.)),
+                                                            MaterialIcon::new(list())
+                                                                .size(Size::px(22.))
                                                         ),
                                                 )
                                                 .child(
@@ -131,9 +119,8 @@ impl Component for RoleServerSettings {
                                                         ),
                                                 )
                                                 .child(
-                                                    svg(chevron_right())
-                                                        .width(Size::px(18.))
-                                                        .height(Size::px(18.)),
+                                                    MaterialIcon::new(chevron_right())
+                                                        .size(Size::px(18.))
                                                 ),
                                         ),
                                 ),
@@ -171,9 +158,8 @@ impl Component for RoleServerSettings {
                                                         .color(theme.md.on_surface.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            svg(user_plus())
-                                                                .width(Size::px(22.))
-                                                                .height(Size::px(22.)),
+                                                            MaterialIcon::new(group_add())
+                                                                .size(Size::px(22.))
                                                         ),
                                                 )
                                                 .child(
@@ -194,7 +180,7 @@ impl Component for RoleServerSettings {
                                                         ),
                                                 )
                                                 .child(
-                                                    svg(chevron_right())
+                                                    MaterialIcon::new(chevron_right())
                                                         .width(Size::px(18.))
                                                         .height(Size::px(18.)),
                                                 ),
@@ -249,7 +235,7 @@ impl Component for RoleServerSettings {
                                                             .text(role.name.clone()),
                                                     )
                                                     .child(
-                                                        svg(chevron_right())
+                                                        MaterialIcon::new(chevron_right())
                                                             .width(Size::px(18.))
                                                             .height(Size::px(18.)),
                                                     ),
@@ -272,7 +258,7 @@ pub struct SelectedRoleServerSettings {
 
 impl Component for SelectedRoleServerSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let server = self.server.read();
         let current_role = server.roles.get(&self.role_id).unwrap();
@@ -412,7 +398,7 @@ impl Component for SelectedRoleServerSettings {
                                             .layer(Layer::Relative(1))
                                             .width(Size::Fill)
                                             .height(Size::Fill)
-                                            .child(image(icon))
+                                            .child(file_image(icon))
                                     })),
                             ),
                     )
@@ -432,13 +418,11 @@ impl Component for SelectedRoleServerSettings {
                             })
                             .child(
                                 rect()
-                                    .width(Size::px(36.))
-                                    .height(Size::px(36.))
+                                    .size(Size::px(36.))
                                     .center()
                                     .child(
-                                        svg(x())
-                                            .width(Size::px(24.))
-                                            .height(Size::px(24.))
+                                        MaterialIcon::new(clear())
+                                            .size(Size::px(24.))
                                             .color(theme.md.primary.as_argb_u32()),
                                     ),
                             ),
@@ -591,7 +575,7 @@ struct DefaultRoleServerSettings {
 
 impl Component for DefaultRoleServerSettings {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let server = self.server.read();
 

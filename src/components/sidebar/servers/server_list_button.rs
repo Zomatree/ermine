@@ -2,9 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, Config, NotificationBadge, Selection,
-    components::{StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, server_icon},
-    get_unread_badge, is_server_muted, use_material_theme,
+    AppChannel, Config, NotificationBadge, Selection, components::{ServerContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, server_icon}, consume_material_theme, get_unread_badge, is_server_muted
 };
 
 #[derive(PartialEq)]
@@ -16,7 +14,7 @@ impl Component for ServerListButton {
     fn render(&self) -> impl IntoElement {
         let config = use_consume::<State<Config>>();
         let mut radio = use_radio(AppChannel::Servers);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut hovering = use_state(|| false);
 
         let selection = radio.slice(AppChannel::Selection, |state| &state.selection);
@@ -95,20 +93,12 @@ impl Component for ServerListButton {
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
+                let server_id = server.read().id.clone();
+
                 move |e| {
                     ContextMenu::open_from_event(
                         &e,
-                        Menu::new().child(
-                            MenuButton::new()
-                                .child(label().font_size(14.).text("Copy Server ID"))
-                                .on_press({
-                                    let server = server.clone();
-
-                                    move |_| {
-                                        Clipboard::set(server.read().id.clone()).unwrap();
-                                    }
-                                }),
-                        ),
+                        Menu::new().child(ServerContextMenu { server_id: server_id.clone() }),
                     );
                 }
             })

@@ -1,22 +1,25 @@
 use std::{borrow::Cow, fmt::Debug, mem, sync::Arc};
 
-use freya::{
-    icons::lucide::{at_sign, hash, notebook_text, phone_call, pin, users_round},
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
 // use livekit::{PlatformAudio, Room, RoomOptions};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
+    AppChannel, SizeExt,
     components::{
-        AttachmentController, ChannelMessages, HideSidebarHeader, MemberList,
-        MessageAttachmentsPreview, MessageInput, MessageReplyPreview, ModalValue, ReplyController,
-        StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, Textbox, use_modals,
+        AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
+        MemberList, MessageAttachmentsPreview, MessageInput, MessageReplyPreview, MessageSearch,
+        ModalValue, ReplyController, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        Textbox,
+        material::{
+            filled::{alternate_email, grid_3x3},
+            outlined::{group, push_pin, sticky_note_2},
+        },
+        message_pinned::MessagePinned,
+        use_modals,
     },
-    use_config, use_material_theme,
+    consume_material_theme, use_config,
 };
 
 #[derive(PartialEq)]
@@ -31,15 +34,21 @@ impl Component for Channel {
         let radio = use_radio(AppChannel::UserId);
         // let current_room =
         //     radio.slice_mut(AppChannel::CurrentRoom, |state| &mut state.current_room);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut modals = use_modals();
 
         let replies = ReplyController(use_state(Vec::new));
         let attachments = AttachmentController(use_state(IndexMap::new));
 
+        use_hook(|| provide_root_context(Some(attachments)));
+        use_drop(|| provide_root_context::<Option<AttachmentController>>(None));
+
         let hide_members_list = config.read().hide_members_list;
 
-        let search = use_state(String::new);
+        let mut search = use_state(String::new);
+        let mut search_query = use_state(|| None);
+
+        let mut show_pinned = use_state(|| false);
 
         let channel = self.channel.read().clone();
 
@@ -73,6 +82,24 @@ impl Component for Channel {
             None
         };
 
+        let server = use_hook(|| {
+            let channel = self.channel.read();
+
+            if let v0::Channel::TextChannel { server, .. } = &*channel {
+                let server = server.clone();
+
+                Some(
+                    radio
+                        .slice(AppChannel::Servers, move |state| {
+                            state.servers.get(&server).unwrap()
+                        })
+                        .into_readable(),
+                )
+            } else {
+                None
+            }
+        });
+
         rect()
             .child(
                 rect()
@@ -85,9 +112,9 @@ impl Component for Channel {
                     .content(Content::Flex)
                     .child(HideSidebarHeader {
                         icon: match &channel {
-                            v0::Channel::DirectMessage { .. } => at_sign(),
-                            v0::Channel::SavedMessages { .. } => notebook_text(),
-                            _ => hash(),
+                            v0::Channel::DirectMessage { .. } => alternate_email(),
+                            v0::Channel::SavedMessages { .. } => sticky_note_2(),
+                            _ => grid_3x3(),
                         },
                     })
                     .child(label().text(channel_name).font_size(16).max_lines(1))
@@ -102,11 +129,13 @@ impl Component for Channel {
                         rect()
                             .width(Size::flex(1.))
                             .maybe_child(channel_description.map(|description| {
-                                label()
-                                    .max_lines(1)
-                                    .text_overflow(TextOverflow::Ellipsis)
-                                    .font_size(14.)
-                                    .text(description)
+                                rect()
+                                    .child(
+                                        MarkdownViewer::new(description, server)
+                                            .text_overflow(TextOverflow::Ellipsis)
+                                            .max_lines(1)
+                                            .font_size(14.),
+                                    )
                                     .on_press({
                                         let id = channel.id().to_string();
 
@@ -238,7 +267,12 @@ impl Component for Channel {
                         .child(
                             StoatButton::new()
                                 .corner_radius(40.)
-                                .on_press(move |_| {})
+                                .on_press(move |_| {
+                                    search.write().clear();
+                                    search_query.set(None);
+
+                                    show_pinned.toggled();
+                                })
                                 .child(
                                     rect()
                                         .horizontal()
@@ -246,9 +280,7 @@ impl Component for Channel {
                                         .padding((0., 8.))
                                         .center()
                                         .color(theme.md.on_surface_variant.as_argb_u32())
-                                        .child(
-                                            svg(pin()).width(Size::px(24.)).height(Size::px(24.)),
-                                        ),
+                                        .child(MaterialIcon::new(push_pin()).size(Size::px(24.))),
                                 ),
                         ),
                     )
@@ -259,7 +291,14 @@ impl Component for Channel {
                                 StoatButton::new()
                                     .corner_radius(40.)
                                     .on_press(move |_| {
-                                        config.write().hide_members_list = !hide_members_list
+                                        if search_query.read().is_some() {
+                                            search.write().clear();
+                                            search_query.set(None);
+                                        } else if show_pinned() {
+                                            show_pinned.set(false);
+                                        } else {
+                                            config.write().hide_members_list = !hide_members_list
+                                        };
                                     })
                                     .child(
                                         rect()
@@ -268,11 +307,7 @@ impl Component for Channel {
                                             .padding((0., 8.))
                                             .center()
                                             .color(theme.md.on_surface_variant.as_argb_u32())
-                                            .child(
-                                                svg(users_round())
-                                                    .width(Size::px(24.))
-                                                    .height(Size::px(24.)),
-                                            ),
+                                            .child(MaterialIcon::new(group()).size(Size::px(24.))),
                                     ),
                             ),
                     )
@@ -286,7 +321,11 @@ impl Component for Channel {
                                     .inner_margin((10., 16.))
                                     .corner_radius(40.)
                                     .width(Size::Fill)
-                                    .background(theme.md.surface_container_high.as_argb_u32()),
+                                    .background(theme.md.surface_container_high.as_argb_u32())
+                                    .on_submit(move |_| {
+                                        show_pinned.set(false);
+                                        search_query.set(Some(search.read().cloned()))
+                                    }),
                             )
                             .max_width(Size::px(240.)),
                     ),
@@ -337,16 +376,43 @@ impl Component for Channel {
                                     }),
                             ),
                     )
-                    .maybe_child(self.server.as_ref().filter(|_| !hide_members_list).map(
-                        |server| {
-                            rect()
-                                .child(MemberList {
-                                    server: server.clone(),
+                    .maybe_child(
+                        search_query
+                            .read()
+                            .cloned()
+                            .map(|query| {
+                                rect()
+                                    .width(Size::px(360.))
+                                    .padding((0., 8., 0., 0.))
+                                    .child(MessageSearch {
+                                        query,
+                                        channel: self.channel.clone(),
+                                    })
+                            })
+                            .or_else(|| {
+                                show_pinned().then(|| {
+                                    rect()
+                                        .width(Size::px(360.))
+                                        .padding((0., 8., 0., 0.))
+                                        .child(MessagePinned {
+                                            channel: self.channel.clone(),
+                                        })
                                 })
-                                .width(Size::px(248.))
-                                .padding((0., 8., 0., 0.))
-                        },
-                    )),
+                            })
+                            .or_else(|| {
+                                self.server
+                                    .as_ref()
+                                    .filter(|_| !hide_members_list)
+                                    .map(|server| {
+                                        rect()
+                                            .child(MemberList {
+                                                server: server.clone(),
+                                            })
+                                            .width(Size::px(248.))
+                                            .padding((0., 8., 0., 0.))
+                                    })
+                            }),
+                    ),
             )
     }
 

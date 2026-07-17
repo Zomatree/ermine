@@ -1,15 +1,12 @@
 use std::ops::Not;
 
-use freya::{icons::lucide::settings, prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ServerSettingsPage,
-    components::{
-        Channel, ChannelList, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, image,
-        use_modals,
-    },
-    use_config, use_material_theme,
+    AppChannel, ServerSettingsPage, SizeExt, components::{
+        Channel, ChannelList, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, file_image, material::filled::settings, use_modals
+    }, consume_material_theme, use_config
 };
 
 #[derive(PartialEq)]
@@ -21,7 +18,7 @@ impl Component for Server {
     fn render(&self) -> impl IntoElement {
         let config = use_config();
         let radio = use_radio(AppChannel::SelectedChannel);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut modals = use_modals();
 
         let selected_channel = radio.slice_current(|state| &state.selected_channel);
@@ -59,7 +56,7 @@ impl Component for Server {
                     .child(
                         rect()
                             .padding(4.)
-                            .child(svg(settings()).width(Size::px(24.)).height(Size::px(24.))),
+                            .child(MaterialIcon::new(settings()).size(Size::px(24.))),
                     ),
             )
             .into_element();
@@ -101,14 +98,14 @@ impl Component for Server {
                                     .width(Size::px(240.))
                                     .corner_radius(16.)
                                     .overflow(Overflow::Clip)
-                                    .child(image(&banner).aspect_ratio(AspectRatio::Max))
+                                    .child(file_image(&banner).aspect_ratio(AspectRatio::Max))
                                     .child(
                                         rect()
                                             .width(Size::Fill)
                                             .position(Position::new_absolute().bottom(0.))
                                             .layer(Layer::Relative(1))
                                             .padding((6., 14.))
-                                            .background_linear_gradient(
+                                            .background(
                                                 LinearGradient::new()
                                                     .stop((Color::TRANSPARENT, 0.))
                                                     .stop((Color::BLACK, 90.)),

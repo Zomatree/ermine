@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     components::{MessageAttachment, MessageModel},
-    parse_fill, use_material_theme,
+    consume_material_theme, parse_fill,
 };
 
 #[derive(PartialEq)]
@@ -30,7 +30,7 @@ impl Component for MessageEmbed {
                     .width(Size::px(new_width))
                     .height(Size::px(new_height))
                     .child(
-                        ImageViewer::new(image.url.parse::<Uri>().unwrap())
+                        ImageViewer::new(image.url.parse::<Url>().unwrap())
                             .sampling_mode(SamplingMode::Trilinear)
                             .width(Size::Fill)
                             .height(Size::Fill)
@@ -60,7 +60,7 @@ pub struct WebsiteEmbed {
 
 impl Component for WebsiteEmbed {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let border_color = use_hook(|| {
             self.metadata
@@ -102,7 +102,7 @@ impl Component for WebsiteEmbed {
                                 self.metadata
                                     .icon_url
                                     .as_ref()
-                                    .and_then(|url| url.parse::<Uri>().ok())
+                                    .and_then(|url| url.parse::<Url>().ok())
                                     .map(|uri| {
                                         ImageViewer::new(uri)
                                             .width(Size::px(14.))
@@ -161,7 +161,7 @@ impl Component for WebsiteEmbed {
                     .corner_radius(12.)
                     .overflow(Overflow::Clip)
                     .child(
-                        ImageViewer::new(image.url.parse::<Uri>().unwrap())
+                        ImageViewer::new(image.url.parse::<Url>().unwrap())
                             .sampling_mode(SamplingMode::Trilinear)
                             .width(Size::Fill)
                             .height(Size::Fill)
@@ -181,7 +181,7 @@ pub struct TextEmbed {
 
 impl Component for TextEmbed {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let border_color = use_hook(|| {
             self.text

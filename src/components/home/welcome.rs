@@ -1,16 +1,14 @@
 use freya::{
-    icons::lucide::{banknote, circle_plus, compass, house, message_square_text, settings, users},
+    // icons::lucide::{banknote, circle_plus, compass, house, message_square_text, users},
     prelude::*,
     radio::use_radio,
 };
 
 use crate::{
-    AppChannel, Selection, SettingsPage,
-    components::{
+    AppChannel, Selection, SettingsPage, SizeExt, components::{
         HideSidebarHeader, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-    },
-    use_material_theme,
+        StoatButtonLayoutThemePartialExt, material::{MaterialIcon, filled::{add_circle, explore, groups_3, home, payments, rate_review, settings}},
+    }, consume_material_theme
 };
 
 #[derive(PartialEq)]
@@ -18,7 +16,7 @@ pub struct Welcome {}
 
 impl Component for Welcome {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Selection);
         let selection = radio.slice_mut_current(|state| &mut state.selection);
 
@@ -33,7 +31,7 @@ impl Component for Welcome {
                     .cross_align(Alignment::Center)
                     .child(
                             HideSidebarHeader {
-                                icon: house()
+                                icon: home()
                             }
 
                     )
@@ -66,19 +64,19 @@ impl Component for Welcome {
                                                 .width(Size::px(260.))
                                                 .spacing(8.)
                                                 .child(WelcomeButton::new(
-                                                    circle_plus(),
+                                                    add_circle(),
                                                     "Create a group or server",
                                                     "Invite all of your friends, some cool bots, and throw a big party.",
                                                     move |_| {}
                                                 ))
                                                 .child(WelcomeButton::new(
-                                                    users(),
+                                                    groups_3(),
                                                     "Go to the Stoat Lounge",
                                                     "You can report issues and discuss improvements with us directly here.",
                                                     move |_| {}
                                                 ))
                                                 .child(WelcomeButton::new(
-                                                    banknote(),
+                                                    payments(),
                                                     "Donate to Stoat",
                                                     "Support the project by donating - thank you!",
                                                     move |_| {}
@@ -89,7 +87,7 @@ impl Component for Welcome {
                                                 .width(Size::px(260.))
                                                 .spacing(8.)
                                                 .child(WelcomeButton::new(
-                                                    compass(),
+                                                    explore(),
                                                     "Discover Stoat",
                                                     "Find a community based on your hobbies or interests.",
                                                     {
@@ -101,7 +99,7 @@ impl Component for Welcome {
                                                     }
                                                 ))
                                                 .child(WelcomeButton::new(
-                                                    message_square_text(),
+                                                    rate_review(),
                                                     "Give feedback on Stoat",
                                                     "Let us know how we can improve our app by giving us feedback.",
                                                     move |_| {}
@@ -152,7 +150,7 @@ impl WelcomeButton {
 
 impl Component for WelcomeButton {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .color(theme.md.on_secondary_container.as_argb_u32())
@@ -169,15 +167,14 @@ impl Component for WelcomeButton {
                     .child(
                         rect()
                             .background(theme.md.surface_dim.as_argb_u32())
-                            .color(theme.md.on_surface.as_argb_u32())
                             .width(Size::px(36.))
                             .height(Size::px(36.))
                             .corner_radius(36.)
                             .center()
                             .child(
-                                svg(self.icon.clone())
-                                    .width(Size::px(24.))
-                                    .height(Size::px(24.)),
+                                MaterialIcon::new(self.icon.clone())
+                                    .size(Size::px(24.))
+                                    .color(theme.md.on_surface.as_argb_u32())
                             ),
                     )
                     .child(

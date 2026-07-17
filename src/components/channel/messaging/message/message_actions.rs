@@ -3,7 +3,6 @@ use std::time::Duration;
 use chumsky::container::Seq;
 use freya::{
     animation::{AnimColor, AnimatedValue, Ease, OnChange, OnCreation, use_animation},
-    icons::lucide::{ellipsis_vertical, pencil, smile, trash_2, undo},
     prelude::*,
     radio::use_radio,
 };
@@ -11,14 +10,9 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, PermissionQuery, calculate_channel_permissions,
-    components::{
-        EmojiPicker, MessageModel, ModalValue, ReplyController, StoatButton,
-        StoatButtonColorsThemePartialExt, use_floating, use_modals,
-    },
-    http,
-    theme::Theme,
-    use_material_theme, user_permissions_query,
+    AppChannel, calculate_channel_permissions, components::{
+        EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController, StoatButton, StoatButtonColorsThemePartialExt, material::{outlined::{delete, edit, more_vert, reply}, round::insert_emoticon}, use_floating, use_modals
+    }, consume_material_theme, http, theme::Theme, user_permissions_query
 };
 
 #[derive(PartialEq)]
@@ -63,11 +57,8 @@ impl ContainerExt for MessageActions {}
 impl Component for MessageActions {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
-
-        let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
-        let members = radio.slice(AppChannel::Members, |state| &state.members);
 
         let mut editing_message = radio.slice_mut(AppChannel::EditingMessage, |state| {
             &mut state.editing_message
@@ -95,6 +86,8 @@ impl Component for MessageActions {
         let background = use_animation(move |conf| {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Nothing);
+
+            let theme = consume_material_theme();
 
             let start = if mentions_user() {
                 theme.md.primary_container.as_argb_u32().into()
@@ -154,46 +147,17 @@ impl Component for MessageActions {
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
                 let message = self.message.clone();
-                let replies = self.replies.clone();
+                let replies = self.replies;
 
                 move |e| {
                     ContextMenu::open_from_event(
                         &e,
                         Menu::new()
-                            .child(
-                                MenuButton::new()
-                                    .child(label().font_size(14.).text("Copy text"))
-                                    .on_press({
-                                        let message = message.clone();
-                                        move |_| {
-                                            if let Some(content) = message.message.content.clone() {
-                                                Clipboard::set(content).unwrap();
-                                            }
-                                        }
-                                    }),
-                            )
-                            .child(
-                                MenuButton::new()
-                                    .child(label().font_size(14.).text("Reply"))
-                                    .on_press({
-                                        let message = message.clone();
-                                        let mut replies = replies.clone();
-
-                                        move |_| {
-                                            replies.add_reply(message.clone(), true);
-                                        }
-                                    }),
-                            )
-                            .child(
-                                MenuButton::new()
-                                    .child(label().font_size(14.).text("Copy Message ID"))
-                                    .on_press({
-                                        let message = message.clone();
-                                        move |_| {
-                                            Clipboard::set(message.message.id.clone()).unwrap();
-                                        }
-                                    }),
-                            ),
+                        .child(MessageContextMenu {
+                            message: message.clone(),
+                            replies,
+                            current_permissions: permissions()
+                        })
                     );
                 }
             })
@@ -211,15 +175,16 @@ impl Component for MessageActions {
                     .overflow(Overflow::Clip)
                     .horizontal()
                     .shadow(Shadow::new().blur(3.).color(Color::BLACK))
-                    .child(message_actions_button(undo(), &theme).on_press({
+                    .layer(Layer::Relative(2))
+                    .maybe_child(permissions.read().has_channel_permission(ChannelPermission::SendMessage).then(|| message_actions_button(reply(), &theme).on_press({
                         let mut replies = self.replies;
                         let message = self.message.clone();
 
                         move |_| {
                             replies.add_reply(message.clone(), true);
                         }
-                    }))
-                    .child(message_actions_button(smile(), &theme).on_press({
+                    })))
+                    .maybe_child(permissions.read().has_channel_permission(ChannelPermission::React).then(|| message_actions_button(insert_emoticon(), &theme).on_press({
                         let message_id = self.message.message.id.clone();
                         let channel_id = self.channel.peek().id().to_string();
 
@@ -247,13 +212,12 @@ impl Component for MessageActions {
                                 .into_element(),
                             ));
                         }
-                    }))
+                    })))
                     .maybe_child((&self.message.message.author == &*user_id.read()).then(|| {
-                        message_actions_button(pencil(), &theme).on_press({
+                        message_actions_button(edit(), &theme).on_press({
                             let message = self.message.message.clone();
 
                             move |_| {
-                                println!("{:?}", message.id);
                                 *editing_message.write() = Some(crate::EditingMessage {
                                     id: message.id.clone(),
                                     content: message.content.clone().unwrap_or_default(),
@@ -267,7 +231,7 @@ impl Component for MessageActions {
                                 .read()
                                 .has_channel_permission(ChannelPermission::ManageMessages))
                         .then(|| {
-                            message_actions_button(trash_2(), &theme).on_press({
+                            message_actions_button(delete(), &theme).on_press({
                                 let message = self.message.message.id.clone();
                                 let channel = self.message.message.channel.clone();
 
@@ -293,7 +257,7 @@ impl Component for MessageActions {
                         }),
                     )
                     .child(
-                        message_actions_button(ellipsis_vertical(), &theme).on_press({
+                        message_actions_button(more_vert(), &theme).on_press({
                             let id = self.message.message.id.clone();
 
                             move |e| {
@@ -326,7 +290,7 @@ pub fn message_actions_button(icon: Bytes, theme: &Theme) -> StoatButton {
     StoatButton::new()
         .child(
             rect().padding(4.).child(
-                svg(icon)
+                MaterialIcon::new(icon)
                     .color(theme.md.on_secondary_container.as_argb_u32())
                     .width(Size::px(20.))
                     .height(Size::px(20.)),

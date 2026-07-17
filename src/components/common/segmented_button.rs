@@ -9,7 +9,7 @@ use freya::{
 
 use crate::{
     components::{StoatButton, StoatButtonLayoutThemePartialExt},
-    use_material_theme,
+    consume_material_theme,
 };
 
 pub struct StoatSegmentedButton<T: PartialEq + 'static, B> {
@@ -85,7 +85,7 @@ impl<T: Hash + Clone + PartialEq + 'static> Component for StoatInnerSegmentedBut
         const ANIM_TIME: u64 = 250;
         let radius = self.height / 2.;
 
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let selected = &*self.state.read() == &self.value;
 

@@ -1,12 +1,17 @@
-use freya::{
-    icons::lucide::{at_sign, circle_x, file_text},
-    prelude::*,
-};
+use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    components::{Avatar, ReplyController, ReplyIntent, StoatButton},
-    use_material_theme,
+    AppChannel, SizeExt,
+    components::{
+        Avatar, ReplyController, ReplyIntent, StoatButton,
+        material::{
+            MaterialIcon,
+            filled::{alternate_email, description},
+            outlined::cancel,
+        },
+    },
+    consume_material_theme, member_display_color,
 };
 
 #[derive(PartialEq)]
@@ -18,8 +23,53 @@ pub struct MessageReplyPreview {
 
 impl Component for MessageReplyPreview {
     fn render(&self) -> impl IntoElement {
+        let radio = use_radio(AppChannel::Servers);
+
         let message = self.reply.read().message.clone();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
+
+        let server = use_hook({
+            move || {
+                if let v0::Channel::TextChannel { server, .. } = &*self.channel.read() {
+                    let server = server.clone();
+
+                    Some(radio.slice_current(move |state| state.servers.get(&server).unwrap()))
+                } else {
+                    None
+                }
+            }
+        });
+
+        let role_color = use_memo({
+            let member = message.member.clone();
+            let server = server.clone();
+
+            move || {
+                if let Some(member) = &member
+                    && let Some(server) = &server
+                {
+                    member_display_color(&*member.read(), &*server.read())
+                } else {
+                    None
+                }
+            }
+        });
+
+        let display_name = use_memo({
+            let member = message.member.clone();
+            let user = message.user.clone();
+
+            move || {
+                member
+                    .as_ref()
+                    .and_then(|member| member.read().nickname.clone())
+                    .unwrap_or_else(|| {
+                        let user = user.read();
+
+                        user.display_name.as_ref().unwrap_or(&user.username).clone()
+                    })
+            }
+        });
 
         let has_attachments = message
             .message
@@ -39,7 +89,12 @@ impl Component for MessageReplyPreview {
             .font_size(14)
             .spacing(4.)
             .cross_align(Alignment::Center)
-            .child(label().font_size(12).text("Replying to"))
+            .child(
+                label()
+                    .font_size(12)
+                    .color(theme.md.on_primary_container.as_argb_u32())
+                    .text("Replying to"),
+            )
             .child(
                 rect()
                     .horizontal()
@@ -51,11 +106,11 @@ impl Component for MessageReplyPreview {
                         message.member.clone(),
                         14.,
                     ))
-                    .child({
-                        let user = message.user.read();
-
-                        user.display_name.clone().unwrap_or(user.username.clone())
-                    })
+                    .child(
+                        label()
+                            .map(role_color.read().cloned(), |this, color| this.color(color))
+                            .text(display_name.read().cloned()),
+                    )
                     .child(
                         rect()
                             .height(Size::px(22.))
@@ -68,9 +123,7 @@ impl Component for MessageReplyPreview {
                                     .horizontal()
                                     .spacing(4.)
                                     .cross_align(Alignment::Center)
-                                    .child(
-                                        svg(file_text()).width(Size::px(16.)).height(Size::px(16.)),
-                                    )
+                                    .child(MaterialIcon::new(description()).size(Size::px(16.)))
                                     .child(
                                         label()
                                             .font_size(14.)
@@ -111,10 +164,8 @@ impl Component for MessageReplyPreview {
                                         }
                                         .as_argb_u32(),
                                     )
-                                    .child(
-                                        svg(at_sign()).width(Size::px(16.)).height(Size::px(16.)),
-                                    )
-                                    .child(if mention { "ON" } else { "OFF" }),
+                                    .child(MaterialIcon::new(alternate_email()).size(Size::px(16.)))
+                                    .child(label().text(if mention { "ON" } else { "OFF" })),
                             )
                             .on_press({
                                 let mut replies = self.replies.clone();
@@ -128,10 +179,9 @@ impl Component for MessageReplyPreview {
                     .child(
                         StoatButton::new()
                             .child(
-                                svg(circle_x())
+                                MaterialIcon::new(cancel())
                                     .color(theme.md.on_primary_container.as_argb_u32())
-                                    .width(Size::px(16.))
-                                    .height(Size::px(16.)),
+                                    .size(Size::px(16.)),
                             )
                             .on_press({
                                 let mut replies = self.replies.clone();

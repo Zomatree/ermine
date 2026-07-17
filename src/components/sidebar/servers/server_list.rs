@@ -1,21 +1,22 @@
 use std::collections::HashMap;
 
-use freya::{
-    icons::lucide::{compass, plus, settings},
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexSet;
 use serde_json::to_value;
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OrderingSettings, Selection, SettingsPage,
+    AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt,
     components::{
         CurrentUserButton, HomeButton, ModalValue, ServerListButton, StoatButton,
-        StoatButtonLayoutThemePartialExt, StoatTooltip, use_modals,
+        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{
+            MaterialIcon,
+            filled::{add, explore, settings},
+        },
+        use_modals,
     },
-    http, map_readable, use_material_theme,
+    consume_material_theme, http, map_readable,
 };
 
 #[derive(PartialEq)]
@@ -24,7 +25,7 @@ pub struct ServerList {}
 impl Component for ServerList {
     fn render(&self) -> impl IntoElement {
         let mut radio = use_radio(AppChannel::Servers);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let mut modals = use_modals();
 
         let order_settings = radio.slice_mut(AppChannel::Settings("ordering"), |state| {
@@ -204,9 +205,8 @@ impl Component for ServerList {
                                                                 .as_argb_u32(),
                                                         )
                                                         .child(
-                                                            svg(plus())
-                                                                .width(Size::px(32.0))
-                                                                .height(Size::px(32.0)),
+                                                            MaterialIcon::new(add())
+                                                                .size(Size::px(32.0)),
                                                         ),
                                                 )
                                                 .on_press(move |_| {
@@ -245,7 +245,7 @@ impl Component for ServerList {
                                                                 .as_argb_u32(),
                                                         )
                                                         .child(
-                                                            svg(compass())
+                                                            MaterialIcon::new(explore())
                                                                 .width(Size::px(32.0))
                                                                 .height(Size::px(32.0)),
                                                         ),
@@ -284,9 +284,7 @@ impl Component for ServerList {
                                                 theme.md.surface_container_low.as_argb_u32(),
                                             )
                                             .child(
-                                                svg(settings())
-                                                    .width(Size::px(32.0))
-                                                    .height(Size::px(32.0)),
+                                                MaterialIcon::new(settings()).size(Size::px(32.0)),
                                             ),
                                     )
                                     .on_press(move |_| {

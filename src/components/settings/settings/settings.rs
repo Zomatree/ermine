@@ -1,17 +1,12 @@
 use freya::{
-    icons::lucide::{square_arrow_right, x},
     prelude::*,
     radio::use_radio,
 };
 
 use crate::{
-    AppChannel, SettingsPage,
-    components::{
-        AccountSettings, AppearanceSettings, Avatar, ProfileSettings, SourceCodeSettings,
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-    },
-    theme::Theme,
-    use_config, use_material_theme,
+    AppChannel, SettingsPage, SizeExt, components::{
+        AccountSettings, AppearanceSettings, Avatar, MaterialIcon, ProfileSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, delete}
+    }, consume_material_theme, theme::Theme, use_config
 };
 
 #[derive(PartialEq)]
@@ -21,7 +16,7 @@ impl Component for Settings {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::SettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.settings_page);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let close_settings = {
             let current_page = current_page.clone();
@@ -187,9 +182,8 @@ impl Component for Settings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    svg(x())
-                                                        .width(Size::px(24.))
-                                                        .height(Size::px(24.)),
+                                                    MaterialIcon::new(clear())
+                                                        .size(Size::px(24.))
                                                 ),
                                         ),
                                 ),
@@ -205,7 +199,7 @@ struct MyAccountButton {}
 impl Component for MyAccountButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         let current_page =
             radio.slice_mut(AppChannel::SettingsPage, |state| &mut state.settings_page);
@@ -257,7 +251,7 @@ impl Component for SettingsButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::SettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.settings_page);
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -272,9 +266,8 @@ impl Component for SettingsButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(self.page.icon())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
+                        MaterialIcon::new(self.page.icon())
+                            .size(Size::px(20.))
                     )
                     .child(
                         label()
@@ -317,7 +310,7 @@ struct LogoutButton {}
 impl Component for LogoutButton {
     fn render(&self) -> impl IntoElement {
         let mut config = use_config();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
 
         StoatButton::new()
             .corner_radius(8.)
@@ -330,9 +323,8 @@ impl Component for LogoutButton {
                     .spacing(8.)
                     .cross_align(Alignment::Center)
                     .child(
-                        svg(square_arrow_right())
-                            .width(Size::px(20.))
-                            .height(Size::px(20.)),
+                        MaterialIcon::new(delete())
+                            .size(Size::px(20.))
                     )
                     .child(
                         label()

@@ -9,6 +9,7 @@ pub struct MessageList {
     pub on_bottom: EventHandler<()>,
     pub at_start: Readable<bool>,
     pub at_end: Readable<bool>,
+    pub at_bottom: Writable<bool>,
     pub permit_fetching: Readable<bool>,
     pub controller: ScrollController,
 }
@@ -19,6 +20,7 @@ impl MessageList {
         on_bottom: impl Into<EventHandler<()>>,
         at_start: Readable<bool>,
         at_end: Readable<bool>,
+        at_bottom: Writable<bool>,
         permit_fetching: Readable<bool>,
         controller: ScrollController,
     ) -> Self {
@@ -28,6 +30,7 @@ impl MessageList {
             on_bottom: on_bottom.into(),
             at_start,
             at_end,
+            at_bottom,
             permit_fetching,
             controller,
         }
@@ -106,8 +109,13 @@ impl Component for MessageList {
                             .child("bottom")
                     }))
                     .child(rect().height(Size::px(1.)).width(Size::px(1.)).on_sized({
+                        let mut at_bottom = self.at_bottom.clone();
+
                         move |e: Event<SizedEventData>| {
-                            autoscroll.set(list_viewport.read().intersects(&e.visible_area));
+                            let is_at_bottom = list_viewport.read().intersects(&e.visible_area);
+
+                            autoscroll.set(is_at_bottom);
+                            at_bottom.set(is_at_bottom);
                         }
                     })),
             )

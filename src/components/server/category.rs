@@ -2,16 +2,18 @@ use std::time::Duration;
 
 use freya::{
     animation::{AnimNum, Ease, OnChange, OnCreation, UseAnimation, use_animation},
-    icons::lucide::chevron_down,
     prelude::*,
     radio::use_radio,
 };
 use stoat_models::v0;
 
-use crate::{AppChannel, components::ChannelButton, use_config, use_material_theme};
+use crate::{
+    AppChannel, SizeExt, calculate_server_permissions, components::{CategoryContextMenu, ChannelButton, MaterialIcon, material::filled::expand_more}, consume_material_theme, use_config, user_permissions_query
+};
 
 #[derive(PartialEq)]
 pub struct Category {
+    pub server: Readable<v0::Server>,
     pub category: Readable<v0::Category>,
 }
 
@@ -21,11 +23,6 @@ impl Component for Category {
         let radio = use_radio(AppChannel::Channels);
         let selected_channel =
             radio.slice(AppChannel::SelectedChannel, |state| &state.selected_channel);
-
-        // let category = use_memo({
-        //     let category = self.category.clone();
-        //     move || category.read().clone()
-        // });
 
         let channels = use_side_effect_value({
             let category = self.category.clone();
@@ -77,6 +74,7 @@ impl Component for Category {
             .key(self.category.read().id.clone())
             .spacing(8.)
             .child(CategoryHeader {
+                server: self.server.clone(),
                 category: self.category.clone(),
                 is_expanded: is_expanded.clone().into_readable(),
                 animation,
@@ -122,6 +120,7 @@ impl Component for Category {
 
 #[derive(PartialEq)]
 pub struct CategoryHeader {
+    pub server: Readable<v0::Server>,
     pub category: Readable<v0::Category>,
     pub is_expanded: Readable<bool>,
     pub animation: UseAnimation<AnimNum>,
@@ -129,7 +128,8 @@ pub struct CategoryHeader {
 
 impl Component for CategoryHeader {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let radio = use_radio(AppChannel::Servers);
+        let theme = consume_material_theme();
         let mut config = use_config();
         let mut hovering = use_state(|| false);
 
@@ -173,6 +173,30 @@ impl Component for CategoryHeader {
                     };
                 }
             })
+            .on_secondary_down({
+                let server = self.server.clone();
+                let category_id = self.category.read().id.clone();
+                let radio = radio.clone();
+
+                move |e: Event<PressEventData>| {
+                    let server = server.read().clone();
+                    let category_id = category_id.clone();
+                    let radio = radio.clone();
+
+                    spawn(async move {
+                        let mut query = user_permissions_query(radio).server(server.clone());
+
+                        let permissions = calculate_server_permissions(&mut query).await;
+
+                        ContextMenu::open_from_event(&e, Menu::new().child(CategoryContextMenu {
+                                server_id: server.id.clone(),
+                                category_id: category_id.clone(),
+                                current_permissions: permissions,
+                            }),
+                        );
+                    });
+                }
+            })
             .child(
                 rect()
                     .padding((10., 4., 0., 12.))
@@ -188,10 +212,9 @@ impl Component for CategoryHeader {
                             .text(self.category.read().title.clone()),
                     )
                     .child(
-                        svg(chevron_down())
-                            .width(Size::px(12.))
-                            .height(Size::px(12.))
-                            .rotate(&*self.animation.read()),
+                        MaterialIcon::new(expand_more())
+                            .size(Size::px(12.))
+                            .rotation(self.animation.read().value()),
                     ),
             )
     }

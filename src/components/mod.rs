@@ -15,6 +15,7 @@ mod settings;
 mod sidebar;
 mod user_card;
 mod user_profile;
+mod contextmenu;
 
 pub use app::*;
 pub use channel::*;
@@ -33,3 +34,4 @@ pub use settings::*;
 pub use sidebar::*;
 pub use user_card::*;
 pub use user_profile::*;
+pub use contextmenu::*;

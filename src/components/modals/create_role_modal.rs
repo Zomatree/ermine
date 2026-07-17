@@ -2,9 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ServerSettingsPage,
-    components::{Dialog, SelectedRole, SingleLineEntry, use_modals},
-    http, use_material_theme,
+    AppChannel, SelectedRole, ServerSettingsPage,
+    components::{Dialog, SingleLineEntry, use_modals},
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]
@@ -21,7 +21,7 @@ impl Component for CreateRoleModal {
         });
 
         let mut modals = use_modals();
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let name = use_state(String::new);
         let mut error = use_state(|| None);
 
