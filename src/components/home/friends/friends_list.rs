@@ -64,8 +64,8 @@ impl Component for FriendsList {
         });
 
         // rect().padding((0., 16.)).child(
-        VirtualScrollView::new(move |idx, _| {
-            let user = relations.read()[idx].clone();
+        VirtualScrollView::new(move |item, _| {
+            let user = relations.read()[item.index].clone();
 
             rect()
                 .key(user.peek().id.clone())

@@ -174,6 +174,7 @@ impl Component for MaterialThemeProvider {
 
         rect()
             .font_family("Inter")
+            // .font_family("Fluent Emoji Color")
             .font_size(14.)
             .font_weight(400)
             .width(Size::Fill)

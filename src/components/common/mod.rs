@@ -11,6 +11,8 @@ pub mod segmented_button;
 pub mod server_icon;
 pub mod tooltip;
 pub mod user_mention;
+pub mod emoji;
+pub mod reorder;
 
 pub use avatar::*;
 pub use button::*;
@@ -25,3 +27,5 @@ pub use segmented_button::*;
 pub use server_icon::*;
 pub use tooltip::*;
 pub use user_mention::*;
+pub use emoji::*;
+pub use reorder::*;

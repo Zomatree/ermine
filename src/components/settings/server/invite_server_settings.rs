@@ -13,10 +13,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 struct Invite {
-    code: String,
-    server: String,
-    creator: String,
-    channel: String,
+    pub code: String,
+    pub creator: String,
+    pub channel: String,
 }
 
 #[derive(PartialEq)]
@@ -42,14 +41,13 @@ impl Component for InviteServerSettings {
                     for invite in fetched_invites {
                         if let v0::Invite::Server {
                             code,
-                            server,
+                            server: _,
                             creator,
                             channel,
                         } = invite
                         {
                             invites.write().push(Invite {
                                 code,
-                                server,
                                 creator,
                                 channel,
                             });

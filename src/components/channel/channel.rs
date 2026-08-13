@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug, mem, sync::Arc};
+use std::borrow::Cow;
 
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
@@ -9,9 +9,8 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
-        MemberList, MessageAttachmentsPreview, MessageInput, MessageReplyPreview, MessageSearch,
-        ModalValue, ReplyController, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-        Textbox,
+        MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, StoatButton,
+        StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
             filled::{alternate_email, grid_3x3},
             outlined::{group, push_pin, sticky_note_2},

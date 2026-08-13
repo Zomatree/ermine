@@ -244,8 +244,7 @@ impl Component for StoatColorPicker {
                                 if ContextMenu::is_open() {
                                     ContextMenu::close();
                                 } else {
-                                    ContextMenu::open_from_event(
-                                        &e,
+                                    ContextMenu::open(
                                         Menu::new()
                                             .child(
                                                 MenuButton::new()

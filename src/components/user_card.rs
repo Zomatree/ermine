@@ -4,8 +4,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel,
     components::{
-        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfileRoles,
-        ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, use_floating,
+        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfilePronouns,
+        ProfileRoles, ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, use_floating,
     },
     consume_material_theme, http,
 };
@@ -46,20 +46,6 @@ impl Component for UserCard {
 
         let mut floating = use_floating();
 
-        // let open_profile = use_hook({
-        //     let user = self.user.clone();
-
-        //     move || {
-        //         Rc::new(move || {
-        //             let user_id = user.read().id.clone();
-
-        //             let mut open_profile = open_profile.clone();
-
-        //             *open_profile.write() = Some(user_id);
-        //         })
-        //     }
-        // });
-
         rect()
             .corner_radius(28.)
             .overflow(Overflow::Clip)
@@ -83,12 +69,7 @@ impl Component for UserCard {
                                     floating.set(None);
                                     let user_id = user.read().id.clone();
                                     open_profile.clone().set(Some(user_id));
-                                }), // .on_pointer_enter(move |_| {
-                                    //     Cursor::set(CursorIcon::Pointer);
-                                    // })
-                                    // .on_pointer_leave(move |_| {
-                                    //     Cursor::set(CursorIcon::default());
-                                    // }),
+                                }),
                         )
                         .child(ProfileButtons {
                             user: self.user.clone(),
@@ -133,6 +114,20 @@ impl Component for UserCard {
                                     user: self.user.clone(),
                                     member: self.member.clone(),
                                 }),
+                        )
+                        .maybe_child(
+                            (self
+                                .member
+                                .as_ref()
+                                .is_some_and(|m| m.read().pronouns.is_some())
+                                || self.user.read().pronouns.is_some())
+                            .then(|| {
+                                ProfilePronouns {
+                                    user: self.user.clone(),
+                                    member: self.member.clone(),
+                                }
+                                .into_element()
+                            }),
                         )
                         .maybe_child(
                             profile

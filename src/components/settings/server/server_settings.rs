@@ -109,13 +109,12 @@ impl Component for ServerSettings {
                     )
                     .child(
                         rect()
-                            .corner_radius(CornerRadius {
-                                top_left: 16.,
-                                top_right: 0.,
-                                bottom_right: 0.,
-                                bottom_left: 16.,
-                                smoothing: 0.,
-                            })
+                            .corner_radius(CornerRadius::new(
+                                16.,
+                                0.,
+                                0.,
+                                16.,
+                            ))
                             .background(theme.md.surface_container_low.as_argb_u32())
                             .horizontal()
                             .content(Content::Flex)

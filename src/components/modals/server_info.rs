@@ -6,11 +6,11 @@ use crate::{
 };
 
 #[derive(PartialEq)]
-pub struct ServerInfoModal {
+pub struct ServerInfo {
     pub server: String,
 }
 
-impl Component for ServerInfoModal {
+impl Component for ServerInfo {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
 

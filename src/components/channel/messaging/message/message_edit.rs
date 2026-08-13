@@ -50,7 +50,7 @@ impl Component for MessageEdit {
                 spawn(async move {
                     saving.set(true);
 
-                    let message = http()
+                    http()
                         .edit_message(
                             &channel_id,
                             &id,
@@ -59,7 +59,7 @@ impl Component for MessageEdit {
                                 embeds: None,
                             },
                         )
-                        .await;
+                        .await.unwrap();
 
                     saving.set(false);
                     editing_message.set(None);

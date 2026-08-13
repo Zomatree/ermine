@@ -5,15 +5,13 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, AppState, Selection,
-    components::{Dialog, SingleLineEntry, use_modals},
-    consume_material_theme, http, insert_channel, insert_member, insert_server, insert_user,
+    AppChannel, AppState, Selection, components::{Dialog, SingleLineEntry, use_modals}, consume_material_theme, format_error, http, insert_channel, insert_member, insert_server, insert_user
 };
 
 #[derive(PartialEq)]
-pub struct JoinServerModal {}
+pub struct JoinServer {}
 
-impl Component for JoinServerModal {
+impl Component for JoinServer {
     fn render(&self) -> impl IntoElement {
         let station = use_radio_station::<AppState, AppChannel>();
         let radio = use_radio(AppChannel::UserId);
@@ -105,7 +103,7 @@ impl Component for JoinServerModal {
                                     modals.write().pop_modal();
                                 }
                             },
-                            Err(e) => error.set(Some(format!("{e:?}"))),
+                            Err(e) => error.set(Some(format_error(&e, "Server"))),
                         };
                     }
                 });

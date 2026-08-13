@@ -180,7 +180,7 @@ impl Component for CategoryHeader {
                 let category_id = self.category.read().id.clone();
                 let radio = radio.clone();
 
-                move |e: Event<PressEventData>| {
+                move |_| {
                     let server = server.read().clone();
                     let category_id = category_id.clone();
                     let radio = radio.clone();
@@ -190,8 +190,7 @@ impl Component for CategoryHeader {
 
                         let permissions = calculate_server_permissions(&mut query).await;
 
-                        ContextMenu::open_from_event(
-                            &e,
+                        ContextMenu::open_from_down(
                             Menu::new().child(CategoryContextMenu {
                                 server_id: server.id.clone(),
                                 category_id: category_id.clone(),

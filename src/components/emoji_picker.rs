@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel, SizeExt,
-    components::{StoatButton, StoatButtonLayoutThemePartialExt, server_icon},
+    components::{ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt},
     consume_material_theme, get_unicode_emojis, http,
     types::Tag,
 };
@@ -132,13 +132,12 @@ impl Component for EmojiPicker {
             .background(theme.md.surface_container.as_argb_u32())
             .child(rect().height(Size::px(40.)).margin((0., 0., 8., 0.)))
             .child(    rect()
-        .corner_radius(CornerRadius {
-            top_left: 4.,
-            top_right: 4.,
-            bottom_right: 0.,
-            bottom_left: 0.,
-            smoothing: 0.,
-        })
+        .corner_radius(CornerRadius::new(
+            4.,
+            4.,
+            0.,
+            0.,
+        ))
         .border(
             Border::new()
                 .width(BorderWidth {
@@ -165,18 +164,22 @@ impl Component for EmojiPicker {
                 .focus_border_fill(Color::TRANSPARENT),
         ))
             .child(
-                VirtualScrollView::new({let
-                    on_select = self.on_select.clone(); move |row_i, _| {
-                    let row_items = &items.read()[row_i * 10..row_i * 10 + 10];
+                VirtualScrollView::new({
+                    let on_select = self.on_select.clone();
 
-                    rect()
-                        .horizontal()
-                        .children(row_items.iter().map(|item| {
-                            rect().width(Size::px(40.)).height(Size::px(40.)).center().child(
-                        match item {
-                            Item::Server(id) => {
-                                let servers = servers.read();
-                                let server = servers.get(id).unwrap();
+                    move |item, _| {
+                        let idx = item.index;
+
+                        let row_items = &items.read()[idx * 10..idx * 10 + 10];
+
+                        rect()
+                            .horizontal()
+                            .children(row_items.iter().map(|item| {
+                                rect().width(Size::px(40.)).height(Size::px(40.)).center().child(
+                            match item {
+                                Item::Server(id) => {
+                                    let servers = servers.read();
+                                    let server = servers.get(id).unwrap();
 
                                     rect()
                                         .layer(Layer::Overlay)
@@ -185,67 +188,67 @@ impl Component for EmojiPicker {
                                         .horizontal()
                                         .cross_align(Alignment::Center)
                                         .spacing(8.)
-                                        .child(rect().width(Size::px(24.)).height(Size::px(24.)).corner_radius(24.).overflow(Overflow::Clip).child(server_icon(server, &theme)))
+                                        .child(rect().width(Size::px(24.)).height(Size::px(24.)).corner_radius(24.).overflow(Overflow::Clip).child(ServerIcon::new(server.clone())))
                                         .child(label().text(server.name.clone()).max_lines(1))
                                         .into_element()
-                            }
-                            Item::Spacer => rect().into_element(),
-                            Item::Emoji(emoji) =>
-                            StoatButton::new().corner_radius(8.).child(rect().padding(4.).child(
-                                ImageViewer::new(
-                                    format!(
-                                        "{}/{}/{}",
-                                        http().api_config.features.autumn.url,
-                                        Tag::Emojis,
-                                        &emoji.id,
-                                    )
-                                    .parse::<Url>()
-                                    .unwrap(),
-                                )
-                                .sampling_mode(SamplingMode::Trilinear)
-                                .error_renderer(move |_| rect().into_element())
-                                .width(Size::px(32.))
-                                .height(Size::px(32.)
-
-                            )).overflow(Overflow::Clip))
-                            .on_press({let id = emoji.id.clone(); let on_select = on_select.clone(); move |_| on_select.call(id.clone())})
-                                .into_element()
-                            ,
-                            Item::Title(title) => {
-                                    rect()
-                                    .layer(Layer::Overlay)
-                                        .position(Position::new_absolute().left(8.))
-                                        .height(Size::px(40.))
-                                        .horizontal()
-                                        .cross_align(Alignment::Center)
-                                        .spacing(8.)
-                                        .child(label().text(title.clone()).max_lines(1))
-                                        .into_element()
-                            }
-                            Item::Unicode { name, value } => {
-                                let codes = value
-                                    .chars()
-                                    .map(|c| format!("{:x}", c as i32))
-                                    .collect::<Vec<String>>()
-                                    .join("-");
-
-                                let url = format!(
-                                    "https://static.stoat.chat/emoji/fluent-3d/{codes}.svg?v=1"
-                                );
-
+                                }
+                                Item::Spacer => rect().into_element(),
+                                Item::Emoji(emoji) =>
                                 StoatButton::new().corner_radius(8.).child(rect().padding(4.).child(
-                                    SvgViewer::new(url.parse::<Url>().unwrap())
-                                        .parallel(true)
-                                        .size(Size::px(32.))
-                                ))
-                                .on_press({let value = value.clone(); let on_select = on_select.clone(); move |_| on_select.call(value.clone())})
-                                        .into_element()
+                                    ImageViewer::new(
+                                        format!(
+                                            "{}/{}/{}",
+                                            http().api_config.features.autumn.url,
+                                            Tag::Emojis,
+                                            &emoji.id,
+                                        )
+                                        .parse::<Url>()
+                                        .unwrap(),
+                                    )
+                                    .sampling_mode(SamplingMode::Trilinear)
+                                    .error_renderer(move |_| rect().into_element())
+                                    .width(Size::px(32.))
+                                    .height(Size::px(32.)
+
+                                )).overflow(Overflow::Clip))
+                                .on_press({let id = emoji.id.clone(); let on_select = on_select.clone(); move |_| on_select.call(id.clone())})
+                                    .into_element()
+                                ,
+                                Item::Title(title) => {
+                                        rect()
+                                        .layer(Layer::Overlay)
+                                            .position(Position::new_absolute().left(8.))
+                                            .height(Size::px(40.))
+                                            .horizontal()
+                                            .cross_align(Alignment::Center)
+                                            .spacing(8.)
+                                            .child(label().text(title.clone()).max_lines(1))
+                                            .into_element()
+                                }
+                                Item::Unicode { name: _, value } => {
+                                    let codes = value
+                                        .chars()
+                                        .map(|c| format!("{:x}", c as i32))
+                                        .collect::<Vec<String>>()
+                                        .join("-");
+
+                                    let url = format!(
+                                        "https://static.stoat.chat/emoji/fluent-3d/{codes}.svg?v=1"
+                                    );
+
+                                    StoatButton::new().corner_radius(8.).child(rect().padding(4.).child(
+                                        SvgViewer::new(url.parse::<Url>().unwrap())
+                                            .parallel(true)
+                                            .size(Size::px(32.))
+                                    ))
+                                    .on_press({let value = value.clone(); let on_select = on_select.clone(); move |_| on_select.call(value.clone())})
+                                            .into_element()
+                                }
                             }
-                        }
-                    )
-                        .into_element()
-                        }))
-                        .into_element()
+                        )
+                            .into_element()
+                            }))
+                            .into_element()
                 }})
                 .item_size(40.)
                 .length(items.read().len() / 10)

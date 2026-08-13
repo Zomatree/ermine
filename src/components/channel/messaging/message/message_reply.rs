@@ -6,7 +6,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel, OptionalReadable, SizeExt,
     components::{
-        Avatar, MaterialIcon, MessageModel, UserCard, material::filled::description, use_floating,
+        Avatar, MarkdownViewer, MaterialIcon, MessageModel, UserCard,
+        material::filled::description, use_floating,
     },
     http, map_optional_readable, member_display_color,
     types::Tag,
@@ -92,15 +93,21 @@ impl Component for MessageReply {
             }
         });
 
-        let server = use_memo({
-            let server_id = server_id.clone();
+        let server = use_hook(|| {
+            let channel = self.channel.read();
 
-            move || {
-                if let Some(server_id) = &server_id {
-                    radio.read().servers.get(server_id).cloned()
-                } else {
-                    None
-                }
+            if let v0::Channel::TextChannel { server, .. } = &*channel {
+                let server = server.clone();
+
+                Some(
+                    radio
+                        .slice(AppChannel::Servers, move |state| {
+                            state.servers.get(&server).unwrap()
+                        })
+                        .into_readable(),
+                )
+            } else {
+                None
             }
         });
 
@@ -119,11 +126,13 @@ impl Component for MessageReply {
         });
 
         let role_color = use_memo({
+            let server = server.clone();
+
             move || {
                 if let Some(member) = member.read().read()
-                    && let Some(server) = &*server.read()
+                    && let Some(server) = &server
                 {
-                    member_display_color(&member, server)
+                    member_display_color(&member, &server.read())
                 } else {
                     None
                 }
@@ -234,13 +243,7 @@ impl Component for MessageReply {
                     .height(Size::px(12.))
                     .width(Size::px(22.))
                     .margin((0., 6., 0., 30.))
-                    .corner_radius(CornerRadius {
-                        top_left: 4.,
-                        top_right: 0.,
-                        bottom_right: 0.,
-                        bottom_left: 0.,
-                        smoothing: 0.,
-                    })
+                    .corner_radius(CornerRadius::new(4., 0., 0., 0.))
                     .border(Border::new().fill(0xff45464f).width(BorderWidth {
                         top: 2.,
                         right: 0.,
@@ -300,6 +303,7 @@ impl Component for MessageReply {
                         )
                         .child(
                             rect()
+                                .interactive(false)
                                 .height(Size::px(22.))
                                 .horizontal()
                                 .spacing(8.)
@@ -318,13 +322,12 @@ impl Component for MessageReply {
                                                 .font_slant(FontSlant::Italic),
                                         )
                                 }))
-                                .child(
-                                    label()
-                                        .text(reply.content.clone().unwrap_or_default())
+                                .maybe_child(reply.content.clone().map(|content| {
+                                    MarkdownViewer::new(content, server.clone())
                                         .max_lines(1)
                                         .text_overflow(TextOverflow::Ellipsis)
-                                        .into_element(),
-                                ),
+                                        .into_element()
+                                })),
                         )
                 }
                 None => rect()

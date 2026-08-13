@@ -14,8 +14,8 @@ use tokio::time::sleep;
 use crate::{
     AppChannel, ChannelState, EditingMessage,
     components::{
-        ChannelTyping, Deferred, Message, MessageActions, MessageList, ReplyController,
-        TrailingMessage,
+        ChannelSlowmode, ChannelTyping, Deferred, Message, MessageActions, MessageList,
+        ReplyController, TrailingMessage,
     },
     http, map_readable,
     types::Tag,
@@ -53,13 +53,6 @@ enum FetchDirection {
     JumpEnd,
     JumpMsg,
 }
-
-/*
-let radio = use_radio(AppChannel::Messages);
-
-let messages_models = use_state(Vec::<MessageModel>::new);
-
-*/
 
 impl Component for ChannelMessages {
     fn render(&self) -> impl IntoElement {
@@ -1069,7 +1062,7 @@ impl Component for ChannelMessages {
             .child(
                 Deferred::new().child(
                     rect()
-                        .padding((16., 0., 0., 0.))
+                        // .padding((16., 0., 0., 0.))
                         .maybe_child(at_start.read().then(|| {
                             rect()
                                 .margin((18., 16., 10., 16.))
@@ -1110,10 +1103,22 @@ impl Component for ChannelMessages {
                                 )
                         }))
                         .child(rect().children(message_views.read().iter().cloned()))
-                        .child(ChannelTyping {
-                            channel: self.channel.clone(),
-                            server: self.server.clone(),
-                        }),
+                        .child(
+                            rect()
+                                .padding((0., 15.))
+                                .width(Size::Fill)
+                                .height(Size::px(26.))
+                                .horizontal()
+                                .cross_align(Alignment::Center)
+                                .main_align(Alignment::SpaceBetween)
+                                .child(ChannelTyping {
+                                    channel: self.channel.clone(),
+                                    server: self.server.clone(),
+                                })
+                                .child(ChannelSlowmode {
+                                    channel: self.channel.clone(),
+                                }),
+                        ),
                 ),
             ),
         )

@@ -17,12 +17,11 @@ pub use stoat::*;
 pub use theme::*;
 pub use utils::*;
 
-use crate::components::{HttpManager, MaterialThemeProvider, Root};
-
-pub const BASE: &str = "https://api.stoat.chat";
+use crate::components::{HttpManager, MaterialThemeProvider, ModalManager, Root};
 
 fn app() -> impl IntoElement {
     use_init_radio_station::<AppState, AppChannel>(AppState::new);
+    use_clipboard();
 
     let config = use_hook(|| {
         let state = State::create(read_config());
@@ -39,6 +38,7 @@ fn app() -> impl IntoElement {
 
     MaterialThemeProvider::new()
         .child(HttpManager::new().child(Root {}))
+        .child(ModalManager {})
         .child(
             rect()
                 .layer(Layer::OverlayLevel(10))
@@ -58,6 +58,8 @@ fn main() {
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let _rt = rt.enter();
 
+    get_unicode_emojis();
+
     launch(
         LaunchConfig::new()
             .with_window(
@@ -67,6 +69,9 @@ fn main() {
                     .with_size(1280., 720.)
                     .with_decorations(true),
             )
+            .with_font("Inter", include_bytes!("./assets/Inter.ttf") as &[u8])
+            .with_font("Fira Code", include_bytes!("./assets/FiraCode.ttf") as &[u8])
+            .with_default_font("Inter")
             .with_plugin(WebViewPlugin::new()),
     );
 }

@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use stoat_models::v0;
 
@@ -384,6 +385,12 @@ pub enum EventV1 {
     /// New emoji
     EmojiCreate(v0::Emoji),
 
+    /// Update existing emoji
+    EmojiUpdate {
+        id: String,
+        data: v0::PartialEmoji,
+    },
+
     /// Delete emoji
     EmojiDelete {
         id: String,
@@ -479,6 +486,16 @@ pub enum EventV1 {
         to: String,
         token: String,
     },
+    /// User's active slowmodes
+    UserSlowmodes {
+        slowmodes: Vec<v0::ChannelSlowmode>,
+    },
+    VoiceCallUpdate {
+        initiator_id: String,
+        channel_id: String,
+        started_at: Option<Timestamp>,
+        ended: bool,
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -4,7 +4,7 @@ use crate::{
     AppChannel, ServerSettingsPage,
     components::{
         ContextMenuButton, ModalValue,
-        material::outlined::{badge, logout, settings},
+        material::outlined::{badge, face, logout, settings},
         use_modals,
     },
 };
@@ -40,6 +40,19 @@ impl Component for ServerContextMenu {
                     move |_| {
                         *server_settings.write() =
                             Some((server_id.clone(), ServerSettingsPage::default()));
+                    }
+                }),
+            )
+            .child(
+                ContextMenuButton::new(face(), "Edit Your Identity").on_press({
+                    let server_id = self.server_id.clone();
+
+                    move |_| {
+                        modals
+                            .write()
+                            .push_modal(ModalValue::EditOwnServerIdentity {
+                                server: server_id.clone(),
+                            });
                     }
                 }),
             )

@@ -1,35 +1,77 @@
 use std::{cell::RefCell, rc::Rc};
 
 use freya::prelude::*;
+use stoat_models::v0;
 
 use crate::{
     Error,
     components::{
-        ChannelDescriptionModal, CreateJoinServerModal, CreateRoleModal, CreateServerModal,
-        DeleteCategoryModal, DeleteChannelModal, DeleteInviteModal, DeleteMessageModal, ErrorModal,
-        InviteInfoModal, JoinServerModal, LeaveGroupModal, LeaveServerModal, RenameCategoryModal,
-        ServerInfoModal, StoatButton, StoatButtonLayoutThemePartialExt,
+        StoatButton, StoatButtonLayoutThemePartialExt,
+        modals::{
+            ChannelDescription, CreateJoinServer, CreateRole, CreateServer, DeleteCategory,
+            DeleteChannel, DeleteInvite, DeleteMessage, EditApi, EditOwnServerIdentity, ErrorModal,
+            InviteInfo, JoinServer, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
+            RenameCategory, ServerInfo,
+        },
     },
     consume_material_theme,
 };
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone)]
 pub enum ModalValue {
-    ServerInfo { server: String },
+    ServerInfo {
+        server: String,
+    },
     CreateJoinServer,
     CreateServer,
     JoinServer,
-    ChannelDescription { channel: String },
-    CreateRole { server: String },
-    DeleteMessage { channel: String, message: String },
-    DeleteInvite { invite: String },
-    LeaveServer { server: String },
-    RenameCategory { server: String, category: String },
-    DeleteCategory { server: String, category: String },
-    InviteInfo { code: String },
-    LeaveGroup { channel: String },
-    DeleteChannel { channel: String },
-    Error { error: Error },
+    ChannelDescription {
+        channel: String,
+    },
+    CreateRole {
+        server: String,
+    },
+    DeleteMessage {
+        channel: String,
+        message: String,
+    },
+    DeleteInvite {
+        invite: String,
+    },
+    LeaveServer {
+        server: String,
+    },
+    RenameCategory {
+        server: String,
+        category: String,
+    },
+    DeleteCategory {
+        server: String,
+        category: String,
+    },
+    InviteInfo {
+        code: String,
+    },
+    LeaveGroup {
+        channel: String,
+    },
+    DeleteChannel {
+        channel: String,
+    },
+    OpenLink {
+        url: String,
+    },
+    EditApi,
+    EditOwnServerIdentity {
+        server: String,
+    },
+    LogoutOtherSessions { callback: EventHandler<()> },
+    MFA {
+        callback: EventHandler<v0::MFATicket>,
+    },
+    Error {
+        error: Error,
+    },
 }
 
 #[derive(Clone)]
@@ -128,46 +170,55 @@ impl Component for Modal {
                                 .on_global_key_down(on_global_key_down)
                                 .child(match self.value.clone() {
                                     ModalValue::ServerInfo { server } => {
-                                        ServerInfoModal { server }.into_element()
+                                        ServerInfo { server }.into_element()
                                     }
                                     ModalValue::CreateJoinServer => {
-                                        CreateJoinServerModal {}.into_element()
+                                        CreateJoinServer {}.into_element()
                                     }
-                                    ModalValue::CreateServer => CreateServerModal {}.into_element(),
-                                    ModalValue::JoinServer => JoinServerModal {}.into_element(),
+                                    ModalValue::CreateServer => CreateServer {}.into_element(),
+                                    ModalValue::JoinServer => JoinServer {}.into_element(),
                                     ModalValue::ChannelDescription { channel } => {
-                                        ChannelDescriptionModal { channel }.into_element()
+                                        ChannelDescription { channel }.into_element()
                                     }
                                     ModalValue::CreateRole { server } => {
-                                        CreateRoleModal { server }.into_element()
+                                        CreateRole { server }.into_element()
                                     }
                                     ModalValue::DeleteMessage { channel, message } => {
-                                        DeleteMessageModal { channel, message }.into_element()
+                                        DeleteMessage { channel, message }.into_element()
                                     }
                                     ModalValue::DeleteInvite { invite } => {
-                                        DeleteInviteModal { invite }.into_element()
+                                        DeleteInvite { invite }.into_element()
                                     }
                                     ModalValue::LeaveServer { server } => {
-                                        LeaveServerModal { server }.into_element()
+                                        LeaveServer { server }.into_element()
                                     }
                                     ModalValue::RenameCategory { server, category } => {
-                                        RenameCategoryModal { server, category }.into_element()
+                                        RenameCategory { server, category }.into_element()
                                     }
                                     ModalValue::DeleteCategory { server, category } => {
-                                        DeleteCategoryModal { server, category }.into_element()
+                                        DeleteCategory { server, category }.into_element()
                                     }
                                     ModalValue::Error { error } => {
                                         ErrorModal { error }.into_element()
                                     }
                                     ModalValue::InviteInfo { code } => {
-                                        InviteInfoModal { code }.into_element()
+                                        InviteInfo { code }.into_element()
                                     }
                                     ModalValue::LeaveGroup { channel } => {
-                                        LeaveGroupModal { channel }.into_element()
+                                        LeaveGroup { channel }.into_element()
                                     }
                                     ModalValue::DeleteChannel { channel } => {
-                                        DeleteChannelModal { channel }.into_element()
+                                        DeleteChannel { channel }.into_element()
                                     }
+                                    ModalValue::OpenLink { url } => OpenLink { url }.into_element(),
+                                    ModalValue::EditApi => EditApi {}.into_element(),
+                                    ModalValue::EditOwnServerIdentity { server } => {
+                                        EditOwnServerIdentity { server }.into_element()
+                                    }
+                                    ModalValue::LogoutOtherSessions { callback } => {
+                                        LogoutOtherSessions { callback }.into_element()
+                                    }
+                                    ModalValue::MFA { callback } => MFA { callback }.into_element(),
                                 }),
                         ),
                 ),
@@ -261,6 +312,23 @@ impl Component for Dialog {
             )
             .child(
                 rect()
+                    .on_global_key_down({
+                        let last_action = self.actions.last().cloned();
+
+                        move |e: Event<KeyboardEventData>| {
+                            if e.key == Key::Named(NamedKey::Enter) && e.modifiers.is_empty() {
+                                if let Some((_, callback)) = &last_action {
+                                    if let Some(callback) = &callback {
+                                        if callback.call() {
+                                            controller.write().pop_modal();
+                                        }
+                                    } else {
+                                        controller.write().pop_modal();
+                                    }
+                                }
+                            }
+                        }
+                    })
                     .margin((24., 0., 0., 0.))
                     .horizontal()
                     .width(Size::Fill)

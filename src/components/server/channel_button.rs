@@ -79,7 +79,7 @@ impl Component for ChannelButton {
             .on_secondary_down({
                 let channel = self.channel.clone();
 
-                move |e| {
+                move |_| {
                     let channel = channel.read().clone();
 
                     spawn(async move {
@@ -87,8 +87,7 @@ impl Component for ChannelButton {
 
                         let permissions = calculate_channel_permissions(&mut query).await;
 
-                        ContextMenu::open_from_event(
-                            &e,
+                        ContextMenu::open_from_down(
                             Menu::new().child(ChannelContextMenu {
                                 channel_id: channel.id().to_string(),
                                 current_permissions: permissions,

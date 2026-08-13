@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::{BASE, HTTP, HttpClient, consume_material_theme, use_config};
+use crate::{HTTP, HttpClient, consume_material_theme, use_config};
 
 #[derive(PartialEq)]
 pub struct HttpManager {
@@ -30,7 +30,9 @@ impl Component for HttpManager {
             let config = config.clone();
 
             async move {
-                let http = HttpClient::new(BASE.to_string(), config.read().token.clone())
+                let config = config.read();
+
+                let http = HttpClient::new(config.api.clone(), config.session.clone())
                     .await
                     .unwrap();
                 HTTP.set(http).unwrap();

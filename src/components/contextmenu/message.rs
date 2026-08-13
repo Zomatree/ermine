@@ -1,4 +1,4 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::use_radio, text_edit::{TextEditor, TextSelection, UseEditable}};
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
         ContextMenuButton, EmojiPicker, MessageModel, ModalValue, ReplyController,
         material::{
             filled::reply,
-            outlined::{badge, content_copy, delete, edit, insert_emoticon, pin_invoke, share},
+            outlined::{badge, content_copy, delete, edit, insert_emoticon, pin_invoke, share, alternate_email},
         },
         use_floating, use_modals,
     },
@@ -33,6 +33,7 @@ impl Component for MessageContextMenu {
 
         let mut floating = use_floating();
         let mut modals = use_modals();
+        let editable = use_consume::<Option<UseEditable>>();
 
         rect()
             .content(Content::Fit)
@@ -53,6 +54,19 @@ impl Component for MessageContextMenu {
                 move |_| {
                     replies.add_reply(message.clone(), true);
                 }
+            }))
+            .maybe_child(editable.map(|mut editable| {
+                ContextMenuButton::new(alternate_email(), "Mention").on_press({
+                    let user_id = self.message.message.author.clone();
+
+                    move |_| {
+                        let mut editor = editable.editor_mut().write();
+
+                        let pos = editor.cursor_pos();
+                        editor.insert(&format!("<@{user_id}>"), pos);
+                        *editor.selection_mut() = TextSelection::new_cursor(editor.len_chars())
+                    }
+                })
             }))
             .child(
                 ContextMenuButton::new(content_copy(), "Copy text").on_press({

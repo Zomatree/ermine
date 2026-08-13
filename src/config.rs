@@ -7,12 +7,12 @@ use etcetera::{AppStrategy, AppStrategyArgs, app_strategy::choose_native_strateg
 use freya::prelude::{State, use_consume};
 use serde::{Deserialize, Serialize};
 
-use crate::default_theme_source;
+use crate::{Session, default_theme_source};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum ThemeScheme {
-    #[default]
     Light,
+    #[default]
     Dark,
 }
 
@@ -40,10 +40,16 @@ impl Default for ThemeConfig {
     }
 }
 
+fn default_api_url() -> String {
+    "https://api.stoat.chat".to_string()
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Config {
+    #[serde(default="default_api_url")]
+    pub api: String,
     #[serde(default)]
-    pub token: Option<String>,
+    pub session: Option<Session>,
     #[serde(default)]
     pub last_channels: HashMap<String, String>,
     #[serde(default)]
@@ -58,9 +64,9 @@ pub struct Config {
 
 pub fn get_config_path() -> PathBuf {
     let strategy = choose_native_strategy(AppStrategyArgs {
-        top_level_domain: "chat".to_string(),
-        author: "stoat".to_string(),
-        app_name: "Stoat Chat".to_string(),
+        top_level_domain: "live".to_string(),
+        author: "zomatree".to_string(),
+        app_name: "Ermine".to_string(),
     })
     .unwrap();
 
@@ -77,9 +83,7 @@ pub fn get_config_path() -> PathBuf {
 pub fn read_config() -> Config {
     let path = get_config_path();
 
-    let Ok(value) = std::fs::read_to_string(path) else {
-        return Config::default();
-    };
+    let value = std::fs::read_to_string(path).unwrap_or_else(|_| "{}".to_string());
 
     serde_json::from_str(&value).unwrap_or_default()
 }

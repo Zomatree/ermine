@@ -6,7 +6,7 @@ use crate::{
     AppChannel, ChannelSettingsPage,
     components::{
         ContextMenuButton, ModalValue,
-        material::outlined::{badge, delete, group_add, logout, settings, share},
+        material::outlined::{badge, delete, person_add, logout, settings, share},
         use_modals,
     },
     http,
@@ -38,7 +38,7 @@ impl Component for ChannelContextMenu {
             self.current_permissions
                 .has_channel_permission(ChannelPermission::InviteOthers)
                 .then(|| {
-                    ContextMenuButton::new(group_add(), "Create Invite").on_press({
+                    ContextMenuButton::new(person_add(), "Create Invite").on_press({
                         let channel_id = self.channel_id.clone();
 
                         move |_| {

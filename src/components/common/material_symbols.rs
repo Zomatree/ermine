@@ -42,7 +42,7 @@ impl MaterialIcon {
 
 impl Component for MaterialIcon {
     fn render(&self) -> impl IntoElement {
-        let mut inherited_color = use_state::<Option<Color>>(|| self.color.clone());
+        let mut inherited_color = use_state::<Option<Color>>(|| None);
 
         rect()
             .child(
@@ -51,16 +51,14 @@ impl Component for MaterialIcon {
                     .layout(self.layout.clone())
                     .image_data(self.image_data.clone())
                     .effect(self.effect.clone())
-                    .with_event_handlers(self.event_handlers.clone())
-                    .map(inherited_color(), |this, color| {
+                    .event_handlers(self.event_handlers.clone())
+                    .map(self.color.or(inherited_color()), |this, color| {
                         this.color(color).fill(color)
                     }),
             )
             .on_styled(move |event: Event<StyledEventData>| {
-                if inherited_color.peek().is_none() {
-                    let color = event.text_style.color.as_color().unwrap_or(Color::BLACK);
-                    inherited_color.set_if_modified(Some(color));
-                }
+                let color = event.text_style.color.as_color().unwrap_or(Color::BLACK);
+                inherited_color.set_if_modified(Some(color));
             })
     }
 }

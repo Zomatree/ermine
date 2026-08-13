@@ -3,11 +3,9 @@ use freya::prelude::*;
 use crate::{
     Config, SizeExt,
     components::{
-        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-        material::filled::{clear, dark_mode},
+        MaterialIcon, ModalValue, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, dark_mode, edit, info}, use_modals
     },
-    consume_material_theme, http,
+    consume_material_theme, format_error, http,
     types::{DataLogin, MFAResponse, ResponseLogin},
 };
 
@@ -18,6 +16,7 @@ impl Component for Login {
     fn render(&self) -> impl IntoElement {
         let mut config = use_consume::<State<Config>>();
         let theme = consume_material_theme();
+        let mut modals = use_modals();
 
         let email = use_state(String::new);
         let password = use_state(String::new);
@@ -26,6 +25,41 @@ impl Component for Login {
         let mut mfa_ticket = use_state(|| None::<String>);
         let mut mfa_value = use_state(String::new);
         let mut mfa_error = use_state(|| None::<String>);
+
+        let submit = {
+            move || {
+                let email = email.read().clone();
+                let password = password.read().clone();
+
+                if email.is_empty() || password.is_empty() {
+                    return;
+                };
+
+                spawn(async move {
+                    match http()
+                        .login(&DataLogin::Email {
+                            email,
+                            password,
+                            friendly_name: Some("Ermine".to_string()),
+                        })
+                        .await
+                    {
+                        Ok(response) => match response {
+                            ResponseLogin::Success(session) => {
+                                config.write().session = Some(session)
+                            }
+                            ResponseLogin::MFA { ticket, .. } => {
+                                mfa_ticket.set(Some(ticket));
+                            }
+                            ResponseLogin::Disabled { .. } => {
+                                error.set(Some("Disabled Account".to_string()))
+                            }
+                        },
+                        Err(e) => error.set(Some(format_error(&e, "Account"))),
+                    }
+                });
+            }
+        };
 
         rect()
             .width(Size::Fill)
@@ -36,7 +70,7 @@ impl Component for Login {
                 rect()
                     .width(Size::Fill)
                     .height(Size::Fill)
-                    .padding((40., 35.))
+                    .padding((40., 35., 35., 35.))
                     .cross_align(Alignment::Center)
                     .main_align(Alignment::SpaceBetween)
                     .child(
@@ -76,22 +110,17 @@ impl Component for Login {
                                     .spacing(15.)
                                     .cross_align(Alignment::Center)
                                     .child(
-                                        // login_entry(email, "Email", &theme, InputMode::Shown)
                                         SingleLineEntry::new("Email", email)
                                             .placeholder("Please enter your email.")
-                                            .width(Size::px(280.)),
+                                            .width(Size::px(280.))
+                                            .on_submit(move |_| submit()),
                                     )
                                     .child(
-                                        // login_entry(
-                                        //     password,
-                                        //     "Password",
-                                        //     &theme,
-                                        //     InputMode::Hidden('•'),
-                                        // )
                                         SingleLineEntry::new("Password", password)
                                             .placeholder("Enter your current password.")
                                             .mode(InputMode::Hidden('•'))
-                                            .width(Size::px(280.)),
+                                            .width(Size::px(280.))
+                                            .on_submit(move |_| submit()),
                                     ),
                             )
                             .child(
@@ -167,50 +196,71 @@ impl Component for Login {
                                             .background(theme.md.primary.as_argb_u32())
                                             .color(theme.md.on_primary.as_argb_u32())
                                             .corner_radius(40.)
-                                            .on_press(move |_| {
-                                                spawn(async move {
-                                                    match http()
-                                                        .login(&DataLogin::Email {
-                                                            email: email.read().clone(),
-                                                            password: password.read().clone(),
-                                                            friendly_name: Some(
-                                                                "Stoat-Freya".to_string(),
-                                                            ),
-                                                        })
-                                                        .await
-                                                    {
-                                                        Ok(response) => match response {
-                                                            ResponseLogin::Success(session) => {
-                                                                config.write().token =
-                                                                    Some(session.token)
-                                                            }
-                                                            ResponseLogin::MFA {
-                                                                ticket, ..
-                                                            } => {
-                                                                mfa_ticket.set(Some(ticket));
-                                                            }
-                                                            ResponseLogin::Disabled { .. } => error
-                                                                .set(Some(
-                                                                    "Disabled Account".to_string(),
-                                                                )),
-                                                        },
-                                                        Err(e) => error.set(Some(format!("{e:?}"))),
-                                                    }
-                                                });
-                                            }),
+                                            .on_press(move |_| submit()),
                                     ),
                             )
-                            .maybe_child(error.read().clone()),
+                            .maybe_child(error.read().clone().map(|error| {
+                                rect()
+                                    .width(Size::Fill)
+                                    .horizontal()
+                                    .center()
+                                    .spacing(4.)
+                                    .color(theme.md.error.as_argb_u32())
+                                    .child(MaterialIcon::new(info()).size(Size::px(16.)))
+                                    .child(label().font_size(11.).text(error))
+                            })),
                     )
                     .child(
                         rect()
-                            .height(Size::px(32.))
                             .width(Size::Fill)
+                            .horizontal()
+                            .main_align(Alignment::SpaceBetween)
+                            .cross_align(Alignment::End)
                             .color(theme.md.on_surface_variant.as_argb_u32())
-                            .child("Developed by Zomatree"),
+                            .child("Developed by Zomatree")
+                            .child(
+                                StoatButton::new()
+                                    .background(theme.md.secondary_container.as_argb_u32())
+                                    .color(theme.md.on_secondary_container.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .on_press(move |_| modals.write().push_modal(ModalValue::EditApi))
+                                    .child(
+                                        rect()
+                                            .size(Size::px(40.))
+                                            .center()
+                                            .child(MaterialIcon::new(edit()).size(Size::px(24.))),
+                                    ),
+                            ),
                     ),
             )
             .maybe_child(mfa_ticket.read().cloned().map(|ticket| {
+                let submit = move || {
+                    let value = mfa_value.read().clone();
+                    let ticket = ticket.clone();
+
+                    spawn(async move {
+                        match http()
+                            .login(&DataLogin::MFA {
+                                mfa_ticket: ticket,
+                                mfa_response: Some(MFAResponse::Totp { totp_code: value }),
+                                friendly_name: Some("Ermine".to_string()),
+                            })
+                            .await
+                        {
+                            Ok(response) => match response {
+                                ResponseLogin::Success(session) => {
+                                    mfa_ticket.set(None);
+                                    mfa_value.set(String::new());
+                                    mfa_error.set(None);
+                                    config.write().session = Some(session)
+                                }
+                                _ => unreachable!(),
+                            },
+                            Err(e) => mfa_error.set(Some(format_error(&e, "2FA"))),
+                        }
+                    });
+                };
+
                 Popup::new()
                     .background(theme.md.surface_container_high.as_argb_u32())
                     .color(theme.md.on_surface.as_argb_u32())
@@ -238,14 +288,22 @@ impl Component for Login {
                                     .color(theme.md.on_surface_variant.as_argb_u32())
                                     .text("Please confirm this action using the selected method."),
                             )
-                            // .child(login_entry(
-                            //     mfa_value,
-                            //     "Authenticator App",
-                            //     &theme,
-                            //     InputMode::Shown,
-                            // ))
-                            .child(SingleLineEntry::new("Authenticator App", mfa_value))
-                            .maybe_child(mfa_error.read().clone()),
+                            .child(
+                                SingleLineEntry::new("Authenticator App", mfa_value).on_submit({
+                                    let submit = submit.clone();
+                                    move |_| submit()
+                                }),
+                            )
+                            .maybe_child(mfa_error.read().clone().map(|error| {
+                                rect()
+                                    .width(Size::Fill)
+                                    .horizontal()
+                                    .center()
+                                    .spacing(4.)
+                                    .color(theme.md.error.as_argb_u32())
+                                    .child(MaterialIcon::new(info()).size(Size::px(16.)))
+                                    .child(label().font_size(11.).text(error))
+                            })),
                     )
                     .child(
                         PopupButtons::new()
@@ -277,34 +335,7 @@ impl Component for Login {
                                             .height(Size::px(40.))
                                             .padding((0., 16.)),
                                     )
-                                    .on_press(move |_| {
-                                        let value = mfa_value.read().clone();
-                                        let ticket = ticket.clone();
-
-                                        spawn(async move {
-                                            match http()
-                                                .login(&DataLogin::MFA {
-                                                    mfa_ticket: ticket,
-                                                    mfa_response: Some(MFAResponse::Totp {
-                                                        totp_code: value,
-                                                    }),
-                                                    friendly_name: Some("Stoat-Freya".to_string()),
-                                                })
-                                                .await
-                                            {
-                                                Ok(response) => match response {
-                                                    ResponseLogin::Success(session) => {
-                                                        mfa_ticket.set(None);
-                                                        mfa_value.set(String::new());
-                                                        mfa_error.set(None);
-                                                        config.write().token = Some(session.token)
-                                                    }
-                                                    _ => unreachable!(),
-                                                },
-                                                Err(e) => mfa_error.set(Some(format!("{e:?}"))),
-                                            }
-                                        });
-                                    }),
+                                    .on_press(move |_| submit()),
                             ),
                     )
             }))

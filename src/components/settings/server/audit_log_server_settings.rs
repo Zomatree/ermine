@@ -1,12 +1,16 @@
-use std::{collections::HashMap, ops::Not};
+use std::{collections::HashMap, ops::Not, time::SystemTime};
 
 use crate::{
     AppChannel, SizeExt,
     components::{
-        Avatar, MaterialIcon,
-        material::filled::{
-            flag, format_list_bulleted, group, info, insert_emoticon, list, message, pin_invoke,
-            smart_toy,
+        Avatar, Dropdown, MaterialIcon, SingleLineEntry, StoatButton,
+        StoatButtonLayoutThemePartialExt,
+        material::{
+            filled::{
+                add_link, flag, format_list_bulleted, group, info, insert_emoticon, link, list,
+                message, pin_invoke, smart_toy,
+            },
+            outlined::{chevron_right, expand_more},
         },
     },
     consume_material_theme, http,
@@ -22,24 +26,26 @@ pub struct AuditLogServerSettings {
 
 impl Component for AuditLogServerSettings {
     fn render(&self) -> impl IntoElement {
-        let action_filter = use_state(|| Vec::<String>::new());
-        let user_filter = use_state(|| None);
-        let target_filter = use_state(|| None);
+        let theme = consume_material_theme();
+
+        let action_filter = use_state(|| None::<&'static str>);
+        let user_filter = use_state(String::new);
+        let target_filter = use_state(String::new);
 
         let mut users = use_state(|| HashMap::<String, v0::User>::new());
         let mut members = use_state(|| HashMap::<String, v0::Member>::new());
         let mut audit_logs = use_state(|| Vec::<v0::AuditLogEntry>::new());
 
         let mut stop_fetching = use_state(|| false);
-
-        let mut end_visible = use_state(|| false);
+        let mut end_visible = use_state(|| true);
+        let expanded = use_state(|| None);
 
         let fetch_audit_logs = {
             let server_id = self.server.read().id.clone();
 
             move || {
                 let server_id = server_id.clone();
-                let actions = action_filter.read().cloned();
+                let action = action_filter.read().cloned().map(|s| s.to_string());
                 let user = user_filter.read().cloned();
                 let target = target_filter.read().cloned();
                 let last_entry = audit_logs
@@ -48,14 +54,21 @@ impl Component for AuditLogServerSettings {
                     .map(|audit_log| audit_log.id.clone());
 
                 spawn(async move {
+                    stop_fetching.set(false);
+                    end_visible.set(true);
+
                     if let Ok(response) = http()
                         .fetch_audit_logs(
                             &server_id,
                             &v0::OptionsAuditLogQuery {
-                                user,
-                                target,
-                                r#type: if !actions.is_empty() {
-                                    Some(actions)
+                                user: if !user.len() == 26 { Some(user) } else { None },
+                                target: if !target.len() == 26 {
+                                    Some(target)
+                                } else {
+                                    None
+                                },
+                                r#type: if let Some(action) = action {
+                                    Some(vec![action])
                                 } else {
                                     None
                                 },
@@ -94,14 +107,100 @@ impl Component for AuditLogServerSettings {
             }
         });
 
+        let entries = audit_logs.read();
+
         rect()
+            .spacing(8.)
+            .child(
+                rect()
+                    .horizontal()
+                    .spacing(4.)
+                    .content(Content::Flex)
+                    .child(SingleLineEntry::new("Author", user_filter).width(Size::flex(1.)))
+                    .child(SingleLineEntry::new("Target", target_filter).width(Size::flex(1.)))
+                    .child(
+                        Dropdown::new(
+                            "Action Type",
+                            action_filter.into_writable(),
+                            vec![
+                                None,
+                                Some("MessageDelete"),
+                                Some("MessageBulkDelete"),
+                                Some("MessagePin"),
+                                Some("BanCreate"),
+                                Some("BanDelete"),
+                                Some("ChannelCreate"),
+                                Some("ChannelEdit"),
+                                Some("ChannelRolePermissionsEdit"),
+                                Some("ChannelDelete"),
+                                Some("MemberEdit"),
+                                Some("MemberKick"),
+                                Some("ServerEdit"),
+                                Some("RoleEdit"),
+                                Some("RoleCreate"),
+                                Some("RoleDelete"),
+                                Some("RolesReorder"),
+                                Some("InviteCreate"),
+                                Some("InviteDelete"),
+                                Some("WebhookCreate"),
+                                Some("WebhookDelete"),
+                                Some("EmojiCreate"),
+                                Some("EmojiUpdate"),
+                                Some("EmojiDelete"),
+                            ],
+                            move |action| {
+                                label()
+                                    .text(match action {
+                                        None => "Empty",
+                                        Some("MessageDelete") => "Message Delete",
+                                        Some("MessageBulkDelete") => "Message Bulk Delete",
+                                        Some("MessagePin") => "Message Pin",
+                                        Some("BanCreate") => "Ban Create",
+                                        Some("BanDelete") => "Ban Delete",
+                                        Some("ChannelCreate") => "Channel Create",
+                                        Some("ChannelEdit") => "Channel Edit",
+                                        Some("ChannelRolePermissionsEdit") => {
+                                            "Channel Role Permissions Edit"
+                                        }
+                                        Some("ChannelDelete") => "Channel Delete",
+                                        Some("MemberEdit") => "Member Edit",
+                                        Some("MemberKick") => "Member Kick",
+                                        Some("ServerEdit") => "Server Edit",
+                                        Some("RoleEdit") => "Role Edit",
+                                        Some("RoleCreate") => "Role Create",
+                                        Some("RoleDelete") => "Role Delete",
+                                        Some("RolesReorder") => "Roles Reorder",
+                                        Some("InviteCreate") => "Invite Create",
+                                        Some("InviteDelete") => "Invite Delete",
+                                        Some("WebhookCreate") => "Webhook Create",
+                                        Some("WebhookDelete") => "Webhook Delete",
+                                        Some("EmojiCreate") => "Emoji Create",
+                                        Some("EmojiUpdate") => "Emoji Update",
+                                        Some("EmojiDelete") => "Emoji Delete",
+                                        v => unreachable!("{v:?}"),
+                                    })
+                                    .color(
+                                        if action == &None {
+                                            theme.md.on_surface_variant
+                                        } else {
+                                            theme.md.on_surface
+                                        }
+                                        .as_argb_u32(),
+                                    )
+                                    .into_element()
+                            },
+                        )
+                        .width(Size::flex(1.)),
+                    ),
+            )
             .child(rect().spacing(4.).children({
                 let users = users.into_readable();
                 let members = members.into_readable();
 
-                audit_logs.read().cloned().into_iter().map(move |entry| {
+                entries.iter().cloned().map(move |entry| {
                     AuditLogEntry {
                         entry,
+                        expanded,
                         server: self.server.clone(),
                         users: users.clone(),
                         members: members.clone(),
@@ -109,37 +208,46 @@ impl Component for AuditLogServerSettings {
                     .into_element()
                 })
             }))
-            .maybe_child(stop_fetching().not().then(
-                || {
-                    rect()
-                        .width(Size::Fill)
-                        .center()
-                        .padding(8.)
-                        .child(CircularLoader::new())
-                        .on_sized(move |e: Event<SizedEventData>| {
-                            if e.visible_area.is_empty() {
-                                end_visible.set_if_modified_and_then(true, &fetch_audit_logs);
-                            } else {
-                                end_visible.set_if_modified(false);
-                            }
-                        })
-                }, // StoatButton::new()
-                   //     .child("Load More")
-                   //     .on_press(move |_| fetch_audit_logs()),
-            ))
+            .child(
+                rect()
+                    .width(Size::Fill)
+                    .center()
+                    .padding(8.)
+                    .maybe_child(stop_fetching().not().then(|| {
+                        rect().child(CircularLoader::new()).on_sized(
+                            move |e: Event<SizedEventData>| {
+                                if e.visible_area.origin.y
+                                    <= Platform::get().root_size.read().height
+                                {
+                                    end_visible.set_if_modified_and_then(true, &fetch_audit_logs);
+                                } else {
+                                    end_visible.set(false);
+                                }
+                            },
+                        )
+                    }))
+                    .maybe_child((stop_fetching() && entries.is_empty()).then(|| {
+                        label()
+                            .color(theme.md.on_surface_variant.as_argb_u32())
+                            .font_size(12.)
+                            .text("No Audit Logs.")
+                            .into_element()
+                    })),
+            )
     }
 }
 
 #[derive(Debug, Copy, Clone)]
-enum IconColor {
-    Green,
-    Yellow,
-    Red,
+enum IconStyle {
+    Create,
+    Modify,
+    Delete,
 }
 
 #[derive(PartialEq)]
 struct AuditLogEntry {
     pub entry: v0::AuditLogEntry,
+    pub expanded: State<Option<String>>,
     pub server: Readable<v0::Server>,
     pub users: Readable<HashMap<String, v0::User>>,
     pub members: Readable<HashMap<String, v0::Member>>,
@@ -196,10 +304,16 @@ impl Component for AuditLogEntry {
 
         let username = user.read().username.clone();
 
+        let is_expanded = self
+            .expanded
+            .read()
+            .as_ref()
+            .is_some_and(|id| id == &self.entry.id);
+
         let (icon, color, text) = match &self.entry.action {
             v0::AuditLogEntryAction::MessageDelete { author, channel } => (
                 message(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!(
                     "{} deleted a message by {} in #{}",
                     username,
@@ -209,7 +323,7 @@ impl Component for AuditLogEntry {
             ),
             v0::AuditLogEntryAction::MessageBulkDelete { channel, count } => (
                 list(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!(
                     "{} deleted {} messages in #{}",
                     username,
@@ -218,12 +332,12 @@ impl Component for AuditLogEntry {
                 ),
             ),
             v0::AuditLogEntryAction::MessagePin {
-                message,
-                author,
+                message: _,
+                author: _,
                 channel,
             } => (
                 pin_invoke(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!(
                     "{} pinned a message in #{}",
                     username,
@@ -231,12 +345,12 @@ impl Component for AuditLogEntry {
                 ),
             ),
             v0::AuditLogEntryAction::MessageUnpin {
-                message,
-                author,
+                message: _,
+                author: _,
                 channel,
             } => (
                 pin_invoke(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!(
                     "{} unpinned a message in #{}",
                     username,
@@ -245,35 +359,35 @@ impl Component for AuditLogEntry {
             ),
             v0::AuditLogEntryAction::BanCreate { user } => (
                 group(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!("{} banned {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::BanDelete { user } => (
                 group(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!("{} unbanned {}", username, get_user_name(user)),
             ),
-            v0::AuditLogEntryAction::ChannelCreate { channel, name } => (
+            v0::AuditLogEntryAction::ChannelCreate { channel, name: _ } => (
                 format_list_bulleted(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!("{} created #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::ChannelEdit {
                 channel,
-                before,
-                after,
+                before: _,
+                after: _,
             } => (
                 format_list_bulleted(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!("{} updated #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::ChannelRolePermissionsEdit {
                 channel,
                 role,
-                permissions,
+                permissions: _,
             } => (
                 format_list_bulleted(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!(
                     "{} updated role @{} permissions in #{}",
                     username,
@@ -281,28 +395,28 @@ impl Component for AuditLogEntry {
                     get_channel_name(channel)
                 ),
             ),
-            v0::AuditLogEntryAction::ChannelDelete { channel, name } => (
+            v0::AuditLogEntryAction::ChannelDelete { channel, name: _ } => (
                 format_list_bulleted(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!("{} deleted #{}", username, get_channel_name(channel)),
             ),
             v0::AuditLogEntryAction::MemberEdit {
                 user,
-                before,
-                after,
+                before: _,
+                after: _,
             } => (
                 group(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!("{} updated {}", username, get_user_name(user)),
             ),
             v0::AuditLogEntryAction::MemberKick { user } => (
                 group(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!("{} kicked {}", username, get_user_name(user)),
             ),
-            v0::AuditLogEntryAction::ServerEdit { before, after } => (
+            v0::AuditLogEntryAction::ServerEdit { before: _, after: _ } => (
                 info(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!(
                     "{} made changes to {}",
                     username,
@@ -311,31 +425,31 @@ impl Component for AuditLogEntry {
             ),
             v0::AuditLogEntryAction::RoleEdit {
                 role,
-                before,
-                after,
+                before: _,
+                after: _,
             } => (
                 info(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!("{} updated role @{}", username, get_role_name(role)),
             ),
-            v0::AuditLogEntryAction::RoleCreate { role, name } => (
+            v0::AuditLogEntryAction::RoleCreate { role, name: _ } => (
                 flag(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!("{} created role @{}", username, get_role_name(role)),
             ),
-            v0::AuditLogEntryAction::RoleDelete { role, name } => (
+            v0::AuditLogEntryAction::RoleDelete { role: _, name } => (
                 flag(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!("{} deleted role @{}", username, name),
             ),
-            v0::AuditLogEntryAction::RolesReorder { before, after } => (
+            v0::AuditLogEntryAction::RolesReorder { before: _, after: _ } => (
                 flag(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!("{} re-oredered roles", username),
             ),
             v0::AuditLogEntryAction::InviteCreate { invite, channel } => (
-                flag(),
-                IconColor::Green,
+                add_link(),
+                IconStyle::Create,
                 format!(
                     "{} created an invite {} in #{}",
                     username,
@@ -344,8 +458,8 @@ impl Component for AuditLogEntry {
                 ),
             ),
             v0::AuditLogEntryAction::InviteDelete { invite, channel } => (
-                flag(),
-                IconColor::Red,
+                link(),
+                IconStyle::Delete,
                 format!(
                     "{} deleted an invite {} in #{}",
                     username,
@@ -354,12 +468,12 @@ impl Component for AuditLogEntry {
                 ),
             ),
             v0::AuditLogEntryAction::WebhookCreate {
-                webhook,
+                webhook: _,
                 name,
                 channel,
             } => (
                 smart_toy(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!(
                     "{} created a webhook {} in #{}",
                     username,
@@ -368,12 +482,12 @@ impl Component for AuditLogEntry {
                 ),
             ),
             v0::AuditLogEntryAction::WebhookDelete {
-                webhook,
+                webhook: _,
                 name,
                 channel,
             } => (
                 smart_toy(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!(
                     "{} deleted a webhook {} in #{}",
                     username,
@@ -381,56 +495,340 @@ impl Component for AuditLogEntry {
                     get_channel_name(channel)
                 ),
             ),
-            v0::AuditLogEntryAction::EmojiCreate { emoji, name } => (
+            v0::AuditLogEntryAction::EmojiCreate { emoji: _, name } => (
                 smart_toy(),
-                IconColor::Green,
+                IconStyle::Create,
                 format!("{} created emoji {}", username, name),
             ),
             v0::AuditLogEntryAction::EmojiUpdate {
-                emoji,
-                before,
-                after,
+                emoji: _,
+                before: _,
+                after: _,
             } => (
                 insert_emoticon(),
-                IconColor::Yellow,
+                IconStyle::Modify,
                 format!("{} updated an emoji", username),
             ),
-            v0::AuditLogEntryAction::EmojiDelete { emoji, name } => (
+            v0::AuditLogEntryAction::EmojiDelete { emoji: _, name } => (
                 smart_toy(),
-                IconColor::Red,
+                IconStyle::Delete,
                 format!("{} deleted emoji {}", username, name),
             ),
-            _ => (info(), IconColor::Green, "todo".to_string()),
         };
 
-        rect()
-            .width(Size::Fill)
-            .background(theme.md.secondary_container.as_argb_u32())
-            .color(theme.md.on_secondary_container.as_argb_u32())
+        StoatButton::new()
             .corner_radius(12.)
-            .padding(13.)
-            .spacing(8.)
-            .horizontal()
-            .cross_align(Alignment::Center)
-            .child(
-                MaterialIcon::new(icon)
-                    .size(Size::px(16.))
-                    .color(match color {
-                        IconColor::Green => Color::GREEN,
-                        IconColor::Yellow => Color::YELLOW,
-                        IconColor::Red => theme.md.error.as_argb_u32().into(),
-                    }),
-            )
-            .child(Avatar::new(user.clone(), None, 36.))
+            .on_press({
+                let id = self.entry.id.clone();
+                let mut expanded = self.expanded;
+                move |_| {
+                    let current = expanded.read().cloned();
+                    if let Some(current) = current
+                        && &current == &id
+                    {
+                        expanded.set(None);
+                    } else {
+                        expanded.set(Some(id.clone()));
+                    }
+                }
+            })
             .child(
                 rect()
-                    .child(text)
-                    .child(label().font_size(12.).text(format!(
-                        "{:02}/{:02}/{}",
-                        datetime.day(),
-                        datetime.month(),
-                        datetime.year()
-                    ))),
+                    .width(Size::Fill)
+                    .background(theme.md.secondary_container.as_argb_u32())
+                    .color(theme.md.on_secondary_container.as_argb_u32())
+                    .padding(13.)
+                    .spacing(16.)
+                    .child(
+                        rect()
+                            .spacing(8.)
+                            .horizontal()
+                            .cross_align(Alignment::Center)
+                            .content(Content::Flex)
+                            .child(
+                                MaterialIcon::new(icon)
+                                    .size(Size::px(16.))
+                                    .color(match color {
+                                        IconStyle::Create => theme.stoat.presence_online,
+                                        IconStyle::Modify => theme.stoat.presence_idle,
+                                        IconStyle::Delete => theme.stoat.presence_busy,
+                                    }),
+                            )
+                            .child(Avatar::new(user.clone(), None, 36.))
+                            .child(
+                                rect().width(Size::flex(1.)).child(text).child(
+                                    label()
+                                        .font_size(12.)
+                                        .color(theme.md.on_surface_variant.as_argb_u32())
+                                        .text(format!(
+                                            "{:02}/{:02}/{}",
+                                            datetime.day(),
+                                            datetime.month(),
+                                            datetime.year()
+                                        )),
+                                ),
+                            )
+                            .child(
+                                MaterialIcon::new(if is_expanded {
+                                    expand_more()
+                                } else {
+                                    chevron_right()
+                                })
+                                .size(Size::px(16.)),
+                            ),
+                    )
+                    .maybe_child(is_expanded.then(|| {
+                        let lines = match &self.entry.action {
+                            v0::AuditLogEntryAction::MessageDelete { .. } => {
+                                Vec::new()
+                            }
+                            v0::AuditLogEntryAction::MessageBulkDelete { .. } => {
+                                Vec::new()
+                            }
+                            v0::AuditLogEntryAction::MessagePin {
+                                ..
+                            } => Vec::new(),
+                            v0::AuditLogEntryAction::MessageUnpin {
+                                message: _,
+                                author: _,
+                                channel: _,
+                            } => Vec::new(),
+                            v0::AuditLogEntryAction::BanCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::BanDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::ChannelCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::ChannelEdit {
+                                channel: _,
+                                before,
+                                after,
+                            } => {
+                                vec![
+                                    ("Name", before.name.clone(), after.name.clone()),
+                                    (
+                                        "Description",
+                                        before.description.clone(),
+                                        after.description.clone(),
+                                    ),
+                                    (
+                                        "Icon",
+                                        before.icon.is_some().then(|| "TODO".to_string()),
+                                        after.icon.is_some().then(|| "TODO".to_string()),
+                                    ),
+                                    (
+                                        "Mature",
+                                        before.nsfw.map(|nsfw| nsfw.to_string()),
+                                        after.nsfw.map(|nsfw| nsfw.to_string()),
+                                    ),
+                                    (
+                                        "Max users",
+                                        before.voice.as_ref().and_then(|voice| {
+                                            voice.max_users.map(|count| count.to_string())
+                                        }),
+                                        after.voice.as_ref().and_then(|voice| {
+                                            voice.max_users.map(|count| count.to_string())
+                                        }),
+                                    ),
+                                    (
+                                        "Slowmode",
+                                        before.slowmode.map(|secs| format!("{secs}s")),
+                                        after.slowmode.map(|secs| format!("{secs}s")),
+                                    ),
+                                ]
+                            }
+                            v0::AuditLogEntryAction::ChannelRolePermissionsEdit {
+                                ..
+                            } => Vec::new(), // TODO
+                            v0::AuditLogEntryAction::ChannelDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::MemberEdit {
+                                user: _,
+                                before,
+                                after,
+                            } => {
+                                vec![
+                                    ("Nickname", before.nickname.clone(), after.nickname.clone()),
+                                    ("Pronouns", before.pronouns.clone(), after.pronouns.clone()),
+                                    (
+                                        "Avatar",
+                                        before.avatar.is_some().then(|| "TODO".to_string()),
+                                        after.avatar.is_some().then(|| "TODO".to_string()),
+                                    ),
+                                    (
+                                        "Timeout",
+                                        before.timeout.map(|ts| format!("until {}", format_ts(ts))),
+                                        after.timeout.map(|ts| format!("until {}", format_ts(ts))),
+                                    ),
+                                    (
+                                        "Muted",
+                                        before
+                                            .can_publish
+                                            .map(|not_muted| (!not_muted).to_string()),
+                                        after.can_publish.map(|not_muted| (!not_muted).to_string()),
+                                    ),
+                                    (
+                                        "Deafened",
+                                        before
+                                            .can_receive
+                                            .map(|not_deafend| (!not_deafend).to_string()),
+                                        after
+                                            .can_receive
+                                            .map(|not_deafend| (!not_deafend).to_string()),
+                                    ),
+                                ]
+                            }
+                            v0::AuditLogEntryAction::MemberKick { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::ServerEdit { before, after } => {
+                                vec![
+                                    (
+                                        "Owner",
+                                        before.owner.as_ref().map(|id| get_user_name(&id)),
+                                        after.owner.as_ref().map(|id| get_user_name(&id)),
+                                    ),
+                                    ("Name", before.name.clone(), after.name.clone()),
+                                    (
+                                        "Description",
+                                        before.description.clone(),
+                                        after.description.clone(),
+                                    ),
+                                    (
+                                        "Categories",
+                                        before.categories.is_some().then(|| "TODO".to_string()),
+                                        after.categories.is_some().then(|| "TODO".to_string()),
+                                    ),
+                                    (
+                                        "User joined channel",
+                                        before.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_joined
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                        after.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_joined
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                    ),
+                                    (
+                                        "User left channel",
+                                        before.system_messages.as_ref().and_then(|system| {
+                                            system.user_left.as_ref().map(|id| get_channel_name(id))
+                                        }),
+                                        after.system_messages.as_ref().and_then(|system| {
+                                            system.user_left.as_ref().map(|id| get_channel_name(id))
+                                        }),
+                                    ),
+                                    (
+                                        "User kicked channel",
+                                        before.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_kicked
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                        after.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_kicked
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                    ),
+                                    (
+                                        "User banned channel",
+                                        before.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_banned
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                        after.system_messages.as_ref().and_then(|system| {
+                                            system
+                                                .user_banned
+                                                .as_ref()
+                                                .map(|id| get_channel_name(id))
+                                        }),
+                                    ),
+                                ]
+                            }
+                            v0::AuditLogEntryAction::RoleEdit {
+                                role: _,
+                                before,
+                                after,
+                            } => vec![
+                                ("Name", before.name.clone(), after.name.clone()),
+                                (
+                                    "Permissions",
+                                    before.permissions.is_some().then(|| "TODO".to_string()),
+                                    after.permissions.is_some().then(|| "TODO".to_string()),
+                                ),
+                                ("Colour", before.colour.clone(), after.colour.clone()),
+                                (
+                                    "Hoist",
+                                    before.hoist.map(|hoist| hoist.to_string()),
+                                    after.hoist.map(|hoist| hoist.to_string()),
+                                ),
+                                (
+                                    "Icon",
+                                    before.icon.is_some().then(|| "TODO".to_string()),
+                                    after.icon.is_some().then(|| "TODO".to_string()),
+                                ),
+                            ],
+                            v0::AuditLogEntryAction::RoleCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::RoleDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::RolesReorder { .. } => {
+                                Vec::new() // TODO
+                            }
+                            v0::AuditLogEntryAction::InviteCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::InviteDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::WebhookCreate {
+                                ..
+                            } => Vec::new(),
+                            v0::AuditLogEntryAction::WebhookDelete {
+                                ..
+                            } => Vec::new(),
+                            v0::AuditLogEntryAction::EmojiCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::EmojiUpdate {
+                                emoji: _,
+                                before,
+                                after,
+                            } => vec![("Name", before.name.clone(), after.name.clone())],
+                            v0::AuditLogEntryAction::EmojiDelete { .. } => Vec::new(),
+                        };
+
+                        rect()
+                            .padding((0., 0., 0., 24.))
+                            .children(
+                                lines
+                                    .into_iter()
+                                    .map(|(title, before, after)| match (before, after) {
+                                        (None, Some(after)) => {
+                                            Some(format!("{title}: Set to {after}"))
+                                        }
+                                        (Some(before), None) => {
+                                            Some(format!("{title}: Removed {before}"))
+                                        }
+                                        (Some(before), Some(after)) => Some(format!(
+                                            "{title}: Updated from {before} to {after}"
+                                        )),
+                                        (None, None) => None,
+                                    })
+                                    .flatten()
+                                    .map(|s| s.into_element()),
+                            )
+                            .maybe_child(
+                                self.entry
+                                    .reason
+                                    .clone()
+                                    .map(|reason| format!("Reason: {reason}")),
+                            )
+                    })),
             )
     }
+}
+
+fn format_ts(ts: iso8601_timestamp::Timestamp) -> String {
+    let ts = Timestamp::try_from(SystemTime::from(ts))
+        .unwrap()
+        .to_zoned(TimeZone::system());
+
+    ts.strftime("%A, %B %d, %Y at %H:%M").to_string()
 }

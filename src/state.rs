@@ -3,18 +3,19 @@ use freya::{
     prelude::State,
     radio::{RadioChannel, RadioStation},
 };
+use jiff::Timestamp;
 // use livekit::{PlatformAudio, Room};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
     rc::Rc,
-    sync::Arc,
+    time::Duration,
 };
 
 use stoat_models::v0::{
     AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole,
-    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMember, PartialMessage,
+    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMessage,
     Relationship, RelationshipStatus, Server, User, UserSettings,
 };
 use stoat_result::ErrorType;
@@ -22,12 +23,10 @@ use stoat_result::ErrorType;
 use crate::{
     Config, SelectedRole,
     components::{
-        AttachmentController, ReplyController,
         material::{
-            filled::{cloud, fact_check, info, list, mail, memory, person_remove},
+            filled::{fact_check, info, list, memory},
             outlined::{
-                account_circle, color_lens, credit_card, language, mic, rate_review, science,
-                smart_toy, verified_user,
+                account_circle, color_lens, credit_card, gavel, language, link, mic, rate_review, science, smart_toy, verified_user, webhook
             },
             round::{flag, insert_emoticon},
         },
@@ -131,8 +130,8 @@ impl ServerSettingsPage {
             Self::Overview => info(),
             Self::Emojis => insert_emoticon(),
             Self::Roles(_) => flag(),
-            Self::Invites => mail(),
-            Self::Bans => person_remove(),
+            Self::Invites => link(),
+            Self::Bans => gavel(),
             Self::AuditLogs => fact_check(),
         }
     }
@@ -159,7 +158,7 @@ impl ChannelSettingsPage {
         match self {
             Self::Overview => info(),
             Self::Permissions(_) => list(),
-            Self::Webhooks => cloud(),
+            Self::Webhooks => webhook(),
         }
     }
 }
@@ -197,10 +196,16 @@ pub enum NotificationBadge {
     Mentions(usize),
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+pub struct ErmineSettings {
+    pub hide_pronouns: bool
+}
+
 #[derive(Debug, Default)]
 pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,
+    pub ermine: Option<ErmineSettings>
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -253,6 +258,12 @@ pub struct EditingMessage {
     pub content: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Slowmode {
+    pub finished_at: Timestamp,
+    pub duration: u64,
+}
+
 #[derive(Debug, Default)]
 pub struct AppState {
     pub state: ConnectionState,
@@ -279,6 +290,7 @@ pub struct AppState {
     pub users_last_message: Option<EditingMessage>,
     pub typing: HashMap<String, HashSet<String>>,
     pub file_hover: bool,
+    pub slowmodes: HashMap<String, Slowmode>,
 }
 
 impl AppState {
@@ -335,6 +347,7 @@ pub enum AppChannel {
     UsersLastMessage,
     Typing,
     FileHover,
+    Slowmodes,
 }
 
 impl RadioChannel<AppState> for AppChannel {}
@@ -471,6 +484,14 @@ pub fn update_settings(settings: UserSettings, mut station: AppStation) {
                         .write_channel(AppChannel::Settings("notifications"))
                         .settings
                         .notifications = Some(value)
+                }
+            }
+            "ermine" => {
+                if let Ok(value) = Ok::<_, ()>(serde_json::from_str(&payload).unwrap()) {
+                    station
+                        .write_channel(AppChannel::Settings("ermine"))
+                        .settings
+                        .ermine = Some(value)
                 }
             }
             _ => {}
@@ -650,11 +671,11 @@ pub async fn update_state(
         }
         EventV1::Authenticated => {}
         EventV1::Logout => {
-            config.write().token = None;
+            config.write().session = None;
         }
         EventV1::Error { data } => match &data.error_type {
             ErrorType::InvalidSession => {
-                config.write().token = None;
+                config.write().session = None;
             }
             _ => {
                 log::error!("Error: {data:?}")
@@ -765,7 +786,7 @@ pub async fn update_state(
             server,
             channels,
             emojis,
-            voice_states,
+            voice_states: _,
         } => {
             insert_server(server, station);
 
@@ -1019,8 +1040,11 @@ pub async fn update_state(
         EventV1::EmojiDelete { id } => {
             remove_emoji(&id, station);
         }
+        EventV1::EmojiUpdate { .. } => {
+            // TODO
+        }
         EventV1::ServerDelete { id } => delete_server(&id, station),
-        EventV1::ServerMemberLeave { id, user, reason } => {
+        EventV1::ServerMemberLeave { id, user, reason: _ } => {
             if &user == station.peek().user_id.as_ref().unwrap() {
                 delete_server(&id, station)
             } else {
@@ -1114,14 +1138,11 @@ pub async fn update_state(
         }
         EventV1::ReportCreate(_) => {}
         EventV1::UserMoveVoiceChannel {
-            node,
-            from,
-            to,
-            token,
+            ..
         } => {
             // TDODO
         }
-        EventV1::UserPlatformWipe { user_id, flags } => {
+        EventV1::UserPlatformWipe { .. } => {
             // TODO
         }
         EventV1::UserRelationship { id, user } => {
@@ -1142,36 +1163,49 @@ pub async fn update_state(
             insert_user(user, station);
         }
         EventV1::UserVoiceStateUpdate {
-            id,
-            channel_id,
-            data,
+            ..
         } => {
             // TODO
         }
-        EventV1::VoiceChannelJoin { id, state } => {
+        EventV1::VoiceChannelJoin { .. } => {
             // TODO
         }
-        EventV1::VoiceChannelLeave { id, user } => {
+        EventV1::VoiceChannelLeave { .. } => {
             // TODO
         }
         EventV1::VoiceChannelMove {
-            user,
-            from,
-            to,
-            state,
+            ..
         } => {
             // TODO
         }
-        EventV1::WebhookCreate(webhook) => {
+        EventV1::WebhookCreate(_) => {
             // TODO
         }
-        EventV1::WebhookDelete { id } => {
+        EventV1::WebhookDelete { .. } => {
             // TODO
         }
-        EventV1::WebhookUpdate { id, data, remove } => {
+        EventV1::WebhookUpdate { .. } => {
             // TODO
         }
+        EventV1::VoiceCallUpdate { .. } => {
+            // TODO
+        }
+        EventV1::UserSlowmodes { slowmodes } => {
+            let now = Timestamp::now();
 
-        _ => {}
+            let mut state = station.write_channel(AppChannel::Slowmodes);
+
+            for slowmode in slowmodes {
+                state.slowmodes.insert(
+                    slowmode.channel_id,
+                    Slowmode {
+                        finished_at: now
+                            .checked_add(Duration::from_secs(slowmode.retry_after))
+                            .unwrap(),
+                        duration: slowmode.duration,
+                    },
+                );
+            };
+        }
     }
 }

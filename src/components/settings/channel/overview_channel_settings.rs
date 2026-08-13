@@ -1,15 +1,10 @@
 use crate::{
-    LocalFile, SizeExt,
-    components::{
+    SizeExt, components::{
         Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
-    },
-    consume_material_theme, http,
-    types::Tag,
-    use_initial,
+    }, consume_material_theme, http, prompt_image_upload, types::Tag, use_initial
 };
 use freya::prelude::*;
-use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
 #[derive(PartialEq)]
@@ -62,30 +57,6 @@ impl Component for OverviewChannelSettings {
             }
         };
 
-        let prompt_image_upload = {
-            move |tag: Tag| async move {
-                if let Some(file) = AsyncFileDialog::new().pick_file().await {
-                    let contents = file.read().await.into();
-                    let filename = file.file_name();
-
-                    if let Ok(response) = http()
-                        .upload_file(
-                            tag.as_str(),
-                            LocalFile {
-                                name: filename,
-                                body: contents,
-                            },
-                        )
-                        .await
-                    {
-                        return Some(response.id);
-                    };
-                };
-
-                None
-            }
-        };
-
         let current_channel = self.channel.read();
 
         let mut channel_name = use_initial(|| {
@@ -135,16 +106,14 @@ impl Component for OverviewChannelSettings {
                         StoatButton::new()
                             .corner_radius(48.)
                             .on_press({
-                                let prompt_image_upload = prompt_image_upload.clone();
-                                let edit_server = edit_channel.clone();
+                                let edit_channel = edit_channel.clone();
 
                                 move |_| {
-                                    let prompt_image_upload = prompt_image_upload.clone();
-                                    let edit_server = edit_server.clone();
+                                    let edit_channel = edit_channel.clone();
 
                                     spawn(async move {
                                         if let Some(id) = prompt_image_upload(Tag::Icons).await {
-                                            edit_server(v0::DataEditChannel {
+                                            edit_channel(v0::DataEditChannel {
                                                 name: None,
                                                 description: None,
                                                 owner: None,

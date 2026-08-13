@@ -8,7 +8,7 @@ use crate::{
         checkbox::StoatCheckbox,
         material::{
             filled::{check, clear},
-            outlined::check_box_outline_blank,
+            outlined::remove,
         },
     },
     consume_material_theme,
@@ -402,28 +402,26 @@ impl Component for PermissionOverriteSwitchOverride {
             })
             .background(if self.current == self.value {
                 match self.value {
-                    Some(true) => 0xff008000.into(),
-                    None => theme.md.inverse_surface.as_argb_u32().into(),
-                    Some(false) => Color::RED,
+                    Some(true) => theme.md.on_primary_container.as_argb_u32(),
+                    None => theme.md.on_secondary.as_argb_u32(),
+                    Some(false) => theme.md.on_error_container.as_argb_u32(),
                 }
             } else {
-                theme.md.primary_container.as_argb_u32().into()
+                theme.md.surface_container_high.as_argb_u32()
             })
             .color(if self.current == self.value {
                 match self.value {
-                    Some(_) => 0xffe1e2e8.into(),
-                    None => theme.md.inverse_on_surface.as_argb_u32().into(),
+                    Some(true) => theme.md.primary_container.as_argb_u32(),
+                    None => theme.md.secondary.as_argb_u32(),
+                    Some(false) => theme.md.error_container.as_argb_u32(),
                 }
             } else {
-                match self.value {
-                    Some(_) => theme.md.on_surface.as_argb_u32().into(),
-                    None => Color::BLACK,
-                }
+                theme.md.on_surface.as_argb_u32()
             })
             .child(
                 MaterialIcon::new(match self.value {
                     Some(true) => check(),
-                    None => check_box_outline_blank(),
+                    None => remove(),
                     Some(false) => clear(),
                 })
                 .size(Size::px(24.)),

@@ -50,13 +50,13 @@ impl Component for ChannelList {
             }
         });
 
-        rect().padding((0., 0., 8., 0.)).child(
+        rect().padding((0., 0., 8., 8.)).child(
             ScrollView::new().child(
                 rect()
                     .cross_align(Alignment::Center)
                     .color(0xff90909a)
                     .child(
-                        rect().padding((4., 8.)).children(
+                        rect().padding((4., 0.)).children(
                             non_category_channels
                                 .read()
                                 .iter()
@@ -75,7 +75,7 @@ impl Component for ChannelList {
                         ),
                     )
                     .child(
-                        rect().padding((4., 8.)).spacing(8.).children(
+                        rect().padding((4., 0.)).spacing(8.).children(
                             self.server
                                 .read()
                                 .categories

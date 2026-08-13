@@ -6,17 +6,17 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{Dialog, SingleLineEntry, use_modals},
+    components::{Dialog, use_modals},
     consume_material_theme, http, insert_server,
 };
 
 #[derive(PartialEq)]
-pub struct RenameCategoryModal {
+pub struct DeleteCategory {
     pub server: String,
     pub category: String,
 }
 
-impl Component for RenameCategoryModal {
+impl Component for DeleteCategory {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
         let server = radio.slice_current({
@@ -26,28 +26,15 @@ impl Component for RenameCategoryModal {
 
         let station = use_radio_station();
 
-        let mut modals = use_modals();
         let theme = consume_material_theme();
-        let name = use_state(|| {
-            server
-                .read()
-                .categories
-                .as_ref()
-                .and_then(|cats| {
-                    cats.iter()
-                        .find(|c| &c.id == &self.category)
-                        .map(|c| c.title.clone())
-                })
-                .unwrap_or_default()
-        });
+        let mut modals = use_modals();
         let mut error = use_state(|| None);
 
         Dialog::new()
-            .title(label().line_height(2.).text("Rename category"))
+            .title(label().line_height(1.5).text("Delete category"))
             .body(
                 rect()
-                    .spacing(8.)
-                    .child(SingleLineEntry::new("Category Name", name))
+                    .child("Once it's deleted, there's no going back.")
                     .maybe_child(
                         error
                             .read()
@@ -55,15 +42,13 @@ impl Component for RenameCategoryModal {
                             .map(|error| label().text(error).color(theme.md.error.as_argb_u32())),
                     ),
             )
-            .default_action("Close")
-            .action("Rename", {
+            .default_action("Cancel")
+            .action("Delete", {
                 let server_id = self.server.clone();
-                let server = server.clone();
                 let category = self.category.clone();
 
                 move || {
                     spawn({
-                        let name = name.read().clone();
                         let server_id = server_id.clone();
                         let server = server.clone();
                         let category = category.clone();
@@ -71,11 +56,8 @@ impl Component for RenameCategoryModal {
                         async move {
                             let mut server = server.read().cloned();
 
-                            if let Some(categories) = &mut server.categories
-                                && let Some(category) =
-                                    categories.iter_mut().find(|c| &c.id == &category)
-                            {
-                                category.title = name;
+                            if let Some(categories) = &mut server.categories {
+                                categories.retain(|c| &c.id != &category);
                             }
 
                             match http()

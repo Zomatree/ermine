@@ -37,19 +37,18 @@ impl Component for Home {
         let selection = use_state(HomeSelection::default);
 
         rect()
-            .corner_radius(CornerRadius {
-                top_left: 16.,
-                top_right: 0.,
-                bottom_right: 0.,
-                bottom_left: 16.,
-                smoothing: 0.,
-            })
+            .corner_radius(CornerRadius::new(
+                16.,
+                0.,
+                0.,
+                16.,
+            ))
             .background(theme.md.surface_container_low.as_argb_u32())
             .overflow(Overflow::Clip)
             .direction(Direction::Horizontal)
             .maybe_child(config.read().hide_channel_list.not().then(|| {
                 rect()
-                    .spacing(8.)
+                    // .spacing(8.)
                     .width(Size::px(248.))
                     .child(DMList { selection })
             }))

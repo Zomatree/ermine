@@ -3,11 +3,11 @@ use freya::prelude::*;
 use crate::components::Dialog;
 
 #[derive(PartialEq)]
-pub struct InviteInfoModal {
+pub struct InviteInfo {
     pub code: String,
 }
 
-impl Component for InviteInfoModal {
+impl Component for InviteInfo {
     fn render(&self) -> impl IntoElement {
         let url = format!("https://stt.gg/{}", self.code);
 

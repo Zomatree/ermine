@@ -7,11 +7,11 @@ use crate::{
 };
 
 #[derive(PartialEq)]
-pub struct LeaveGroupModal {
+pub struct DeleteChannel {
     pub channel: String,
 }
 
-impl Component for LeaveGroupModal {
+impl Component for DeleteChannel {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
 
@@ -26,11 +26,11 @@ impl Component for LeaveGroupModal {
             .title(
                 label()
                     .line_height(1.5)
-                    .text(format!("Leave {}?", channel.read().name().unwrap())),
+                    .text(format!("Delete {}?", channel.read().name().unwrap())),
             )
-            .body("You won't be able to rejoin unless you are re-invited.")
+            .body("Once it's deleted, there's no going back.")
             .default_action("Cancel")
-            .action("Leave", {
+            .action("Delete", {
                 let channel = self.channel.clone();
 
                 move || {

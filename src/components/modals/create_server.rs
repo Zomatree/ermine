@@ -11,9 +11,9 @@ use crate::{
 };
 
 #[derive(PartialEq)]
-pub struct CreateServerModal {}
+pub struct CreateServer {}
 
-impl Component for CreateServerModal {
+impl Component for CreateServer {
     fn render(&self) -> impl IntoElement {
         let station = use_radio_station::<AppState, AppChannel>();
         let radio = use_radio(AppChannel::UserId);

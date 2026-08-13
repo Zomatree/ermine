@@ -6,12 +6,11 @@ use crate::{
 };
 
 #[derive(PartialEq)]
-pub struct DeleteMessageModal {
-    pub channel: String,
-    pub message: String,
+pub struct DeleteInvite {
+    pub invite: String,
 }
 
-impl Component for DeleteMessageModal {
+impl Component for DeleteInvite {
     fn render(&self) -> impl IntoElement {
         let mut modals = use_modals();
 
@@ -20,14 +19,13 @@ impl Component for DeleteMessageModal {
             .body("Are you sure you want to delete this?")
             .default_action("Cancel")
             .action("Delete", {
-                let channel = self.channel.clone();
-                let message = self.message.clone();
+                let invite = self.invite.clone();
+
                 move || {
                     spawn({
-                        let channel = channel.clone();
-                        let message = message.clone();
+                        let invite = invite.clone();
                         async move {
-                            http().delete_message(&channel, &message).await.unwrap();
+                            http().delete_invite(&invite).await.unwrap();
                             modals.write().pop_modal();
                         }
                     });

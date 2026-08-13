@@ -7,7 +7,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SizeExt,
     components::{
-        Avatar, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        Avatar, MarkdownViewer, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt, UserContextMenu, file_image,
         material::{filled::cancel, outlined::more_vert},
     },
@@ -100,11 +100,17 @@ impl Component for UserProfile {
                                                 (badges != 0).then(|| ProfileBadges { badges }),
                                             )
                                             .child(ProfileJoined {
-                                                user: self.user.clone(),
+                                                user: user.into_readable(),
                                                 member: None,
                                             })
                                             .maybe_child(show_hidden.then(empty_card))
                                     })
+                                    .maybe_child(user.read().pronouns.is_some().then(|| {
+                                        ProfilePronouns {
+                                            user: user.into_readable(),
+                                            member: None,
+                                        }.into_element()
+                                    }))
                                     .maybe_child(
                                         profile
                                             .read()
@@ -343,9 +349,8 @@ impl Component for ProfileButtons {
                 StoatButton::new()
                     .on_press({
                         let id = user.id.clone();
-                        move |e| {
-                            ContextMenu::open_from_event(
-                                &e,
+                        move |_| {
+                            ContextMenu::open(
                                 Menu::new().child(UserContextMenu {
                                     user_id: id.clone(),
                                     server_id: None,
@@ -507,12 +512,7 @@ impl Component for ProfileBio {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
-        card(
-            "Bio",
-            &theme,
-            SelectableText::new().span(self.bio.clone()).font_size(14),
-        )
-        .height(Size::Inner)
+        card("Bio", &theme, MarkdownViewer::new(self.bio.clone(), None)).height(Size::Inner)
     }
 }
 
@@ -583,6 +583,62 @@ impl Component for ProfileRoles {
                     })
                     .into_element()
             })),
+        )
+    }
+}
+
+#[derive(PartialEq)]
+pub struct ProfilePronouns {
+    pub user: Readable<v0::User>,
+    pub member: Option<Readable<v0::Member>>,
+}
+
+impl Component for ProfilePronouns {
+    fn render(&self) -> impl IntoElement {
+        let radio = use_radio(AppChannel::Servers);
+        let servers = radio.slice_current(|state| &state.servers);
+
+        let theme = consume_material_theme();
+
+        let main_pronouns = self.user.read().pronouns.clone();
+        let server_pronouns = self.member.as_ref().and_then(|member| {
+            let member = member.read();
+
+            member.pronouns.clone().map(|pronouns| {
+                (
+                    pronouns,
+                    servers.read().get(&member.id.server).unwrap().name.clone(),
+                )
+            })
+        });
+
+        card(
+            "Pronouns",
+            &theme,
+            rect()
+                .spacing(4.)
+                .maybe_child(main_pronouns.map(|pronouns| {
+                    rect()
+                        .child(
+                            label()
+                                .font_size(12.)
+                                .font_weight(FontWeight::MEDIUM)
+                                .line_height(1.5)
+                                .text("Stoat"),
+                        )
+                        .child(label().font_size(14.).line_height(1.5).text(pronouns))
+                }))
+                .maybe_child(server_pronouns.map(|(pronouns, server)| {
+                    rect()
+                        .child(
+                            label()
+                                .font_size(12.)
+                                .font_weight(FontWeight::MEDIUM)
+                                .line_height(1.5)
+                                .text(server),
+                        )
+                        .child(label().font_size(14.).line_height(1.5).text(pronouns))
+                })),
         )
     }
 }

@@ -33,3 +33,23 @@ impl PartialEq for Error {
         core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
+
+pub fn format_error<'a>(error: &Error, context: impl Into<Option<&'a str>>) -> String {
+    let context = context.into();
+
+    match error {
+        Error::ReqwestError(error) => format!("Request Failed: {:?}", error.as_ref()),
+        Error::WsError(error) => format!("Internal Error: {:?}", error.as_ref()),
+        Error::HttpError(error) => {use stoat_result::ErrorType::*; match &error.error_type {
+            InvalidCredentials => "Provided email or password is wrong.".to_string(),
+            NotFound => if let Some(context) = context {
+                format!("Unknown {context}.")
+            } else {
+                "Not found.".to_string()
+            }
+            error => format!("{error:?}")
+        }},
+        Error::RatelimitReached(ratelimit_failure) => format!("Ratelimit reached, try again in {:.2}s.", ratelimit_failure.retry_after as f32 / 1000.),
+        Error::InternalError | Error::ClosedWs | Error::ClosedWsLocal=> "Internal Client Error".to_string(),
+    }
+}

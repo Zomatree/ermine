@@ -4,7 +4,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, Config, NotificationBadge, Selection,
     components::{
-        ServerContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, server_icon,
+        ServerContextMenu, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip
     },
     consume_material_theme, get_unread_badge, is_server_muted,
 };
@@ -99,9 +99,8 @@ impl Component for ServerListButton {
             .on_secondary_down({
                 let server_id = server.read().id.clone();
 
-                move |e| {
-                    ContextMenu::open_from_event(
-                        &e,
+                move |_| {
+                    ContextMenu::open_from_down(
                         Menu::new().child(ServerContextMenu {
                             server_id: server_id.clone(),
                         }),
@@ -119,13 +118,12 @@ impl Component for ServerListButton {
                         } else {
                             24.
                         }))
-                        .corner_radius(CornerRadius {
-                            top_left: 0.,
-                            top_right: 4.,
-                            bottom_left: 0.,
-                            bottom_right: 4.,
-                            smoothing: 0.,
-                        })
+                        .corner_radius(CornerRadius::new(
+                            0.,
+                            4.,
+                            0.,
+                            4.,
+                        ))
                         .background(theme.md.on_surface.as_argb_u32())
                 }),
             )
@@ -148,8 +146,7 @@ impl Component for ServerListButton {
                                                 rect()
                                                     .width(Size::px(42.0))
                                                     .height(Size::px(42.0))
-                                                    // .overflow(Overflow::Clip)
-                                                    .child(server_icon(&server.read(), &theme)),
+                                                    .child(ServerIcon::new(server)),
                                             )
                                             .on_press({
                                                 move |_| {

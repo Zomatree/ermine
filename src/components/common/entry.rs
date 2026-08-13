@@ -15,6 +15,7 @@ pub struct SingleLineEntry {
     value: Writable<String>,
     title: Cow<'static, str>,
     placeholder: Option<Cow<'static, str>>,
+    on_submit: Option<EventHandler<String>>,
     mode: InputMode,
     layout: LayoutData,
 }
@@ -25,6 +26,7 @@ impl SingleLineEntry {
             value: value.into_writable(),
             title: title.into(),
             placeholder: None,
+            on_submit: None,
             mode: InputMode::Shown,
             layout: LayoutData::default(),
         }
@@ -39,6 +41,11 @@ impl SingleLineEntry {
     pub fn mode(mut self, mode: InputMode) -> Self {
         self.mode = mode;
 
+        self
+    }
+
+    pub fn on_submit(mut self, on_submit: impl Into<EventHandler<String>>) -> Self {
+        self.on_submit = Some(on_submit.into());
         self
     }
 }
@@ -98,6 +105,7 @@ impl Component for SingleLineEntry {
                     theme.md.primary.as_argb_u32(),
                 );
                 let placeholder_color = color(
+                    // transparent
                     theme.md.on_surface_variant.as_argb_u32() & 0xFFFFFF,
                     theme.md.on_surface_variant.as_argb_u32(),
                 );
@@ -114,13 +122,7 @@ impl Component for SingleLineEntry {
 
         rect()
             .layout(self.layout.clone())
-            .corner_radius(CornerRadius {
-                top_left: 4.,
-                top_right: 4.,
-                bottom_left: 0.,
-                bottom_right: 0.,
-                smoothing: 0.,
-            })
+            .corner_radius(CornerRadius::new_symmetric(4., 0.))
             .background(theme.md.surface_container_highest.as_argb_u32())
             .child(
                 rect()
@@ -133,6 +135,9 @@ impl Component for SingleLineEntry {
                             .a11y_id(a11y_id)
                             .color(theme.md.on_surface.as_argb_u32())
                             .placeholder_color(placeholder_color)
+                            .map(self.on_submit.clone(), |this, on_submit| {
+                                this.on_submit(on_submit)
+                            })
                             .map(self.placeholder.clone(), |this, placeholder| {
                                 this.placeholder(placeholder)
                             })

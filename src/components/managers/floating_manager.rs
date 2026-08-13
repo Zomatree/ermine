@@ -63,10 +63,10 @@ impl Component for Floating {
                     let window_size = window.inner_size();
 
                     let x = if (mouse_pos.x as u32 + area.size.width as u32)
-                        > (window_size.width - 240)
+                        > window_size.width
                     {
                         (mouse_pos.x as f32 - area.size.width)
-                            .min(window_size.width as f32 - area.size.width - 240.)
+                            .min(window_size.width as f32 - area.size.width)
                             - 24.
                     } else {
                         mouse_pos.x as f32 + 24.

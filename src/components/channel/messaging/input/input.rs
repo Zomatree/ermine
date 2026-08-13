@@ -2,7 +2,7 @@ use std::{fmt::Debug, mem, path::PathBuf};
 
 use freya::{
     prelude::*,
-    text_edit::{EditableConfig, TextEditor, use_editable},
+    text_edit::{EditableConfig, TextEditor, UseEditable, use_editable},
 };
 use indexmap::IndexMap;
 use rfd::AsyncFileDialog;
@@ -34,6 +34,10 @@ impl ReplyController {
                 replies.iter().find(|r| r.message.message.id == id).unwrap()
             })
         })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.read().is_empty()
     }
 
     pub fn toggle_mention(&mut self, message_id: &str) {
@@ -201,6 +205,8 @@ pub struct MessageInput {
 impl Component for MessageInput {
     fn render(&self) -> impl IntoElement {
         let editable = use_editable(String::new, EditableConfig::new);
+        use_hook(|| provide_root_context(Some(editable)));
+        use_drop(|| provide_root_context::<Option<UseEditable>>(None));
 
         let is_server = matches!(&*self.channel.read(), v0::Channel::TextChannel { .. });
 
@@ -209,7 +215,7 @@ impl Component for MessageInput {
         let autocomplete = use_side_effect_value(move || {
             let editor = editable.editor().read();
             let text = editor.rope().to_string();
-            let section = &text[0..editor.cursor_pos()];
+            let section = &text[0..text.floor_char_boundary(editor.cursor_pos())];
 
             if let Some(last_char) = section.chars().last()
                 && !last_char.is_whitespace()
@@ -218,7 +224,7 @@ impl Component for MessageInput {
                 if let Some(ty) = match last_section.chars().next() {
                     Some('@') => Some(AutocompleteType::User),
                     Some('#') if is_server => Some(AutocompleteType::Channel),
-                    // Some(':') => Some(AutocompleteType::Emoji),
+                    Some(':') => Some(AutocompleteType::Emoji),
                     Some('%') if is_server => Some(AutocompleteType::Role),
                     _ => None,
                 } {

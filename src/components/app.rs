@@ -1,9 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use freya::{
     prelude::*,
     radio::{use_radio, use_radio_station},
 };
+use serde_json::to_value;
 use stoat_models::v0;
 use tokio::{
     sync::{Mutex, mpsc},
@@ -67,8 +68,6 @@ impl Component for App {
 
             async move {
                 while let Some(event) = event_r.lock().await.recv().await {
-                    // println!("{event:?}");
-
                     match event {
                         Event::Stoat(event) => state::update_state(event, config, station).await,
                         Event::Local(event) => {
@@ -92,7 +91,7 @@ impl Component for App {
             async move {
                 if let Ok(settings) = http()
                     .fetch_settings(&v0::OptionsFetchSettings {
-                        keys: vec!["ordering".to_string(), "notifications".to_string()],
+                        keys: vec!["ordering".to_string(), "notifications".to_string(), "ermine".to_string()],
                     })
                     .await
                 {
@@ -101,6 +100,18 @@ impl Component for App {
 
                 radio.write().ready.settings = true;
             }
+        });
+
+        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| &state.settings.ermine);
+
+        use_side_effect_with_deps(&ermine_settings.read().cloned(), move |settings| {
+            if let Some(settings) = settings.clone() {
+                spawn(async move {
+                    let mut map = HashMap::new();
+                    map.insert("ermine".to_string(), to_value(settings).unwrap());
+                    http().set_settings(&map).await.unwrap();
+                });
+            };
         });
 
         if radio.read().ready.is_ready() {

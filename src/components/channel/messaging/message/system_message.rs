@@ -131,13 +131,13 @@ impl Component for SystemMessage {
                             user_id: to,
                             server_id: self.server_id.clone(),
                         }),
-                    v0::SystemMessage::MessagePinned { id, by } => paragraph()
+                    v0::SystemMessage::MessagePinned { id: _, by } => paragraph()
                         .child(UserMention {
                             user_id: by,
                             server_id: self.server_id.clone(),
                         })
                         .span(" pinned <TODO>"),
-                    v0::SystemMessage::MessageUnpinned { id, by } => paragraph()
+                    v0::SystemMessage::MessageUnpinned { id: _, by } => paragraph()
                         .child(UserMention {
                             user_id: by,
                             server_id: self.server_id.clone(),

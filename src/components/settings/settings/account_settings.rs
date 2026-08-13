@@ -7,7 +7,6 @@ use crate::{
         material::{filled::cake, outlined::edit},
     },
     consume_material_theme,
-    types::Account,
 };
 
 #[derive(PartialEq)]
@@ -23,7 +22,6 @@ impl Component for AccountSettings {
 
         let theme = consume_material_theme();
 
-        let account = use_state(|| None::<Account>);
         let user_value = user.read();
 
         rect()

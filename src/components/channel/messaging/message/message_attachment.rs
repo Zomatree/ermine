@@ -28,7 +28,7 @@ impl Component for MessageAttachment {
                 v0::Metadata::Image {
                     width,
                     height,
-                    ref thumbhash,
+                    thumbhash: _,
                     ..
                 } => {
                     let new_width = width.min(420) as f32;

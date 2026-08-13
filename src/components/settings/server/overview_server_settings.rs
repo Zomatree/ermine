@@ -1,15 +1,10 @@
 use crate::{
-    AppChannel, LocalFile, SizeExt,
-    components::{
+    AppChannel, SizeExt, components::{
         Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
-    },
-    consume_material_theme, http,
-    types::Tag,
-    use_initial,
+    }, consume_material_theme, http, prompt_image_upload, types::Tag, use_initial
 };
 use freya::{prelude::*, radio::use_radio};
-use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
 #[derive(PartialEq)]
@@ -64,30 +59,6 @@ impl Component for OverviewServerSettings {
             }
         };
 
-        let prompt_image_upload = {
-            move |tag: Tag| async move {
-                if let Some(file) = AsyncFileDialog::new().pick_file().await {
-                    let contents = file.read().await.into();
-                    let filename = file.file_name();
-
-                    if let Ok(response) = http()
-                        .upload_file(
-                            tag.as_str(),
-                            LocalFile {
-                                name: filename,
-                                body: contents,
-                            },
-                        )
-                        .await
-                    {
-                        return Some(response.id);
-                    };
-                };
-
-                None
-            }
-        };
-
         let current_server = self.server.read();
 
         let mut server_name = use_initial(|| current_server.name.clone());
@@ -130,11 +101,9 @@ impl Component for OverviewServerSettings {
                         StoatButton::new()
                             .corner_radius(48.)
                             .on_press({
-                                let prompt_image_upload = prompt_image_upload.clone();
                                 let edit_server = edit_server.clone();
 
                                 move |_| {
-                                    let prompt_image_upload = prompt_image_upload.clone();
                                     let edit_server = edit_server.clone();
 
                                     spawn(async move {

@@ -2,7 +2,7 @@ use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
-    components::{MessageAttachment, MessageModel},
+    components::{MarkdownViewer, MessageAttachment, MessageModel},
     consume_material_theme, parse_fill,
 };
 
@@ -39,7 +39,7 @@ impl Component for MessageEmbed {
                     )
                     .into_element()
             }
-            v0::Embed::Video(video) => "<Video>".into_element(),
+            v0::Embed::Video(_) => "<Video>".into_element(),
             v0::Embed::Text(text) => TextEmbed {
                 channel: self.channel.clone(),
                 message: self.message.clone(),
@@ -92,7 +92,7 @@ impl Component for WebsiteEmbed {
             .padding((8., 8., 8., 12.))
             .spacing(8.)
             .maybe_child(
-                (self.metadata.site_name.is_some() || self.metadata.icon_url.is_some()).then(
+                (self.metadata.site_name.is_some() && self.metadata.icon_url.is_some()).then(
                     || {
                         rect()
                             .horizontal()
@@ -149,7 +149,7 @@ impl Component for WebsiteEmbed {
                 self.metadata
                     .description
                     .clone()
-                    .map(|description| label().font_size(12.).text(description)),
+                    .map(|description| MarkdownViewer::new(description, None).font_size(12.)),
             )
             .maybe_child(self.metadata.image.clone().map(|image| {
                 let new_width = image.width.min(400) as f32;
@@ -236,7 +236,7 @@ impl Component for TextEmbed {
                 self.text
                     .description
                     .clone()
-                    .map(|description| label().font_size(12.).text(description)),
+                    .map(|description| MarkdownViewer::new(description, None).font_size(12.)),
             )
             .maybe_child(
                 self.text

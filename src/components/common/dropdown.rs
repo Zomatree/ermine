@@ -19,6 +19,8 @@ pub struct Dropdown<T: PartialEq + 'static, B> {
     state: Writable<T>,
     options: Vec<T>,
     builder: B,
+
+    layout: LayoutData,
 }
 
 impl<T: PartialEq + 'static, B> PartialEq for Dropdown<T, B> {
@@ -39,9 +41,19 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> Dropdown<T, B> {
             state,
             options,
             builder,
+
+            layout: LayoutData::default(),
         }
     }
 }
+
+impl<T: PartialEq + 'static, B> LayoutExt for Dropdown<T, B> {
+    fn get_layout(&mut self) -> &mut LayoutData {
+        &mut self.layout
+    }
+}
+
+impl<T: PartialEq + 'static, B> ContainerExt for Dropdown<T, B> {}
 
 impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component for Dropdown<T, B> {
     fn render(&self) -> impl IntoElement {
@@ -151,55 +163,55 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
         .as_argb_u32();
 
         rect()
+            .layout(self.layout.clone())
             .child(
                 rect()
-                    .a11y_id(a11y_id)
-                    .a11y_member_of(a11y_id)
-                    .a11y_role(AccessibilityRole::ListBox)
-                    .a11y_focusable(Focusable::Enabled)
-                    .on_pointer_enter(on_pointer_enter)
-                    .on_pointer_leave(on_pointer_leave)
-                    .on_press(on_press)
-                    .on_global_key_down(on_global_key_down)
-                    .on_global_pointer_press(on_global_pointer_press)
-                    .on_sized(move |e: Event<SizedEventData>| {
-                        button_area.set_if_modified(e.area);
-                    })
-                    .width(Size::Fill)
-                    .background(theme.md.surface_container_highest.as_argb_u32())
-                    .padding((8., 16.))
-                    .corner_radius(CornerRadius {
-                        top_left: 4.,
-                        top_right: 4.,
-                        bottom_left: 0.,
-                        bottom_right: 0.,
-                        smoothing: 0.,
-                    })
-                    .horizontal()
-                    .main_align(Alignment::SpaceBetween)
-                    .cross_align(Alignment::Center)
-                    .color(theme.md.on_surface.as_argb_u32())
                     .child(
                         rect()
+                            .a11y_id(a11y_id)
+                            .a11y_member_of(a11y_id)
+                            .a11y_role(AccessibilityRole::ListBox)
+                            .a11y_focusable(Focusable::Enabled)
+                            .on_pointer_enter(on_pointer_enter)
+                            .on_pointer_leave(on_pointer_leave)
+                            .on_press(on_press)
+                            .on_global_key_down(on_global_key_down)
+                            .on_global_pointer_press(on_global_pointer_press)
+                            .on_sized(move |e: Event<SizedEventData>| {
+                                button_area.set_if_modified(e.area);
+                            })
+                            .width(Size::Fill)
+                            .background(theme.md.surface_container_highest.as_argb_u32())
+                            .padding((8., 16.))
+                            .corner_radius(CornerRadius::new_symmetric(4., 0.))
+                            .horizontal()
+                            .main_align(Alignment::SpaceBetween)
+                            .cross_align(Alignment::Center)
+                            .color(theme.md.on_surface.as_argb_u32())
                             .child(
-                                label()
-                                    .font_size(12.)
-                                    .color(theme.md.on_surface_variant.as_argb_u32())
-                                    .text(self.title.clone()),
+                                rect()
+                                    .child(
+                                        label()
+                                            .font_size(12.)
+                                            .color(theme.md.on_surface_variant.as_argb_u32())
+                                            .text(self.title.clone()),
+                                    )
+                                    .child(
+                                        rect().font_size(16.).child((self.builder)(current_value)),
+                                    ),
                             )
-                            .child(rect().font_size(16.).child((self.builder)(current_value))),
+                            .child(
+                                MaterialIcon::new(expand_more())
+                                    .size(Size::px(24.))
+                                    .color(theme.md.on_surface_variant.as_argb_u32()),
+                            ),
                     )
                     .child(
-                        MaterialIcon::new(expand_more())
-                            .size(Size::px(24.))
-                            .color(theme.md.on_surface_variant.as_argb_u32()),
+                        rect()
+                            .width(Size::Fill)
+                            .height(Size::px(1.))
+                            .background(border_color),
                     ),
-            )
-            .child(
-                rect()
-                    .width(Size::Fill)
-                    .height(Size::px(1.))
-                    .background(border_color),
             )
             .maybe_child((open() || opacity > 0.).then(|| {
                 rect().height(Size::px(0.)).width(Size::px(0.)).child(

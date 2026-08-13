@@ -65,13 +65,12 @@ impl Component for Server {
             .into_element();
 
         rect()
-            .corner_radius(CornerRadius {
-                top_left: 16.,
-                top_right: 0.,
-                bottom_right: 0.,
-                bottom_left: 16.,
-                smoothing: 0.,
-            })
+            .corner_radius(CornerRadius::new(
+                16.,
+                0.,
+                0.,
+                16.,
+            ))
             .background(theme.md.surface_container_low.as_argb_u32())
             .overflow(Overflow::Clip)
             .direction(Direction::Horizontal)
@@ -80,7 +79,7 @@ impl Component for Server {
                     .spacing(8.)
                     .child(
                         rect()
-                            .margin((8., 8., 0., 8.))
+                            .padding((8., 0., 0., 8.))
                             .on_press({
                                 let id = self.server.read().id.clone();
                                 move |_| {
@@ -98,7 +97,7 @@ impl Component for Server {
                             .child(if let Some(banner) = &self.server.read().banner {
                                 rect()
                                     .height(Size::px(120.))
-                                    .width(Size::px(240.))
+                                    .width(Size::Fill)
                                     .corner_radius(16.)
                                     .overflow(Overflow::Clip)
                                     .child(file_image(&banner).aspect_ratio(AspectRatio::Max))
@@ -113,13 +112,7 @@ impl Component for Server {
                                                     .stop((Color::TRANSPARENT, 0.))
                                                     .stop((Color::BLACK, 90.)),
                                             )
-                                            .corner_radius(CornerRadius {
-                                                top_left: 0.,
-                                                top_right: 0.,
-                                                bottom_right: 16.,
-                                                bottom_left: 16.,
-                                                smoothing: 0.,
-                                            })
+                                            .corner_radius(CornerRadius::new_symmetric(0., 16.))
                                             .overflow(Overflow::Clip)
                                             .child(server_header.clone()),
                                     )

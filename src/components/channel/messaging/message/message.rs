@@ -75,6 +75,24 @@ impl Component for Message {
             }
         });
 
+        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| &state.settings.ermine);
+
+        let pronouns = use_memo({
+            let user = self.message.user.clone();
+            let member = self.message.member.clone();
+
+            move || {
+                if ermine_settings.read().cloned().unwrap_or_default().hide_pronouns {
+                    return None;
+                };
+
+                member
+                    .as_ref()
+                    .and_then(|member| member.read().pronouns.clone())
+                    .or_else(|| user.read().pronouns.clone())
+            }
+        });
+
         let floating = use_floating();
 
         let open_profile = {
@@ -144,8 +162,7 @@ impl Component for Message {
 
                                             move |e: Event<PressEventData>| {
                                                 e.stop_propagation();
-                                                ContextMenu::open_from_event(
-                                                    &e,
+                                                ContextMenu::open_from_down(
                                                     Menu::new().child(UserContextMenu {
                                                         user_id: user.read().id.clone(),
                                                         server_id: server
@@ -196,6 +213,15 @@ impl Component for Message {
                                                     move |_| open_profile()
                                                 }),
                                         )
+                                        .maybe_child(pronouns.read().cloned().map(|pronouns| {
+                                            rect()
+                                                .horizontal()
+                                                .color(theme.md.outline.as_argb_u32())
+                                                .font_size(12)
+                                                .spacing(8.)
+                                                .child(pronouns)
+                                                .child("·")
+                                        }))
                                         .child(
                                             label()
                                                 .text({

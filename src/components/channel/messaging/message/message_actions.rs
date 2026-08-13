@@ -15,8 +15,7 @@ use crate::{
         EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController,
         StoatButton, StoatButtonColorsThemePartialExt,
         material::{
-            outlined::{delete, edit, more_vert, reply},
-            round::insert_emoticon,
+            outlined::{delete, edit, more_vert, reply, insert_emoticon},
         },
         use_floating, use_modals,
     },
@@ -159,9 +158,8 @@ impl Component for MessageActions {
                 let message = self.message.clone();
                 let replies = self.replies;
 
-                move |e| {
-                    ContextMenu::open_from_event(
-                        &e,
+                move |_| {
+                    ContextMenu::open_from_down(
                         Menu::new().child(MessageContextMenu {
                             message: message.clone(),
                             replies,
@@ -184,7 +182,7 @@ impl Component for MessageActions {
                     .overflow(Overflow::Clip)
                     .horizontal()
                     .shadow(Shadow::new().blur(3.).color(Color::BLACK))
-                    .layer(Layer::Relative(2))
+                    .layer(Layer::Relative(3))
                     .maybe_child(
                         permissions
                             .read()
@@ -284,22 +282,16 @@ impl Component for MessageActions {
                         }),
                     )
                     .child(message_actions_button(more_vert(), &theme).on_press({
-                        let id = self.message.message.id.clone();
+                        let message = self.message.clone();
+                        let replies = self.replies;
 
-                        move |e| {
-                            ContextMenu::open_from_event(
-                                &e,
-                                Menu::new().child(
-                                    MenuButton::new()
-                                        .child(label().font_size(14.).text("Copy Message ID"))
-                                        .on_press({
-                                            let id = id.clone();
-
-                                            move |_| {
-                                                Clipboard::set(id.clone()).unwrap();
-                                            }
-                                        }),
-                                ),
+                        move |_| {
+                            ContextMenu::open(
+                                Menu::new().child(MessageContextMenu {
+                                    message: message.clone(),
+                                    replies,
+                                    current_permissions: permissions(),
+                                }),
                             );
                         }
                     }))

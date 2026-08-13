@@ -15,6 +15,7 @@ impl Component for ChannelTyping {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Typing);
         let typing = radio.slice_current(|state| &state.typing);
+        let user_id = radio.peek_state().user_id.clone().unwrap();
         let users: Readable<HashMap<String, v0::User>> = radio
             .slice(AppChannel::Users, |state| &state.users)
             .into_readable();
@@ -35,14 +36,13 @@ impl Component for ChannelTyping {
             .height(Size::px(26.))
             .horizontal()
             .cross_align(Alignment::Center)
-            .padding((0., 15.))
             .spacing(8.)
             .map(users_typing, |this, typing| {
                 let server_id = self.server.as_ref().map(|server| server.read().id.clone());
 
                 let users_typing = typing
                     .iter()
-                    .filter(|&id| users.read().contains_key(id))
+                    .filter(|&id| id != &user_id && users.read().contains_key(id))
                     .cloned()
                     .map(|id| {
                         let user = map_readable(users.clone(), {

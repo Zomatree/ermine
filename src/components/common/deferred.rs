@@ -23,8 +23,6 @@ impl Component for Deferred {
     fn render(&self) -> impl IntoElement {
         let mut render = use_state(|| false);
 
-        // use_hook(|| );
-
         let value = *render.read();
 
         if !value {

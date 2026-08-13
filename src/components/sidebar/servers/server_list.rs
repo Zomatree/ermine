@@ -3,12 +3,11 @@ use std::collections::HashMap;
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexSet;
 use serde_json::to_value;
-use stoat_models::v0;
 
 use crate::{
     AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt,
     components::{
-        CurrentUserButton, HomeButton, ModalValue, ServerListButton, StoatButton,
+        CurrentUserButton, HomeButton, ModalValue, Reorder, ServerListButton, StoatButton,
         StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
             MaterialIcon,
@@ -16,7 +15,7 @@ use crate::{
         },
         use_modals,
     },
-    consume_material_theme, http, map_readable,
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]
@@ -89,6 +88,36 @@ impl Component for ServerList {
             }
         });
 
+        let servers = use_side_effect_value({
+            let servers = servers.clone();
+
+            move || {
+                let servers = servers.read();
+                order
+                    .read()
+                    .iter()
+                    .flat_map(|id| servers.get(id).cloned())
+                    .collect::<Vec<_>>()
+            }
+        });
+
+        use_side_effect_with_deps(&*servers.read(), {
+            move |servers| {
+                let value = OrderingSettings {
+                    servers: Some(servers.iter().map(|server| server.id.clone()).collect()),
+                };
+
+                *order_settings.clone().write() = Some(value.clone());
+
+                let mut settings = HashMap::new();
+                settings.insert("ordering".to_string(), to_value(value).unwrap());
+
+                spawn(async move {
+                    http().set_settings(&settings).await.unwrap();
+                });
+            }
+        });
+
         rect()
             .child(
                 ScrollView::new()
@@ -106,76 +135,14 @@ impl Component for ServerList {
                                     .background(theme.md.outline_variant.as_argb_u32()),
                             )
                             .child(
-                                rect()
-                                    .width(Size::fill())
-                                    .cross_align(Alignment::Center)
-                                    .children(order.read().iter().cloned().enumerate().map(
-                                        |(idx, id)| {
-                                            let server =
-                                                map_readable::<HashMap<String, v0::Server>, _>(
-                                                    servers.clone().into_readable(),
-                                                    {
-                                                        let id = id.clone();
-                                                        move |servers| servers.get(&id).unwrap()
-                                                    },
-                                                );
-
-                                            DropZone::new(
-                                                DragZone::new(
-                                                    id.clone(),
-                                                    ServerListButton {
-                                                        server: server.clone(),
-                                                    },
-                                                )
-                                                .show_while_dragging(true)
-                                                .drag_element(
-                                                    rect()
-                                                        .interactive(false)
-                                                        .child(ServerListButton {
-                                                            server: server.clone(),
-                                                        })
-                                                        .offset_x(-28.)
-                                                        .offset_y(-28.),
-                                                )
-                                                .into_element(),
-                                                {
-                                                    let order_settings = order_settings.clone();
-                                                    let order = order.clone();
-
-                                                    move |id: String| {
-                                                        let mut order = order.read().cloned();
-
-                                                        order.shift_remove(&id);
-                                                        order.insert_before(idx, id);
-
-                                                        let value = OrderingSettings {
-                                                            servers: Some(
-                                                                order.into_iter().collect(),
-                                                            ),
-                                                        };
-
-                                                        *order_settings.clone().write() =
-                                                            Some(value.clone());
-
-                                                        let mut settings = HashMap::new();
-                                                        settings.insert(
-                                                            "ordering".to_string(),
-                                                            to_value(value).unwrap(),
-                                                        );
-
-                                                        spawn(async move {
-                                                            http()
-                                                                .set_settings(&settings)
-                                                                .await
-                                                                .unwrap();
-                                                        });
-                                                    }
-                                                },
-                                            )
-                                            .key(id)
-                                            .into_element()
-                                        },
-                                    )),
+                                Reorder::new(servers, move |server| {
+                                    ServerListButton {
+                                        server: server.clone().into_readable(),
+                                    }
+                                    .into_element()
+                                })
+                                .width(Size::fill())
+                                .cross_align(Alignment::Center)
                             )
                             .child(
                                 StoatTooltip::new(

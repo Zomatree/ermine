@@ -8,9 +8,13 @@ use std::{
 
 use freya::{prelude::*, radio::Readable};
 use indexmap::IndexMap;
+use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
-use crate::{ChannelUnread, NotificationBadge, NotificationsSettings, color::parse_fill};
+use crate::{
+    ChannelUnread, LocalFile, NotificationBadge, NotificationsSettings, Tag,
+    color::parse_fill, http,
+};
 
 pub fn map_readable<T, U: PartialEq>(
     readable: Readable<T>,
@@ -353,6 +357,48 @@ impl<T: ContainerSizeExt> SizeExt for T {}
 pub enum SelectedRole {
     Default,
     Role(String),
+}
+
+pub fn get_channel_server(channel: &v0::Channel) -> Option<&str> {
+    match channel {
+        v0::Channel::TextChannel { server, .. } => Some(server),
+        _ => None,
+    }
+}
+
+pub fn use_clipboard() -> State<arboard::Clipboard> {
+    use_hook(|| match try_consume_root_context() {
+        Some(state) => state,
+        None => {
+            let state = State::create_global(
+                arboard::Clipboard::new().expect("Failed to connect to clipboard"),
+            );
+            provide_root_context(state);
+            state
+        }
+    })
+}
+
+pub async fn prompt_image_upload(tag: Tag) -> Option<String> {
+    if let Some(file) = AsyncFileDialog::new().pick_file().await {
+        let contents = file.read().await.into();
+        let filename = file.file_name();
+
+        if let Ok(response) = http()
+            .upload_file(
+                tag.as_str(),
+                LocalFile {
+                    name: filename,
+                    body: contents,
+                },
+            )
+            .await
+        {
+            return Some(response.id);
+        };
+    };
+
+    None
 }
 
 // pub fn map_optional_readable<T, U>(

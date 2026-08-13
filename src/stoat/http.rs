@@ -20,15 +20,17 @@ use stoat_models::v0::{
     DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
     DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions,
     DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite,
-    InviteJoinResponse, Member, Message, MutualResponse, NewRoleResponse, OptionsAuditLogQuery,
-    OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings,
-    OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, ResponseWebhook, Role, Server,
-    ServerBan, User, UserProfile, UserSettings, Webhook,
+    InviteJoinResponse, MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse,
+    NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers,
+    OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete,
+    OptionsUnreact, ResponseWebhook, Role, Server, ServerBan, SessionInfo, User, UserProfile,
+    UserSettings, Webhook,
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
 
 use crate::{
+    Session,
     error::{Error, Result},
     types::{AutumnResponse, DataLogin, ResponseLogin, StoatConfig},
 };
@@ -63,7 +65,7 @@ pub struct LocalFile {
 pub struct HttpClient {
     pub base: String,
     pub api_config: Arc<StoatConfig>,
-    pub token: Arc<RwLock<Option<String>>>,
+    pub session: Arc<RwLock<Option<Session>>>,
     pub inner: Client,
     pub ratelimits: Arc<HashMap<u64, RatelimitEntry>>,
 }
@@ -87,11 +89,7 @@ impl AsRef<StoatConfig> for StoatConfig {
 }
 
 impl HttpClient {
-    /// Creates a new instance of [`HttpClient`]
-    ///
-    /// You should not need to create your own instance of [`HttpClient`] usually as its handled automatically by [`Client`]
-    /// but this can be useful for webhooks and one-off requests outside of running a client.
-    pub async fn new(base: String, token: Option<String>) -> Result<Self> {
+    pub async fn new(base: String, session: Option<Session>) -> Result<Self> {
         let client = Client::new();
         let ratelimits = Arc::new(HashMap::new());
 
@@ -99,6 +97,7 @@ impl HttpClient {
             ratelimits: ratelimits.clone(),
             service: Service::Api,
             builder: client.get(&base),
+            query: None,
         }
         .response()
         .await?;
@@ -106,7 +105,7 @@ impl HttpClient {
         Ok(HttpClient {
             base,
             api_config: Arc::new(api_config),
-            token: Arc::new(RwLock::new(token)),
+            session: Arc::new(RwLock::new(session)),
             inner: client,
             ratelimits,
         })
@@ -119,14 +118,15 @@ impl HttpClient {
             .request(method, format!("{}{}", &self.base, route.as_ref()))
             .header("Accept", "application/json");
 
-        if let Some(token) = self.token.read().unwrap().clone() {
-            builder = builder.header("x-session-token", token);
+        if let Some(session) = &*self.session.read().unwrap() {
+            builder = builder.header("x-session-token", session.token.clone());
         }
 
         HttpRequest {
             ratelimits: self.ratelimits.clone(),
             service: Service::Api,
             builder,
+            query: None,
         }
     }
 
@@ -140,14 +140,15 @@ impl HttpClient {
             )
             .header("Accept", "application/json");
 
-        if let Some(token) = self.token.read().unwrap().clone() {
-            builder = builder.header("x-session-token", token);
+        if let Some(session) = &*self.session.read().unwrap() {
+            builder = builder.header("x-session-token", session.token.clone());
         }
 
         HttpRequest {
             ratelimits: self.ratelimits.clone(),
             service: Service::Autumn,
             builder,
+            query: None,
         }
     }
 
@@ -846,12 +847,51 @@ impl HttpClient {
             .response()
             .await
     }
+
+    pub async fn fetch_emoji(&self, emoji_id: &str) -> Result<Emoji> {
+        self.request(Method::GET, format!("/custom/emoji/{emoji_id}"))
+            .response()
+            .await
+    }
+
+    pub async fn get_sessions(&self) -> Result<Vec<SessionInfo>> {
+        self.request(Method::GET, "/auth/session/all")
+            .response()
+            .await
+    }
+
+    pub async fn fetch_mfa_status(&self) -> Result<MultiFactorStatus> {
+        self.request(Method::GET, "/auth/mfa").response().await
+    }
+
+    pub async fn create_mfa_ticket(&self, data: &MFAResponse) -> Result<MFATicket> {
+        self.request(Method::PUT, "/auth/mfa/ticket")
+            .body(data)
+            .response()
+            .await
+    }
+
+    pub async fn revoke_all_sessions(&self, mfa_ticket: String, revoke_self: bool) -> Result<()> {
+        self.request(Method::DELETE, "/auth/session/all")
+            .query(&[("revoke_self", revoke_self)])
+            .mfa_ticket(mfa_ticket)
+            .send()
+            .await
+    }
+
+    pub async fn revoke_session(&self, mfa_ticket: String, session_id: &str) -> Result<()> {
+        self.request(Method::DELETE, format!("/auth/session/{session_id}"))
+            .mfa_ticket(mfa_ticket)
+            .send()
+            .await
+    }
 }
 
 pub struct HttpRequest {
     ratelimits: Arc<HashMap<u64, RatelimitEntry>>,
     service: Service,
     builder: RequestBuilder,
+    query: Option<String>,
 }
 
 impl HttpRequest {
@@ -921,7 +961,12 @@ impl HttpRequest {
     }
 
     pub fn query<I: Serialize>(mut self, query: &I) -> HttpRequest {
-        self.builder = self.builder.query(query);
+        self.query = Some(
+            serde_qs::Config::new()
+                .array_format(serde_qs::ArrayFormat::Unindexed)
+                .serialize_string(query)
+                .unwrap(),
+        );
 
         self
     }
@@ -938,10 +983,20 @@ impl HttpRequest {
         self
     }
 
+    pub fn mfa_ticket(mut self, token: String) -> HttpRequest {
+        self.builder = self.builder.header("X-Mfa-Ticket", token);
+
+        self
+    }
+
     pub async fn execute(self) -> Result<Response, Error> {
         let (client, req) = self.builder.build_split();
 
-        let request = req?;
+        let mut request = req?;
+
+        if let Some(query) = self.query {
+            request.url_mut().set_query(Some(&query));
+        };
 
         log::debug!(
             "Sending http request {} {}?{}",
@@ -1016,7 +1071,12 @@ impl HttpRequest {
     }
 
     pub async fn response<O: for<'a> Deserialize<'a>>(self) -> Result<O, Error> {
-        self.execute().await?.json().await.map_err(Into::into)
+        self.execute()
+            .await?
+            .json()
+            .await
+            .map_err(Into::into)
+            .inspect_err(|e| log::error!("{e:?}"))
     }
 
     pub async fn send(self) -> Result<(), Error> {

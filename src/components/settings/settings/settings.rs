@@ -4,9 +4,9 @@ use crate::{
     AppChannel, SettingsPage, SizeExt,
     components::{
         AccountSettings, AppearanceSettings, Avatar, MaterialIcon, ProfileSettings,
-        SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
+        SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
-        material::filled::{clear, delete},
+        material::{filled::clear, outlined::logout},
     },
     consume_material_theme,
     theme::Theme,
@@ -105,18 +105,35 @@ impl Component for Settings {
                                             SettingsPage::Donate,
                                         ],
                                     ))
-                                    .child(LogoutButton {}),
+                                    .child(LogoutButton {})
+                                    .child(
+                                        rect()
+                                            .font_size(12.)
+                                            .child(
+                                                paragraph()
+                                                    .span(
+                                                        Span::new("Version: ")
+                                                            .font_weight(FontWeight::BOLD),
+                                                    )
+                                                    .span(env!("CARGO_PKG_VERSION")),
+                                            )
+                                            .child(
+                                                rect()
+                                                    .opacity(0.5)
+                                                    .font_weight(FontWeight::MEDIUM)
+                                                    .child("Zomatree"),
+                                            ),
+                                    ),
                             ),
                     )
                     .child(
                         rect()
-                            .corner_radius(CornerRadius {
-                                top_left: 16.,
-                                top_right: 0.,
-                                bottom_right: 0.,
-                                bottom_left: 16.,
-                                smoothing: 0.,
-                            })
+                            .corner_radius(CornerRadius::new(
+                                16.,
+                                0.,
+                                0.,
+                                16.,
+                            ))
                             .background(theme.md.surface_container_low.as_argb_u32())
                             .horizontal()
                             .content(Content::Flex)
@@ -143,7 +160,7 @@ impl Component for Settings {
                                                         ProfileSettings {}.into_element()
                                                     }
                                                     SettingsPage::Sessions => {
-                                                        "Coming soon!".into_element()
+                                                        SessionsSettings {}.into_element()
                                                     }
                                                     SettingsPage::MyBots => {
                                                         "Coming soon!".into_element()
@@ -322,7 +339,7 @@ impl Component for LogoutButton {
                     .horizontal()
                     .spacing(8.)
                     .cross_align(Alignment::Center)
-                    .child(MaterialIcon::new(delete()).size(Size::px(20.)))
+                    .child(MaterialIcon::new(logout()).size(Size::px(20.)))
                     .child(
                         label()
                             .font_size(15)
@@ -330,6 +347,6 @@ impl Component for LogoutButton {
                             .text("Log Out"),
                     ),
             )
-            .on_press(move |_| config.write().token = None)
+            .on_press(move |_| config.write().session = None)
     }
 }

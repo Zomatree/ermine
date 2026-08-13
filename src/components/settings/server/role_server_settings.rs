@@ -1,11 +1,9 @@
 use freya::{prelude::*, radio::use_radio};
-use rfd::AsyncFileDialog;
 use stoat_models::v0;
 use stoat_permissions::{DataPermissionsValue, Override};
 
 use crate::{
-    AppChannel, LocalFile, SelectedRole, ServerSettingsPage, SizeExt, Tag,
-    components::{
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, Tag, components::{
         MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
         checkbox::StoatCheckbox,
@@ -15,8 +13,7 @@ use crate::{
             outlined::group_add,
         },
         use_modals,
-    },
-    consume_material_theme, http, parse_fill, use_initial,
+    }, consume_material_theme, http, parse_fill, prompt_image_upload, use_initial
 };
 
 #[derive(PartialEq)]
@@ -332,30 +329,6 @@ impl Component for SelectedRoleServerSettings {
             }
         };
 
-        let prompt_image_upload = {
-            move |tag: Tag| async move {
-                if let Some(file) = AsyncFileDialog::new().pick_file().await {
-                    let contents = file.read().await.into();
-                    let filename = file.file_name();
-
-                    if let Ok(response) = http()
-                        .upload_file(
-                            tag.as_str(),
-                            LocalFile {
-                                name: filename,
-                                body: contents,
-                            },
-                        )
-                        .await
-                    {
-                        return Some(response.id);
-                    };
-                };
-
-                None
-            }
-        };
-
         rect()
             .spacing(15.)
             .child(SingleLineEntry::new("Role Name", name))
@@ -373,11 +346,9 @@ impl Component for SelectedRoleServerSettings {
                         StoatButton::new()
                             .corner_radius(48.)
                             .on_press({
-                                let prompt_image_upload = prompt_image_upload.clone();
                                 let edit_role = edit_role.clone();
 
                                 move |_| {
-                                    let prompt_image_upload = prompt_image_upload.clone();
                                     let edit_role = edit_role.clone();
 
                                     spawn(async move {

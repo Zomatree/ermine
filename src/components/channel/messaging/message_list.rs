@@ -1,6 +1,9 @@
 use std::ops::Not;
 
 use freya::prelude::*;
+use rand::seq::IteratorRandom;
+
+use crate::{SizeExt, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct MessageList {
@@ -85,8 +88,7 @@ impl Component for MessageList {
                                     }
                                 }
                             })
-                            .height(Size::px(100.))
-                            .child("top")
+                            .child(MessageSkeletons {})
                     }))
                     .children(self.children.clone())
                     .maybe_child(self.at_end.read().not().then(|| {
@@ -105,8 +107,7 @@ impl Component for MessageList {
                                     }
                                 }
                             })
-                            .height(Size::px(100.))
-                            .child("bottom")
+                            .child(MessageSkeletons {})
                     }))
                     .child(rect().height(Size::px(1.)).width(Size::px(1.)).on_sized({
                         let mut at_bottom = self.at_bottom.clone();
@@ -119,5 +120,55 @@ impl Component for MessageList {
                         }
                     })),
             )
+    }
+}
+
+#[derive(PartialEq)]
+struct MessageSkeletons {}
+
+impl Component for MessageSkeletons {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        let mut rng = rand::rng();
+
+        rect().spacing(12.).children((0..30).map(|_| {
+            rect()
+                .horizontal()
+                .spacing(8.)
+                .child(
+                    rect()
+                        .horizontal()
+                        .width(Size::px(54.))
+                        .padding((2., 4.))
+                        .main_align(Alignment::End)
+                        .child(
+                            rect()
+                                .background(theme.md.surface_container_highest.as_argb_u32())
+                                .corner_radius(18.)
+                                .size(Size::px(36.)),
+                        ),
+                )
+                .child(
+                    rect()
+                        .spacing(8.)
+                        .child(
+                            rect()
+                                .background(theme.md.surface_container_highest.as_argb_u32())
+                                .corner_radius(8.)
+                                .height(Size::px(14.))
+                                .width(Size::px((14 * (5..=10).choose(&mut rng).unwrap()) as f32)),
+                        )
+                        .children((0..(1..3).choose(&mut rng).unwrap()).map(|_| {
+                            rect()
+                                .background(theme.md.surface_container_highest.as_argb_u32())
+                                .corner_radius(8.)
+                                .height(Size::px(14.))
+                                .width(Size::px((14 * (15..=25).choose(&mut rng).unwrap()) as f32))
+                                .into_element()
+                        })),
+                )
+                .into_element()
+        }))
     }
 }

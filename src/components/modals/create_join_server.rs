@@ -3,9 +3,9 @@ use freya::prelude::*;
 use crate::components::{Dialog, ModalValue, use_modals};
 
 #[derive(PartialEq)]
-pub struct CreateJoinServerModal {}
+pub struct CreateJoinServer {}
 
-impl Component for CreateJoinServerModal {
+impl Component for CreateJoinServer {
     fn render(&self) -> impl IntoElement {
         let mut modals = use_modals();
 

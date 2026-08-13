@@ -102,13 +102,13 @@ impl Component for DMList {
             .child(
                 rect()
                     // .margin((8., 8., 0., 8.))
-                    .padding((24., 8.0))
+                    .padding((24., 16.0))
                     .font_size(16)
                     .child("Conversations"),
             )
             .child(
                 rect()
-                    .padding((0., 8.))
+                    // .padding((0., 8.))
                     .spacing(5.)
                     .child(
                         dmlist_nav_button(
@@ -186,18 +186,18 @@ impl Component for DMList {
                 rect()
                     .child(
                         label()
-                            .margin((28., 16., 8., 16.))
+                            .margin((28., 8., 8., 8.))
                             .text("Direct Messages")
                             .font_size(13),
                     )
                     .child(
                         VirtualScrollView::new({
                             let selection = self.selection.clone();
-                            move |idx, _| {
-                                let channel = channels.read()[idx].clone();
+                            move |item, _| {
+                                let channel = channels.read()[item.index].clone();
 
                                 rect()
-                                    .padding((3., 8.))
+                                    .padding((3., 0.))
                                     .key(channel.read().id())
                                     .child(DMButton {
                                         channel,
