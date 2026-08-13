@@ -4,11 +4,12 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SizeExt,
     components::{
-        Avatar, MarkdownViewer, ReplyController, ReplyIntent, StoatButton, material::{
+        Avatar, MarkdownViewer, ReplyController, ReplyIntent, StoatButton,
+        material::{
             MaterialIcon,
             filled::{alternate_email, description},
             outlined::cancel,
-        }
+        },
     },
     consume_material_theme, member_display_color,
 };
@@ -32,7 +33,11 @@ impl Component for MessageReplyPreview {
                 if let v0::Channel::TextChannel { server, .. } = &*self.channel.read() {
                     let server = server.clone();
 
-                    Some(radio.slice_current(move |state| state.servers.get(&server).unwrap()).into_readable())
+                    Some(
+                        radio
+                            .slice_current(move |state| state.servers.get(&server).unwrap())
+                            .into_readable(),
+                    )
                 } else {
                     None
                 }
@@ -132,10 +137,13 @@ impl Component for MessageReplyPreview {
                                     )
                             }))
                             .child(
-                                MarkdownViewer::new(message.message.content.clone().unwrap_or_default(), server.clone())
-                                    .width(Size::flex(1.))
-                                    .max_lines(1)
-                                    .text_overflow(TextOverflow::Ellipsis)
+                                MarkdownViewer::new(
+                                    message.message.content.clone().unwrap_or_default(),
+                                    server.clone(),
+                                )
+                                .width(Size::flex(1.))
+                                .max_lines(1)
+                                .text_overflow(TextOverflow::Ellipsis),
                             ),
                     ),
             )

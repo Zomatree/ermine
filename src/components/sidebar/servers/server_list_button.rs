@@ -4,7 +4,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, Config, NotificationBadge, Selection,
     components::{
-        ServerContextMenu, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip
+        ServerContextMenu, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
     },
     consume_material_theme, get_unread_badge, is_server_muted,
 };
@@ -100,11 +100,9 @@ impl Component for ServerListButton {
                 let server_id = server.read().id.clone();
 
                 move |_| {
-                    ContextMenu::open_from_down(
-                        Menu::new().child(ServerContextMenu {
-                            server_id: server_id.clone(),
-                        }),
-                    );
+                    ContextMenu::open_from_down(Menu::new().child(ServerContextMenu {
+                        server_id: server_id.clone(),
+                    }));
                 }
             })
             .maybe_child(
@@ -118,12 +116,7 @@ impl Component for ServerListButton {
                         } else {
                             24.
                         }))
-                        .corner_radius(CornerRadius::new(
-                            0.,
-                            4.,
-                            0.,
-                            4.,
-                        ))
+                        .corner_radius(CornerRadius::new(0., 4., 0., 4.))
                         .background(theme.md.on_surface.as_argb_u32())
                 }),
             )

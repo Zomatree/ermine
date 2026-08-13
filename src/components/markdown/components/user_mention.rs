@@ -3,7 +3,8 @@ use freya::{prelude::*, radio::use_radio};
 use crate::{
     AppChannel,
     components::{
-        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, markdown::components::consume_server, use_floating
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard,
+        markdown::components::consume_server, use_floating,
     },
     consume_material_theme, member_display_color,
 };
@@ -70,42 +71,49 @@ impl Component for UserMention {
 
         let size = self.font_size * (16. / 14.);
 
-        StoatButton::new().corner_radius(16.).on_press({let user = user.cloned(); let member = member.clone(); move |_| {
-            if let Some(user) = user.clone() {
-                floating.set(Some(
-                    UserCard {
-                        user: user.into_readable(),
-                        member: member.read().cloned().map(|m| m.into_readable()),
-                    }
-                    .into_element(),
-                ));
-            };
-        }}).child(
-            rect()
-                .padding((0., 6., 0., 2.))
-                .horizontal()
-                .cross_align(Alignment::Center)
-                .spacing(4.)
-                .background(theme.md.primary_container.as_argb_u32())
-                .color(theme.md.on_primary_container.as_argb_u32())
-                .font_weight(FontWeight::SEMI_BOLD)
-                .maybe_child(user.map(|user| {
-                    Avatar::new(
-                        user.clone().into_readable(),
-                        member.read().cloned().map(|m| m.into_readable()),
-                        size,
-                    )
-                }))
-                .child(
-                    label()
-                        .map(role_color.read().cloned(), |label, color| {
-                            label.color(color)
-                        })
-                        .line_height(1.5)
-                        .max_lines(1)
-                        .font_size(self.font_size)
-                        .text(username.unwrap_or_else(|| "Unknown User".to_string())),
-                ),
-        )
+        StoatButton::new()
+            .corner_radius(16.)
+            .on_press({
+                let user = user.cloned();
+                let member = member.clone();
+                move |_| {
+                    if let Some(user) = user.clone() {
+                        floating.set(Some(
+                            UserCard {
+                                user: user.into_readable(),
+                                member: member.read().cloned().map(|m| m.into_readable()),
+                            }
+                            .into_element(),
+                        ));
+                    };
+                }
+            })
+            .child(
+                rect()
+                    .padding((0., 6., 0., 2.))
+                    .horizontal()
+                    .cross_align(Alignment::Center)
+                    .spacing(4.)
+                    .background(theme.md.primary_container.as_argb_u32())
+                    .color(theme.md.on_primary_container.as_argb_u32())
+                    .font_weight(FontWeight::SEMI_BOLD)
+                    .maybe_child(user.map(|user| {
+                        Avatar::new(
+                            user.clone().into_readable(),
+                            member.read().cloned().map(|m| m.into_readable()),
+                            size,
+                        )
+                    }))
+                    .child(
+                        label()
+                            .map(role_color.read().cloned(), |label, color| {
+                                label.color(color)
+                            })
+                            .line_height(1.5)
+                            .max_lines(1)
+                            .font_size(self.font_size)
+                            .text(username.unwrap_or_else(|| "Unknown User".to_string())),
+                    ),
+            )
     }
 }

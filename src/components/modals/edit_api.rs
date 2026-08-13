@@ -1,10 +1,12 @@
 use freya::prelude::*;
 
-use crate::{components::{Dialog, SingleLineEntry}, use_config};
+use crate::{
+    components::{Dialog, SingleLineEntry},
+    use_config,
+};
 
 #[derive(PartialEq)]
-pub struct EditApi {
-}
+pub struct EditApi {}
 
 impl Component for EditApi {
     fn render(&self) -> impl IntoElement {

@@ -178,8 +178,15 @@ impl Component for MarkdownViewer {
                     };
                 }
                 MarkdownElement::Paragraph { content } => {
-                    p_container =
-                        render_content(p_container, &content, self.font_size, theme, false, false, false);
+                    p_container = render_content(
+                        p_container,
+                        &content,
+                        self.font_size,
+                        theme,
+                        false,
+                        false,
+                        false,
+                    );
 
                     if !is_last {
                         p_container = p_container.span("\n\n")
@@ -187,30 +194,26 @@ impl Component for MarkdownViewer {
                 }
                 MarkdownElement::CodeBlock { code, .. } => {
                     p_container = p_container.child(
-                        rect()
-                            .width(Size::fill())
-                            .child(rect()
-                            .background(0xff0d1117)
-                            .color(0xffc9d1d9)
-                            .corner_radius(12.)
-                            .padding(Gaps::new_all(8.))
-                            .margin((4., 0.))
-                            .child(
-                                label()
-                                    .text(code)
-                                    .line_height(1.5)
-                                    .font_family("Fira Code")
-                                    .font_size(self.font_size),
-                            )
-                        )
+                        rect().width(Size::fill()).child(
+                            rect()
+                                .background(0xff0d1117)
+                                .color(0xffc9d1d9)
+                                .corner_radius(12.)
+                                .padding(Gaps::new_all(8.))
+                                .margin((4., 0.))
+                                .child(
+                                    label()
+                                        .text(code)
+                                        .line_height(1.5)
+                                        .font_family("Fira Code")
+                                        .font_size(self.font_size),
+                                ),
+                        ),
                     )
                 }
                 MarkdownElement::UnorderedList { items } => {
-                    let mut list = rect()
-                        .key(idx)
-                        .vertical()
-                        .spacing(4.);
-                        // .padding(Gaps::new(0., 0., 0., 20.));
+                    let mut list = rect().key(idx).vertical().spacing(4.);
+                    // .padding(Gaps::new(0., 0., 0., 20.));
 
                     for (item_idx, item_spans) in items.into_iter().enumerate() {
                         let item_content = rect()
@@ -227,7 +230,8 @@ impl Component for MarkdownViewer {
                                 self.font_size,
                                 theme,
                                 false,
-                                false, false
+                                false,
+                                false,
                             ));
 
                         list = list.child(item_content);
@@ -240,11 +244,8 @@ impl Component for MarkdownViewer {
                     };
                 }
                 MarkdownElement::OrderedList { start, items } => {
-                    let mut list = rect()
-                        .key(idx)
-                        .vertical()
-                        .spacing(4.);
-                        // .padding(Gaps::new(0., 0., 0., 20.));
+                    let mut list = rect().key(idx).vertical().spacing(4.);
+                    // .padding(Gaps::new(0., 0., 0., 20.));
 
                     for (item_idx, item_spans) in items.into_iter().enumerate() {
                         let number = start + item_idx as u64;

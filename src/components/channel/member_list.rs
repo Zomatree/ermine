@@ -138,15 +138,9 @@ impl Component for MemberList {
                                 }
                             };
 
-                            groups
-                                .get_mut("default")
-                                .unwrap()
-                                .push(user.id.clone());
+                            groups.get_mut("default").unwrap().push(user.id.clone());
                         } else if !exclude_offline {
-                            groups
-                                .get_mut("offline")
-                                .unwrap()
-                                .push(user.id.clone());
+                            groups.get_mut("offline").unwrap().push(user.id.clone());
                         }
                     };
                 }
@@ -389,12 +383,12 @@ impl Component for MemberListMember {
                                 let server = self.server.clone();
 
                                 move |_| {
-                                    ContextMenu::open_from_down(
-                                        Menu::new().child(UserContextMenu {
+                                    ContextMenu::open_from_down(Menu::new().child(
+                                        UserContextMenu {
                                             user_id: user.read().id.clone(),
                                             server_id: Some(server.read().id.clone()),
-                                        }),
-                                    );
+                                        },
+                                    ));
                                 }
                             })
                             .child(

@@ -3,7 +3,10 @@ use freya::prelude::*;
 use crate::{
     Config, SizeExt,
     components::{
-        MaterialIcon, ModalValue, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::filled::{clear, dark_mode, edit, info}, use_modals
+        MaterialIcon, ModalValue, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::filled::{clear, dark_mode, edit, info},
+        use_modals,
     },
     consume_material_theme, format_error, http,
     types::{DataLogin, MFAResponse, ResponseLogin},
@@ -223,7 +226,9 @@ impl Component for Login {
                                     .background(theme.md.secondary_container.as_argb_u32())
                                     .color(theme.md.on_secondary_container.as_argb_u32())
                                     .corner_radius(40.)
-                                    .on_press(move |_| modals.write().push_modal(ModalValue::EditApi))
+                                    .on_press(move |_| {
+                                        modals.write().push_modal(ModalValue::EditApi)
+                                    })
                                     .child(
                                         rect()
                                             .size(Size::px(40.))

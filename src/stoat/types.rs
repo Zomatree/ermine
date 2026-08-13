@@ -495,7 +495,7 @@ pub enum EventV1 {
         channel_id: String,
         started_at: Option<Timestamp>,
         ended: bool,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]

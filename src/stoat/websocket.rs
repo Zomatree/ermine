@@ -51,7 +51,13 @@ pub async fn run(
     let uri = format!(
         "{}/?token={}&format=json&ready=users&ready=servers&ready=channels&ready=members&ready=channel_unreads&ready=emojis",
         &http.api_config.ws,
-        http.session.read().unwrap().as_ref().expect("No session").token.clone()
+        http.session
+            .read()
+            .unwrap()
+            .as_ref()
+            .expect("No session")
+            .token
+            .clone()
     );
 
     log::debug!("Connecting to websocket with {uri}");

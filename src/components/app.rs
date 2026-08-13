@@ -91,7 +91,11 @@ impl Component for App {
             async move {
                 if let Ok(settings) = http()
                     .fetch_settings(&v0::OptionsFetchSettings {
-                        keys: vec!["ordering".to_string(), "notifications".to_string(), "ermine".to_string()],
+                        keys: vec![
+                            "ordering".to_string(),
+                            "notifications".to_string(),
+                            "ermine".to_string(),
+                        ],
                     })
                     .await
                 {
@@ -102,7 +106,9 @@ impl Component for App {
             }
         });
 
-        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| &state.settings.ermine);
+        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| {
+            &state.settings.ermine
+        });
 
         use_side_effect_with_deps(&ermine_settings.read().cloned(), move |settings| {
             if let Some(settings) = settings.clone() {

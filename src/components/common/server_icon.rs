@@ -11,7 +11,7 @@ pub struct ServerIcon {
 impl ServerIcon {
     pub fn new(server: impl IntoReadable<v0::Server>) -> Self {
         Self {
-            server: server.into_readable()
+            server: server.into_readable(),
         }
     }
 }

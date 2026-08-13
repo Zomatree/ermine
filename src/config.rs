@@ -46,7 +46,7 @@ fn default_api_url() -> String {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct Config {
-    #[serde(default="default_api_url")]
+    #[serde(default = "default_api_url")]
     pub api: String,
     #[serde(default)]
     pub session: Option<Session>,

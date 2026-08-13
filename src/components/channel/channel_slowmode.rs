@@ -90,12 +90,12 @@ impl Component for ChannelSlowmode {
                     ) {
                         "Slowmode Immune".into_element()
                     } else if let Some(current_slowmode) = current_slowmode
-                        && let time_left =
-                            (now.until(current_slowmode.finished_at)
-                                .unwrap()
-                                .total(Unit::Second)
-                                .unwrap()
-                                .ceil() as u64)
+                        && let time_left = (now
+                            .until(current_slowmode.finished_at)
+                            .unwrap()
+                            .total(Unit::Second)
+                            .unwrap()
+                            .ceil() as u64)
                         && time_left > 0
                     {
                         format!("{time_left}s").into_element()

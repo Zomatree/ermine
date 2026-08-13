@@ -142,7 +142,7 @@ impl Component for ServerList {
                                     .into_element()
                                 })
                                 .width(Size::fill())
-                                .cross_align(Alignment::Center)
+                                .cross_align(Alignment::Center),
                             )
                             .child(
                                 StoatTooltip::new(

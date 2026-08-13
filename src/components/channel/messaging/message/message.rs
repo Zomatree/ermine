@@ -75,14 +75,21 @@ impl Component for Message {
             }
         });
 
-        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| &state.settings.ermine);
+        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| {
+            &state.settings.ermine
+        });
 
         let pronouns = use_memo({
             let user = self.message.user.clone();
             let member = self.message.member.clone();
 
             move || {
-                if ermine_settings.read().cloned().unwrap_or_default().hide_pronouns {
+                if ermine_settings
+                    .read()
+                    .cloned()
+                    .unwrap_or_default()
+                    .hide_pronouns
+                {
                     return None;
                 };
 

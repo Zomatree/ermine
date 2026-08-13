@@ -109,7 +109,8 @@ impl Component for UserProfile {
                                         ProfilePronouns {
                                             user: user.into_readable(),
                                             member: None,
-                                        }.into_element()
+                                        }
+                                        .into_element()
                                     }))
                                     .maybe_child(
                                         profile
@@ -350,12 +351,10 @@ impl Component for ProfileButtons {
                     .on_press({
                         let id = user.id.clone();
                         move |_| {
-                            ContextMenu::open(
-                                Menu::new().child(UserContextMenu {
-                                    user_id: id.clone(),
-                                    server_id: None,
-                                }),
-                            );
+                            ContextMenu::open(Menu::new().child(UserContextMenu {
+                                user_id: id.clone(),
+                                server_id: None,
+                            }));
                         }
                     })
                     .corner_radius(40.)

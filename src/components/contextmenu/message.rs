@@ -1,4 +1,8 @@
-use freya::{prelude::*, radio::use_radio, text_edit::{TextEditor, TextSelection, UseEditable}};
+use freya::{
+    prelude::*,
+    radio::use_radio,
+    text_edit::{TextEditor, TextSelection, UseEditable},
+};
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
@@ -7,7 +11,10 @@ use crate::{
         ContextMenuButton, EmojiPicker, MessageModel, ModalValue, ReplyController,
         material::{
             filled::reply,
-            outlined::{badge, content_copy, delete, edit, insert_emoticon, pin_invoke, share, alternate_email},
+            outlined::{
+                alternate_email, badge, content_copy, delete, edit, insert_emoticon, pin_invoke,
+                share,
+            },
         },
         use_floating, use_modals,
     },

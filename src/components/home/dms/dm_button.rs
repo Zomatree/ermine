@@ -38,12 +38,10 @@ impl Component for DMButton {
 
                         let permissions = calculate_channel_permissions(&mut query).await;
 
-                        ContextMenu::open_from_down(
-                            Menu::new().child(ChannelContextMenu {
-                                channel_id: channel.id().to_string(),
-                                current_permissions: permissions,
-                            }),
-                        );
+                        ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
+                            channel_id: channel.id().to_string(),
+                            current_permissions: permissions,
+                        }));
                     });
                 }
             })

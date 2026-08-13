@@ -4,10 +4,12 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SizeExt, Tag,
     components::{
-        Avatar, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image, material::{
+        Avatar, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, file_image,
+        material::{
             filled::expand_more,
             outlined::{clear, groups},
-        }
+        },
     },
     consume_material_theme, http, prompt_image_upload, use_initial,
 };
@@ -395,27 +397,38 @@ impl Component for ProfileSettings {
                                                         remove: Vec::new(),
                                                     };
 
-                                                    if let Some(display_name) = display_name.get_if_different() {
+                                                    if let Some(display_name) =
+                                                        display_name.get_if_different()
+                                                    {
                                                         if display_name.is_empty() {
-                                                            payload.remove.push(v0::FieldsUser::DisplayName);
+                                                            payload
+                                                                .remove
+                                                                .push(v0::FieldsUser::DisplayName);
                                                         } else {
-                                                            payload.display_name = Some(display_name);
+                                                            payload.display_name =
+                                                                Some(display_name);
                                                         };
                                                     };
 
-                                                    if let Some(pronouns) = pronouns.get_if_different() {
+                                                    if let Some(pronouns) =
+                                                        pronouns.get_if_different()
+                                                    {
                                                         if pronouns.is_empty() {
-                                                            payload.remove.push(v0::FieldsUser::Pronouns);
+                                                            payload
+                                                                .remove
+                                                                .push(v0::FieldsUser::Pronouns);
                                                         } else {
                                                             payload.pronouns = Some(pronouns);
                                                         };
                                                     };
 
-                                                    if let Some(user) =
-                                                        edit_user(payload).await
-                                                    {
-                                                        display_name.set_new(user.display_name.unwrap_or_default());
-                                                        pronouns.set_new(user.pronouns.unwrap_or_default());
+                                                    if let Some(user) = edit_user(payload).await {
+                                                        display_name.set_new(
+                                                            user.display_name.unwrap_or_default(),
+                                                        );
+                                                        pronouns.set_new(
+                                                            user.pronouns.unwrap_or_default(),
+                                                        );
                                                         bio.apply();
                                                     };
                                                 }

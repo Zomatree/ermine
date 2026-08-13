@@ -106,7 +106,6 @@ impl<T: Hash + Clone + PartialEq + 'static> Component for StoatInnerSegmentedBut
 
         let corners_value = animation.read().value();
 
-
         let corners = CornerRadius::new(
             if self.first { radius } else { corners_value },
             if self.last { radius } else { corners_value },

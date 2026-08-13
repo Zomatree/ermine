@@ -5,7 +5,10 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, AppState, Selection, components::{Dialog, SingleLineEntry, use_modals}, consume_material_theme, format_error, http, insert_channel, insert_member, insert_server, insert_user
+    AppChannel, AppState, Selection,
+    components::{Dialog, SingleLineEntry, use_modals},
+    consume_material_theme, format_error, http, insert_channel, insert_member, insert_server,
+    insert_user,
 };
 
 #[derive(PartialEq)]

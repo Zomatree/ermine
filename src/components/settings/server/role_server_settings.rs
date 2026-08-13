@@ -3,7 +3,8 @@ use stoat_models::v0;
 use stoat_permissions::{DataPermissionsValue, Override};
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, Tag, components::{
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, Tag,
+    components::{
         MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
         checkbox::StoatCheckbox,
@@ -13,7 +14,8 @@ use crate::{
             outlined::group_add,
         },
         use_modals,
-    }, consume_material_theme, http, parse_fill, prompt_image_upload, use_initial
+    },
+    consume_material_theme, http, parse_fill, prompt_image_upload, use_initial,
 };
 
 #[derive(PartialEq)]

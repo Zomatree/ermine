@@ -128,12 +128,7 @@ impl Component for Settings {
                     )
                     .child(
                         rect()
-                            .corner_radius(CornerRadius::new(
-                                16.,
-                                0.,
-                                0.,
-                                16.,
-                            ))
+                            .corner_radius(CornerRadius::new(16., 0., 0., 16.))
                             .background(theme.md.surface_container_low.as_argb_u32())
                             .horizontal()
                             .content(Content::Flex)

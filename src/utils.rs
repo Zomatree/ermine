@@ -12,8 +12,8 @@ use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
 use crate::{
-    ChannelUnread, LocalFile, NotificationBadge, NotificationsSettings, Tag,
-    color::parse_fill, http,
+    ChannelUnread, LocalFile, NotificationBadge, NotificationsSettings, Tag, color::parse_fill,
+    http,
 };
 
 pub fn map_readable<T, U: PartialEq>(

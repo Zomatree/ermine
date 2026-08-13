@@ -10,7 +10,11 @@ pub struct OpenLink {
 impl Component for OpenLink {
     fn render(&self) -> impl IntoElement {
         Dialog::new()
-            .title(label().line_height(1.5).text("External links can be dangerous!"))
+            .title(
+                label()
+                    .line_height(1.5)
+                    .text("External links can be dangerous!"),
+            )
             .body(
                 rect()
                     .child(
@@ -18,12 +22,19 @@ impl Component for OpenLink {
                             .line_height(1.5)
                             .text("Are you sure you want to go to"),
                     )
-                    .child(label().text_decoration(TextDecoration::Underline).text(self.url.clone())),
+                    .child(
+                        label()
+                            .text_decoration(TextDecoration::Underline)
+                            .text(self.url.clone()),
+                    ),
             )
             .default_action("Close")
-            .action("Continue", {let url = self.url.clone(); move || {
-                open::that_in_background(&url);
-                true
-            }})
+            .action("Continue", {
+                let url = self.url.clone();
+                move || {
+                    open::that_in_background(&url);
+                    true
+                }
+            })
     }
 }

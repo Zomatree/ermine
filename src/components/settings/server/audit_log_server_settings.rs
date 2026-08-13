@@ -414,7 +414,10 @@ impl Component for AuditLogEntry {
                 IconStyle::Delete,
                 format!("{} kicked {}", username, get_user_name(user)),
             ),
-            v0::AuditLogEntryAction::ServerEdit { before: _, after: _ } => (
+            v0::AuditLogEntryAction::ServerEdit {
+                before: _,
+                after: _,
+            } => (
                 info(),
                 IconStyle::Modify,
                 format!(
@@ -442,7 +445,10 @@ impl Component for AuditLogEntry {
                 IconStyle::Delete,
                 format!("{} deleted role @{}", username, name),
             ),
-            v0::AuditLogEntryAction::RolesReorder { before: _, after: _ } => (
+            v0::AuditLogEntryAction::RolesReorder {
+                before: _,
+                after: _,
+            } => (
                 flag(),
                 IconStyle::Modify,
                 format!("{} re-oredered roles", username),
@@ -579,15 +585,9 @@ impl Component for AuditLogEntry {
                     )
                     .maybe_child(is_expanded.then(|| {
                         let lines = match &self.entry.action {
-                            v0::AuditLogEntryAction::MessageDelete { .. } => {
-                                Vec::new()
-                            }
-                            v0::AuditLogEntryAction::MessageBulkDelete { .. } => {
-                                Vec::new()
-                            }
-                            v0::AuditLogEntryAction::MessagePin {
-                                ..
-                            } => Vec::new(),
+                            v0::AuditLogEntryAction::MessageDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::MessageBulkDelete { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::MessagePin { .. } => Vec::new(),
                             v0::AuditLogEntryAction::MessageUnpin {
                                 message: _,
                                 author: _,
@@ -634,9 +634,9 @@ impl Component for AuditLogEntry {
                                     ),
                                 ]
                             }
-                            v0::AuditLogEntryAction::ChannelRolePermissionsEdit {
-                                ..
-                            } => Vec::new(), // TODO
+                            v0::AuditLogEntryAction::ChannelRolePermissionsEdit { .. } => {
+                                Vec::new()
+                            } // TODO
                             v0::AuditLogEntryAction::ChannelDelete { .. } => Vec::new(),
                             v0::AuditLogEntryAction::MemberEdit {
                                 user: _,
@@ -779,12 +779,8 @@ impl Component for AuditLogEntry {
                             }
                             v0::AuditLogEntryAction::InviteCreate { .. } => Vec::new(),
                             v0::AuditLogEntryAction::InviteDelete { .. } => Vec::new(),
-                            v0::AuditLogEntryAction::WebhookCreate {
-                                ..
-                            } => Vec::new(),
-                            v0::AuditLogEntryAction::WebhookDelete {
-                                ..
-                            } => Vec::new(),
+                            v0::AuditLogEntryAction::WebhookCreate { .. } => Vec::new(),
+                            v0::AuditLogEntryAction::WebhookDelete { .. } => Vec::new(),
                             v0::AuditLogEntryAction::EmojiCreate { .. } => Vec::new(),
                             v0::AuditLogEntryAction::EmojiUpdate {
                                 emoji: _,

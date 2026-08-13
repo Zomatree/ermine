@@ -1,9 +1,6 @@
 use freya::prelude::*;
 
-use crate::{
-    components::markdown::components::consume_server,
-    consume_material_theme, parse_fill,
-};
+use crate::{components::markdown::components::consume_server, consume_material_theme, parse_fill};
 
 #[derive(PartialEq)]
 pub struct RoleMention {

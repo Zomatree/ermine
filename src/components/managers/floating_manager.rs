@@ -62,9 +62,7 @@ impl Component for Floating {
                 Platform::get().with_window(None, move |window| {
                     let window_size = window.inner_size();
 
-                    let x = if (mouse_pos.x as u32 + area.size.width as u32)
-                        > window_size.width
-                    {
+                    let x = if (mouse_pos.x as u32 + area.size.width as u32) > window_size.width {
                         (mouse_pos.x as f32 - area.size.width)
                             .min(window_size.width as f32 - area.size.width)
                             - 24.

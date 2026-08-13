@@ -59,7 +59,8 @@ impl Component for MessageEdit {
                                 embeds: None,
                             },
                         )
-                        .await.unwrap();
+                        .await
+                        .unwrap();
 
                     saving.set(false);
                     editing_message.set(None);

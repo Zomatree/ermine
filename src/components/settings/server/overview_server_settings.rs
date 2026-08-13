@@ -1,8 +1,12 @@
 use crate::{
-    AppChannel, SizeExt, components::{
+    AppChannel, SizeExt,
+    components::{
         Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
-    }, consume_material_theme, http, prompt_image_upload, types::Tag, use_initial
+    },
+    consume_material_theme, http, prompt_image_upload,
+    types::Tag,
+    use_initial,
 };
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;

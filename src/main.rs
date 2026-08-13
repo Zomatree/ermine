@@ -70,7 +70,10 @@ fn main() {
                     .with_decorations(true),
             )
             .with_font("Inter", include_bytes!("./assets/Inter.ttf") as &[u8])
-            .with_font("Fira Code", include_bytes!("./assets/FiraCode.ttf") as &[u8])
+            .with_font(
+                "Fira Code",
+                include_bytes!("./assets/FiraCode.ttf") as &[u8],
+            )
             .with_default_font("Inter")
             .with_plugin(WebViewPlugin::new()),
     );

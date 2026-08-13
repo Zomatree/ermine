@@ -6,7 +6,7 @@ use crate::{
     AppChannel, ChannelSettingsPage,
     components::{
         ContextMenuButton, ModalValue,
-        material::outlined::{badge, delete, person_add, logout, settings, share},
+        material::outlined::{badge, delete, logout, person_add, settings, share},
         use_modals,
     },
     http,

@@ -2,7 +2,8 @@ use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
-    components::{Dialog, SingleLineEntry, use_modals}, consume_material_theme, format_error, http
+    components::{Dialog, SingleLineEntry, use_modals},
+    consume_material_theme, format_error, http,
 };
 
 #[derive(PartialEq)]
@@ -34,20 +35,23 @@ impl Component for MFA {
             .body(
                 rect()
                     .child(label().text("Please confirm using a selected method."))
-                    .child(SingleLineEntry::new(
-                        {
-                            if is_totp {
-                                "Authenticator App"
-                            } else {
-                                "Password"
-                            }
-                        },
-                        code,
-                    ).mode(if is_totp {
-                        InputMode::Shown
-                    } else {
-                        InputMode::Hidden('•')
-                    }))
+                    .child(
+                        SingleLineEntry::new(
+                            {
+                                if is_totp {
+                                    "Authenticator App"
+                                } else {
+                                    "Password"
+                                }
+                            },
+                            code,
+                        )
+                        .mode(if is_totp {
+                            InputMode::Shown
+                        } else {
+                            InputMode::Hidden('•')
+                        }),
+                    )
                     .maybe_child(
                         error
                             .read()
@@ -56,25 +60,31 @@ impl Component for MFA {
                     ),
             )
             .default_action("Cancel")
-            .action("Confirm", {let callback = self.callback.clone(); move || {
-                let code = code.read().cloned();
-                let callback = callback.clone();
+            .action("Confirm", {
+                let callback = self.callback.clone();
+                move || {
+                    let code = code.read().cloned();
+                    let callback = callback.clone();
 
-                spawn(async move {
-                    match http().create_mfa_ticket(&if is_totp {
-                        v0::MFAResponse::Totp { totp_code: code }
-                    } else {
-                        v0::MFAResponse::Password { password: code }
-                    }).await {
-                        Ok(ticket) => {
-                            callback.call(ticket);
-                            modals.write().pop_modal();
-                        },
-                        Err(e) => error.set(Some(format_error(&e, "MFA"))),
-                    }
-                });
+                    spawn(async move {
+                        match http()
+                            .create_mfa_ticket(&if is_totp {
+                                v0::MFAResponse::Totp { totp_code: code }
+                            } else {
+                                v0::MFAResponse::Password { password: code }
+                            })
+                            .await
+                        {
+                            Ok(ticket) => {
+                                callback.call(ticket);
+                                modals.write().pop_modal();
+                            }
+                            Err(e) => error.set(Some(format_error(&e, "MFA"))),
+                        }
+                    });
 
-                false
-            }})
+                    false
+                }
+            })
     }
 }

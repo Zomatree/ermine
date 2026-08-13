@@ -15,21 +15,20 @@ use std::{
 
 use stoat_models::v0::{
     AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole,
-    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMessage,
-    Relationship, RelationshipStatus, Server, User, UserSettings,
+    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMessage, Relationship,
+    RelationshipStatus, Server, User, UserSettings,
 };
 use stoat_result::ErrorType;
 
 use crate::{
     Config, SelectedRole,
-    components::{
-        material::{
-            filled::{fact_check, info, list, memory},
-            outlined::{
-                account_circle, color_lens, credit_card, gavel, language, link, mic, rate_review, science, smart_toy, verified_user, webhook
-            },
-            round::{flag, insert_emoticon},
+    components::material::{
+        filled::{fact_check, info, list, memory},
+        outlined::{
+            account_circle, color_lens, credit_card, gavel, language, link, mic, rate_review,
+            science, smart_toy, verified_user, webhook,
         },
+        round::{flag, insert_emoticon},
     },
     http,
     types::EventV1,
@@ -198,14 +197,14 @@ pub enum NotificationBadge {
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct ErmineSettings {
-    pub hide_pronouns: bool
+    pub hide_pronouns: bool,
 }
 
 #[derive(Debug, Default)]
 pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,
-    pub ermine: Option<ErmineSettings>
+    pub ermine: Option<ErmineSettings>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -1044,7 +1043,11 @@ pub async fn update_state(
             // TODO
         }
         EventV1::ServerDelete { id } => delete_server(&id, station),
-        EventV1::ServerMemberLeave { id, user, reason: _ } => {
+        EventV1::ServerMemberLeave {
+            id,
+            user,
+            reason: _,
+        } => {
             if &user == station.peek().user_id.as_ref().unwrap() {
                 delete_server(&id, station)
             } else {
@@ -1137,9 +1140,7 @@ pub async fn update_state(
             });
         }
         EventV1::ReportCreate(_) => {}
-        EventV1::UserMoveVoiceChannel {
-            ..
-        } => {
+        EventV1::UserMoveVoiceChannel { .. } => {
             // TDODO
         }
         EventV1::UserPlatformWipe { .. } => {
@@ -1162,9 +1163,7 @@ pub async fn update_state(
             });
             insert_user(user, station);
         }
-        EventV1::UserVoiceStateUpdate {
-            ..
-        } => {
+        EventV1::UserVoiceStateUpdate { .. } => {
             // TODO
         }
         EventV1::VoiceChannelJoin { .. } => {
@@ -1173,9 +1172,7 @@ pub async fn update_state(
         EventV1::VoiceChannelLeave { .. } => {
             // TODO
         }
-        EventV1::VoiceChannelMove {
-            ..
-        } => {
+        EventV1::VoiceChannelMove { .. } => {
             // TODO
         }
         EventV1::WebhookCreate(_) => {
@@ -1205,7 +1202,7 @@ pub async fn update_state(
                         duration: slowmode.duration,
                     },
                 );
-            };
+            }
         }
     }
 }

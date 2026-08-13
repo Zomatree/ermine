@@ -14,9 +14,7 @@ use crate::{
     components::{
         EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController,
         StoatButton, StoatButtonColorsThemePartialExt,
-        material::{
-            outlined::{delete, edit, more_vert, reply, insert_emoticon},
-        },
+        material::outlined::{delete, edit, insert_emoticon, more_vert, reply},
         use_floating, use_modals,
     },
     consume_material_theme, http,
@@ -159,13 +157,11 @@ impl Component for MessageActions {
                 let replies = self.replies;
 
                 move |_| {
-                    ContextMenu::open_from_down(
-                        Menu::new().child(MessageContextMenu {
-                            message: message.clone(),
-                            replies,
-                            current_permissions: permissions(),
-                        }),
-                    );
+                    ContextMenu::open_from_down(Menu::new().child(MessageContextMenu {
+                        message: message.clone(),
+                        replies,
+                        current_permissions: permissions(),
+                    }));
                 }
             })
             .corner_radius(12.)
@@ -286,13 +282,11 @@ impl Component for MessageActions {
                         let replies = self.replies;
 
                         move |_| {
-                            ContextMenu::open(
-                                Menu::new().child(MessageContextMenu {
-                                    message: message.clone(),
-                                    replies,
-                                    current_permissions: permissions(),
-                                }),
-                            );
+                            ContextMenu::open(Menu::new().child(MessageContextMenu {
+                                message: message.clone(),
+                                replies,
+                                current_permissions: permissions(),
+                            }));
                         }
                     }))
             }))

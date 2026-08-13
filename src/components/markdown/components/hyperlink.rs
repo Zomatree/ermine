@@ -1,10 +1,7 @@
 use freya::prelude::*;
 
 use crate::{
-    components::{
-        ModalValue,
-        use_modals,
-    },
+    components::{ModalValue, use_modals},
     consume_material_theme,
 };
 
@@ -21,7 +18,16 @@ impl Component for Hyperlink {
 
         paragraph()
             .line_height(1.5)
-            .span(self.span.clone().color(theme.md.primary.as_argb_u32()).text_decoration(if hover() { TextDecoration::Underline } else { TextDecoration::None }))
+            .span(
+                self.span
+                    .clone()
+                    .color(theme.md.primary.as_argb_u32())
+                    .text_decoration(if hover() {
+                        TextDecoration::Underline
+                    } else {
+                        TextDecoration::None
+                    }),
+            )
             .on_press({
                 let url = self.span.text.to_string();
 

@@ -65,7 +65,9 @@ pub enum ModalValue {
     EditOwnServerIdentity {
         server: String,
     },
-    LogoutOtherSessions { callback: EventHandler<()> },
+    LogoutOtherSessions {
+        callback: EventHandler<()>,
+    },
     MFA {
         callback: EventHandler<v0::MFATicket>,
     },
