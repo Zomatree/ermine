@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, mem::discriminant};
 
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
@@ -141,27 +141,23 @@ impl Component for ServerSettings {
                                                     .font_weight(550)
                                                     .horizontal()
                                                     .child(
-                                                        label()
-                                                            .text(page.title())
-                                                            .maybe(selected_role.is_some(), |label| label.color(theme.md.outline.as_argb_u32())            .on_pointer_enter(move |_| {
-                Cursor::set(CursorIcon::Pointer);
-            })
-            .on_pointer_leave(move |_| {
-                Cursor::set(CursorIcon::default());
-            })
-            .on_press({
-                                                                let mut current_page =
-                                                                    current_page.clone();
-                                                                move |_| {
-                                                                    if let Some(v) = current_page
-                                                                        .write()
-                                                                        .as_mut()
-                                                                    {
-                                                                        v.1 = ServerSettingsPage::Roles(None);
-                                                                    }
-                                                                }
-                                                            }))
-
+                                                        rect()
+                                                            .child(page.title())
+                                                            .maybe(selected_role.is_some(), |label|
+                                                                label
+                                                                    .color(theme.md.outline.as_argb_u32())
+                                                                    .cursor(CursorIcon::Pointer)
+                                                                    .on_press({
+                                                                        let mut current_page = current_page.clone();
+                                                                        move |_| {
+                                                                            if let Some(v) = current_page
+                                                                                .write()
+                                                                                .as_mut()
+                                                                            {
+                                                                                v.1 = ServerSettingsPage::Roles(None);
+                                                                            }
+                                                                        }
+                                                                    }))
                                                     )
                                                     .maybe_child(selected_role.is_some().then(
                                                         || {
@@ -263,7 +259,7 @@ impl Component for ServerSettingsButton {
                 current_page
                     .read()
                     .as_ref()
-                    .is_some_and(|v| &v.1 == &self.page),
+                    .is_some_and(|(_, page)| discriminant(page) == discriminant(&self.page)),
                 |this| this.background(theme.md.primary_container.as_argb_u32()),
             )
             .child(

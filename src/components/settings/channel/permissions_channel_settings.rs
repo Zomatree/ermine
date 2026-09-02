@@ -8,6 +8,7 @@ use crate::{
         MaterialIcon, PermissionsEditor, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
         material::filled::{chevron_right, list},
+        permission_values,
     },
     consume_material_theme, http, parse_fill, use_initial,
 };
@@ -164,7 +165,7 @@ impl Component for ServerChannelPermissionsOverviewSettings {
                 rect()
                     .spacing(4.)
                     .child(label().font_size(12.).text("Server Roles"))
-                    .child(rect().spacing(8.).children(ordered_roles.read().iter().map(
+                    .child(rect().spacing(4.).children(ordered_roles.read().iter().map(
                         |(role, color)| {
                             let mut role_color =
                                 rect().background(theme.md.outline_variant.as_argb_u32());
@@ -231,7 +232,10 @@ impl Component for GroupPermissionsChannelSettings {
         let mut permissions = use_initial(|| self.permissions);
 
         rect()
-            .child(PermissionsEditor::new_value(permissions))
+            .child(PermissionsEditor::new_value(
+                permissions,
+                permission_values::GROUP_CHANNEL_PERMISSIONS,
+            ))
             .child(
                 rect()
                     .horizontal()
@@ -309,7 +313,10 @@ impl Component for ServerChannelPermissionsSettings {
         let mut permissions = use_initial(|| self.permissions);
 
         rect()
-            .child(PermissionsEditor::new_overrite(permissions))
+            .child(PermissionsEditor::new_overrite(
+                permissions,
+                permission_values::SERVER_CHANNEL_PERMISSIONS,
+            ))
             .child(
                 rect()
                     .horizontal()

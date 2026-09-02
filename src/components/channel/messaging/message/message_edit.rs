@@ -5,7 +5,7 @@ use freya::{
 };
 use stoat_models::v0;
 
-use crate::{AppChannel, http};
+use crate::{AppChannel, consume_material_theme, http};
 
 #[derive(PartialEq)]
 pub struct MessageEdit {
@@ -16,6 +16,7 @@ pub struct MessageEdit {
 
 impl Component for MessageEdit {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::EditingMessage);
         let editing_message = radio.slice_mut_current(|state| &mut state.editing_message);
 
@@ -76,7 +77,8 @@ impl Component for MessageEdit {
                 rect()
                     .padding(8.)
                     .corner_radius(8.)
-                    .background(0xff34343a)
+                    .background(theme.md.surface_container_highest.as_argb_u32())
+                    .cursor(CursorIcon::Text)
                     .child(
                         paragraph()
                             .margin((4., 6.))
@@ -86,7 +88,6 @@ impl Component for MessageEdit {
                             .a11y_auto_focus(true)
                             .a11y_focusable(true)
                             .cursor_index(editable.editor().read().cursor_pos())
-                            // .on_sized(move |_| a11y_id.request_focus())
                             .highlights(
                                 editable
                                     .editor()
@@ -126,6 +127,8 @@ impl Component for MessageEdit {
                                         editable.process_event(EditableEvent::KeyDown {
                                             key: &e.key,
                                             modifiers: e.modifiers,
+                                            editor_line: Some(EditorLine::SingleParagraph),
+                                            holder: Some(&holder.read()),
                                         });
                                     };
                                 }
@@ -148,13 +151,8 @@ impl Component for MessageEdit {
                     .child(
                         rect()
                             .child("cancel")
-                            .color(0xffb9c3ff)
-                            .on_pointer_enter(move |_| {
-                                Cursor::set(CursorIcon::Pointer);
-                            })
-                            .on_pointer_leave(move |_| {
-                                Cursor::set(CursorIcon::default());
-                            })
+                            .color(theme.md.primary.as_argb_u32())
+                            .cursor(CursorIcon::Pointer)
                             .on_press({
                                 let mut editing_message = editing_message.clone();
 
@@ -167,13 +165,8 @@ impl Component for MessageEdit {
                     .child(
                         rect()
                             .child("save")
-                            .color(0xffb9c3ff)
-                            .on_pointer_enter(move |_| {
-                                Cursor::set(CursorIcon::Pointer);
-                            })
-                            .on_pointer_leave(move |_| {
-                                Cursor::set(CursorIcon::default());
-                            })
+                            .color(theme.md.primary.as_argb_u32())
+                            .cursor(CursorIcon::Pointer)
                             .on_press({
                                 let save_message = save_message.clone();
                                 move |_| save_message()

@@ -1,6 +1,12 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
-use freya::prelude::*;
+use freya::{
+    animation::{
+        AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, OnFinish,
+        use_animation_with_dependencies,
+    },
+    prelude::*,
+};
 use stoat_models::v0;
 
 use crate::{
@@ -8,10 +14,11 @@ use crate::{
     components::{
         StoatButton, StoatButtonLayoutThemePartialExt,
         modals::{
-            ChannelDescription, CreateJoinServer, CreateRole, CreateServer, DeleteCategory,
-            DeleteChannel, DeleteInvite, DeleteMessage, EditApi, EditOwnServerIdentity, ErrorModal,
-            InviteInfo, JoinServer, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
-            RenameCategory, ServerInfo,
+            ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer, DeleteBot,
+            DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi,
+            EditOwnServerIdentity, EditRoles, ErrorModal, ImageViewer, InviteBot, InviteInfo,
+            JoinServer, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
+            RenameCategory, ResetBotToken, ServerInfo,
         },
     },
     consume_material_theme,
@@ -71,6 +78,27 @@ pub enum ModalValue {
     MFA {
         callback: EventHandler<v0::MFATicket>,
     },
+    CreateBot {
+        callback: EventHandler<v0::BotWithUserResponse>,
+    },
+    ResetBotToken {
+        id: String,
+        name: String,
+        callback: EventHandler<v0::BotWithUserResponse>,
+    },
+    DeleteBot {
+        id: String,
+        name: String,
+        callback: EventHandler<bool>,
+    },
+    InviteBot {
+        bot: v0::PublicBot,
+    },
+    ImageViewer(Url),
+    EditRoles {
+        user: String,
+        server: String,
+    },
     Error {
         error: Error,
     },
@@ -114,15 +142,45 @@ impl Component for ModalManager {
         let controller = use_modals();
 
         let modal = controller.read().get_modal();
+        let mut last_modal = use_state(|| modal.clone());
+
+        let animation = use_animation_with_dependencies(&modal, move |anim, modal| {
+            anim.on_creation(OnCreation::Run);
+            anim.on_change(OnChange::Rerun);
+            anim.on_finish(OnFinish::Nothing);
+
+            let num = AnimNum::new(0., 1.)
+                .duration(Duration::from_millis(200))
+                .ease(Ease::Out)
+                .function(Function::Expo);
+
+            if modal.is_some() {
+                num
+            } else {
+                num.into_reversed()
+            }
+        });
+
+        use_side_effect(move || {
+            let modal = controller.read().get_modal();
+
+            if modal.is_some() {
+                last_modal.set(modal);
+            } else if animation.read().value() == 0. {
+                last_modal.set(None);
+            };
+        });
+
+        let opacity = animation.get().value();
 
         rect()
             .layer(Layer::OverlayLevel(8))
-            .maybe_child(modal.map(|value| {
-                Modal {
-                    value: value.clone(),
-                }
-                .into_element()
-            }))
+            .opacity(opacity)
+            .maybe_child(
+                modal
+                    .or(last_modal.read().cloned())
+                    .map(|value| Modal { value }.into_element()),
+            )
     }
 }
 
@@ -163,12 +221,7 @@ impl Component for Modal {
                         .child(
                             rect()
                                 .a11y_role(AccessibilityRole::Dialog)
-                                .corner_radius(28.)
-                                .background(theme.md.surface_container_high.as_argb_u32())
                                 .color(theme.md.on_surface.as_argb_u32())
-                                .min_width(Size::px(280.))
-                                .max_width(Size::px(560.))
-                                .padding(24.)
                                 .on_global_key_down(on_global_key_down)
                                 .child(match self.value.clone() {
                                     ModalValue::ServerInfo { server } => {
@@ -221,6 +274,24 @@ impl Component for Modal {
                                         LogoutOtherSessions { callback }.into_element()
                                     }
                                     ModalValue::MFA { callback } => MFA { callback }.into_element(),
+                                    ModalValue::CreateBot { callback } => {
+                                        CreateBot { callback }.into_element()
+                                    }
+                                    ModalValue::ResetBotToken { id, name, callback } => {
+                                        ResetBotToken { id, name, callback }.into_element()
+                                    }
+                                    ModalValue::DeleteBot { id, name, callback } => {
+                                        DeleteBot { id, name, callback }.into_element()
+                                    }
+                                    ModalValue::InviteBot { bot } => {
+                                        InviteBot { bot }.into_element()
+                                    }
+                                    ModalValue::ImageViewer(content) => {
+                                        ImageViewer { content }.into_element()
+                                    }
+                                    ModalValue::EditRoles { user, server } => {
+                                        EditRoles { user, server }.into_element()
+                                    }
                                 }),
                         ),
                 ),
@@ -300,6 +371,12 @@ impl Component for Dialog {
         let mut controller = use_modals();
 
         rect()
+            .min_width(Size::px(232.))
+            .max_width(Size::px(512.))
+            .corner_radius(28.)
+            .background(theme.md.surface_container_high.as_argb_u32())
+            .padding(24.)
+            // .margin(80.)
             .child(
                 rect()
                     .font_size(24.)

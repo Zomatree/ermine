@@ -40,18 +40,14 @@ impl Component for CreateServer {
                             .spacing(4.)
                             .child("By creating this server, you agree to the")
                             .child(
-                                label()
-                                    .color(theme.md.primary.as_argb_u32())
-                                    .on_pointer_enter(move |_| {
-                                        Cursor::set(CursorIcon::Pointer);
-                                    })
-                                    .on_pointer_leave(move |_| {
-                                        Cursor::set(CursorIcon::default());
-                                    })
-                                    .on_press(move |_| {
-                                        open::that_in_background("https://stoat.chat/aup");
-                                    })
-                                    .text("Acceptable Use Policy"),
+                                rect().cursor(CursorIcon::Pointer).child(
+                                    label()
+                                        .color(theme.md.primary.as_argb_u32())
+                                        .on_press(move |_| {
+                                            open::that_in_background("https://stoat.chat/aup");
+                                        })
+                                        .text("Acceptable Use Policy"),
+                                ),
                             ),
                     )
                     .child(SingleLineEntry::new("Server Name", name))
@@ -85,7 +81,7 @@ impl Component for CreateServer {
 
                                 if let Some(first_channel) = response.channels.first() {
                                     *selected_channel.write() =
-                                        Some(first_channel.id().to_string());
+                                        Some((first_channel.id().to_string(), None));
                                 }
 
                                 for channel in response.channels {

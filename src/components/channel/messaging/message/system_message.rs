@@ -1,16 +1,20 @@
+use std::time::SystemTime;
+
 use freya::prelude::*;
+use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
     SizeExt,
     components::{
         MaterialIcon, MessageModel, UserMention,
+        markdown::components::MessageMention,
         material::filled::{
             add, arrow_back, arrow_forward, cancel, clear, format_align_left, image, info, key,
             local_offer, local_police, push_pin, volume_up,
         },
     },
-    consume_material_theme,
+    consume_material_theme, format_duration,
 };
 
 #[derive(PartialEq)]
@@ -131,26 +135,56 @@ impl Component for SystemMessage {
                             user_id: to,
                             server_id: self.server_id.clone(),
                         }),
-                    v0::SystemMessage::MessagePinned { id: _, by } => paragraph()
+                    v0::SystemMessage::MessagePinned { id, by } => paragraph()
                         .child(UserMention {
                             user_id: by,
                             server_id: self.server_id.clone(),
                         })
-                        .span(" pinned <TODO>"),
-                    v0::SystemMessage::MessageUnpinned { id: _, by } => paragraph()
+                        .span(" pinned ")
+                        .child(MessageMention {
+                            channel_id: self.message.message.channel.clone(),
+                            id,
+                            font_size: 14.,
+                        }),
+                    v0::SystemMessage::MessageUnpinned { id, by } => paragraph()
                         .child(UserMention {
                             user_id: by,
                             server_id: self.server_id.clone(),
                         })
-                        .span(" unpinned <TODO>"),
+                        .span(" unpinned ")
+                        .child(MessageMention {
+                            channel_id: self.message.message.channel.clone(),
+                            id,
+                            font_size: 14.,
+                        }),
                     v0::SystemMessage::CallStarted { by, finished_at } => {
                         let p = paragraph().child(UserMention {
                             user_id: by,
                             server_id: self.server_id.clone(),
                         });
 
-                        if let Some(_timestamp) = finished_at {
-                            p.span(" started a call that lasted ").child("<TODO>")
+                        if let Some(timestamp) = finished_at {
+                            let start = Timestamp::try_from(
+                                ulid::Ulid::from_string(&self.message.message.id)
+                                    .unwrap()
+                                    .datetime(),
+                            )
+                            .unwrap();
+
+                            let end = Timestamp::try_from(SystemTime::from(timestamp)).unwrap();
+
+                            p.span(" started a call that lasted ").child(
+                                rect()
+                                    .background(0xff0d1117)
+                                    .padding((1., 4.))
+                                    .corner_radius(12.)
+                                    .child(
+                                        label()
+                                            .color(0xffc9d1d9)
+                                            .line_height(1.5)
+                                            .text(format_duration(end - start)),
+                                    ),
+                            )
                         } else {
                             p.span(" started a call")
                         }

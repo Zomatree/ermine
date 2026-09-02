@@ -1,12 +1,14 @@
+use std::time::SystemTime;
+
 use freya::{prelude::*, radio::use_radio};
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
+    AppChannel, SizeExt,
     components::{
-        Avatar, MessageContent, MessageModel, MessageReply, SystemMessage, UserCard,
-        UserContextMenu, use_floating,
+        Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip,
+        SystemMessage, UserCard, UserContextMenu, material::filled::smart_toy, use_floating,
     },
     consume_material_theme, member_display_color,
 };
@@ -153,12 +155,7 @@ impl Component for Message {
                                 .padding((2., 4.))
                                 .child(
                                     rect()
-                                        .on_pointer_enter(move |_| {
-                                            Cursor::set(CursorIcon::Pointer);
-                                        })
-                                        .on_pointer_leave(move |_| {
-                                            Cursor::set(CursorIcon::default());
-                                        })
+                                        .cursor(CursorIcon::Pointer)
                                         .on_press({
                                             let open_profile = open_profile.clone();
                                             move |_| open_profile()
@@ -198,87 +195,115 @@ impl Component for Message {
                                         .cross_align(Alignment::Center)
                                         .font_size(14)
                                         .child(
-                                            label()
-                                                .text(display_name.read().clone())
-                                                .map(
-                                                    role_color.read().clone(),
-                                                    |mut this, color| {
-                                                        this.get_text_style_data().color =
-                                                            Some(color);
-                                                        this
-                                                    },
-                                                )
-                                                .line_height(1.5)
-                                                .on_pointer_enter(move |_| {
-                                                    Cursor::set(CursorIcon::Pointer);
-                                                })
-                                                .on_pointer_leave(move |_| {
-                                                    Cursor::set(CursorIcon::default());
-                                                })
-                                                .on_press({
-                                                    let open_profile = open_profile.clone();
-                                                    move |_| open_profile()
-                                                }),
+                                            rect().cursor(CursorIcon::Pointer).child(
+                                                label()
+                                                    .max_lines(1)
+                                                    .text(display_name.read().clone())
+                                                    .map(
+                                                        role_color.read().clone(),
+                                                        |mut this, color| {
+                                                            this.get_text_style_data().color =
+                                                                Some(color);
+                                                            this
+                                                        },
+                                                    )
+                                                    .line_height(1.5)
+                                                    .text_overflow(TextOverflow::Ellipsis)
+                                                    .on_press({
+                                                        let open_profile = open_profile.clone();
+                                                        move |_| open_profile()
+                                                    }),
+                                            ),
                                         )
+                                        .maybe_child(self.message.user.read().bot.is_some().then(
+                                            || {
+                                                MaterialIcon::new(smart_toy())
+                                                    .color(theme.md.outline.as_argb_u32())
+                                                    .size(Size::px(16.))
+                                            },
+                                        ))
                                         .maybe_child(pronouns.read().cloned().map(|pronouns| {
                                             rect()
                                                 .horizontal()
                                                 .color(theme.md.outline.as_argb_u32())
                                                 .font_size(12)
                                                 .spacing(8.)
-                                                .child(pronouns)
-                                                .child("·")
+                                                .child(label().max_lines(1).text(pronouns))
+                                                .child(label().max_lines(1).text("·"))
                                         }))
-                                        .child(
-                                            label()
-                                                .text({
-                                                    let datetime = Timestamp::try_from(
-                                                        ulid::Ulid::from_string(
-                                                            &self.message.message.id,
-                                                        )
-                                                        .unwrap()
-                                                        .datetime(),
-                                                    )
+                                        .child({
+                                            let datetime = Timestamp::try_from(
+                                                ulid::Ulid::from_string(&self.message.message.id)
                                                     .unwrap()
-                                                    .to_zoned(TimeZone::system());
+                                                    .datetime(),
+                                            )
+                                            .unwrap()
+                                            .to_zoned(TimeZone::system());
 
-                                                    let now = Timestamp::now()
-                                                        .to_zoned(TimeZone::system());
+                                            let now = Timestamp::now().to_zoned(TimeZone::system());
 
-                                                    if datetime.date() == now.date() {
-                                                        format!(
-                                                            "Today at {:02}:{:02}",
-                                                            datetime.hour(),
-                                                            datetime.minute()
-                                                        )
-                                                    } else if now.date().yesterday().unwrap()
-                                                        == datetime.date()
-                                                    {
-                                                        format!(
-                                                            "Yesterday at {:02}:{:02}",
-                                                            datetime.hour(),
-                                                            datetime.minute()
-                                                        )
-                                                    } else {
-                                                        format!(
-                                                            "{:02}/{:02}/{}",
-                                                            datetime.day(),
-                                                            datetime.month(),
-                                                            datetime.year()
-                                                        )
-                                                    }
-                                                })
-                                                .color(theme.md.outline.as_argb_u32())
-                                                .font_size(12),
-                                        )
-                                        .maybe_child(self.message.message.edited.as_ref().map(
-                                            |_ts| {
+                                            StoatTooltip::new(
                                                 label()
+                                                    .font_size(11.)
+                                                    .max_lines(1)
+                                                    .font_weight(500)
+                                                    .text(format!(
+                                                        "Sent {}",
+                                                        datetime.strftime("%d/%m/%Y %H:%M")
+                                                    )),
+                                            )
+                                            .position(AttachedPosition::Top)
+                                            .child(
+                                                label()
+                                                    .max_lines(1)
+                                                    .font_weight(500)
+                                                    .text({
+                                                        if datetime.date() == now.date() {
+                                                            format!(
+                                                                "Today at {}",
+                                                                datetime.strftime("%H:%M"),
+                                                            )
+                                                        } else if now.date().yesterday().unwrap()
+                                                            == datetime.date()
+                                                        {
+                                                            format!(
+                                                                "Yesterday at {}",
+                                                                datetime.strftime("%H:%M")
+                                                            )
+                                                        } else {
+                                                            datetime
+                                                                .strftime("%d/%m/%Y")
+                                                                .to_string()
+                                                        }
+                                                    })
+                                                    .color(theme.md.outline.as_argb_u32())
+                                                    .font_size(12),
+                                            )
+                                        })
+                                        .maybe_child(self.message.message.edited.map(|ts| {
+                                            let edited = Timestamp::try_from(SystemTime::from(ts))
+                                                .unwrap()
+                                                .to_zoned(TimeZone::system());
+
+                                            StoatTooltip::new(
+                                                label()
+                                                    .font_size(11)
+                                                    .font_weight(500)
+                                                    .max_lines(1)
+                                                    .text(format!(
+                                                        "Edited {}",
+                                                        edited.strftime("%d/%m/%Y %H:%M")
+                                                    )),
+                                            )
+                                            .position(AttachedPosition::Top)
+                                            .child(
+                                                label()
+                                                    .max_lines(1)
                                                     .text("(edited)")
                                                     .font_size(12)
-                                                    .color(theme.md.outline.as_argb_u32())
-                                            },
-                                        )),
+                                                    .color(theme.md.outline.as_argb_u32()),
+                                            )
+                                        })),
                                 )
                                 .child(MessageContent {
                                     channel: self.channel.clone(),

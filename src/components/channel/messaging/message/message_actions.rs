@@ -61,6 +61,9 @@ impl LayoutExt for MessageActions {
 
 impl ContainerExt for MessageActions {}
 
+#[derive(Clone, Copy)]
+pub struct MessageHover(pub State<bool>);
+
 impl Component for MessageActions {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
@@ -88,7 +91,9 @@ impl Component for MessageActions {
             }
         });
 
-        let change_background = use_reactive(&(hovering() || hover_actions()));
+        let mut change_background = use_state(|| false);
+
+        use_hook(|| provide_context(MessageHover(change_background)));
 
         let background = use_animation(move |conf| {
             conf.on_change(OnChange::Rerun);
@@ -97,9 +102,9 @@ impl Component for MessageActions {
             let theme = consume_material_theme();
 
             let start = if mentions_user() {
-                theme.md.primary_container.as_argb_u32().into()
+                theme.md.primary_container.as_argb_u32()
             } else {
-                Color::TRANSPARENT
+                theme.md.surface_container.as_u32()
             };
 
             let anim = AnimColor::new(start, theme.md.surface_container.as_argb_u32())
@@ -140,18 +145,23 @@ impl Component for MessageActions {
             .width(Size::Fill)
             .on_global_key_down(move |e: Event<KeyboardEventData>| {
                 if e.key == Key::Named(NamedKey::Shift) {
-                    shift.set(true);
+                    shift.set_if_modified(true);
                 }
             })
             .on_global_key_up(move |e: Event<KeyboardEventData>| {
                 if e.key == Key::Named(NamedKey::Shift) {
-                    shift.set(false);
+                    shift.set_if_modified(false);
                 }
             })
             .on_pointer_over(move |_| {
-                hovering.set(true);
+                hovering.set_if_modified(true);
+                change_background.set_if_modified(true);
             })
-            .on_pointer_out(move |_| hovering.set_if_modified(false))
+            .on_pointer_out(move |_| {
+                hovering.set_if_modified_and_then(false, || {
+                    change_background.set_if_modified(hover_actions())
+                })
+            })
             .on_secondary_down({
                 let message = self.message.clone();
                 let replies = self.replies;
@@ -170,9 +180,14 @@ impl Component for MessageActions {
             .maybe_child((*hovering.read() || *hover_actions.read()).then(|| {
                 rect()
                     .on_pointer_over(move |_| {
-                        hover_actions.set(true);
+                        hover_actions.set_if_modified(true);
+                        change_background.set_if_modified(true);
                     })
-                    .on_pointer_out(move |_| hover_actions.set_if_modified(false))
+                    .on_pointer_out(move |_| {
+                        hover_actions.set_if_modified_and_then(false, || {
+                            change_background.set_if_modified(hovering())
+                        })
+                    })
                     .position(Position::new_absolute().right(16.).top(-18.))
                     .corner_radius(4.)
                     .overflow(Overflow::Clip)

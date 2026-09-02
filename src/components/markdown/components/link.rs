@@ -24,32 +24,32 @@ impl Component for Link {
         let mut modals = use_modals();
         let mut hover = use_state(|| false);
 
-        render_content(
-            paragraph(),
-            &self.content,
-            self.font_size,
-            theme,
-            self.bold,
-            true,
-            hover(),
-        )
-        // .text_decoration(if hover() { TextDecoration::Underline } else { TextDecoration::None })
-        .on_press({
-            let url = self.url.clone();
+        rect().cursor(CursorIcon::Pointer).child(
+            render_content(
+                paragraph(),
+                &self.content,
+                self.font_size,
+                theme,
+                self.bold,
+                true,
+                hover(),
+            )
+            // .text_decoration(if hover() { TextDecoration::Underline } else { TextDecoration::None })
+            .on_press({
+                let url = self.url.clone();
 
-            move |_| {
-                modals
-                    .write()
-                    .push_modal(ModalValue::OpenLink { url: url.clone() });
-            }
-        })
-        .on_pointer_enter(move |_| {
-            hover.set_if_modified(true);
-            Cursor::set(CursorIcon::Pointer);
-        })
-        .on_pointer_leave(move |_| {
-            hover.set_if_modified(false);
-            Cursor::set(CursorIcon::default());
-        })
+                move |_| {
+                    modals
+                        .write()
+                        .push_modal(ModalValue::OpenLink { url: url.clone() });
+                }
+            })
+            .on_pointer_enter(move |_| {
+                hover.set_if_modified(true);
+            })
+            .on_pointer_leave(move |_| {
+                hover.set_if_modified(false);
+            }),
+        )
     }
 }

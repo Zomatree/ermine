@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -512,4 +512,51 @@ pub enum ClientMessage {
 pub struct Account {
     pub id: String,
     pub email: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct CategoriesQueryParams {
+    pub locale: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PaginatedMediaResponse {
+    pub results: Vec<MediaResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MediaResult {
+    pub id: String,
+    pub media_formats: HashMap<String, MediaObject>,
+    pub url: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MediaObject {
+    pub url: String,
+    pub dimensions: Vec<u64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct CategoryResponse {
+    pub title: String,
+    pub image: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct SearchQueryParams {
+    pub query: String,
+    pub locale: String,
+    pub limit: Option<u32>,
+    pub is_category: Option<bool>,
+    pub position: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct TrendingQueryParams {
+    pub locale: String,
+    pub limit: Option<u32>,
+    pub position: Option<String>,
 }

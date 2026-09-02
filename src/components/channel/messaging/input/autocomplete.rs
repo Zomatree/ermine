@@ -262,14 +262,10 @@ impl Component for Autocomplete {
             }
         });
 
-        let filtered = use_memo({
+        use_side_effect({
             let mut visible = self.visible;
             move || {
-                let filtered = filtered.read().cloned();
-
-                visible.set(!filtered.is_empty());
-
-                filtered
+                visible.set(!filtered.read().is_empty());
             }
         });
 

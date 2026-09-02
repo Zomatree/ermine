@@ -2,7 +2,10 @@ use freya::prelude::*;
 
 use crate::{
     components::markdown::{
-        components::{ChannelMention, Emoji, Hyperlink, Link, RoleMention, Spoiler, UserMention},
+        components::{
+            ChannelMention, Emoji, Hyperlink, Link, MessageMention, RoleMention, Spoiler,
+            UserMention,
+        },
         parser::Inline,
     },
     theme::Theme,
@@ -78,6 +81,11 @@ pub fn render_content(
             }),
             Inline::RoleMention { id } => p.child(RoleMention {
                 id: id.clone(),
+                font_size: base_font_size,
+            }),
+            Inline::MessageMention { channel_id, id } => p.child(MessageMention {
+                id: id.clone(),
+                channel_id: channel_id.clone(),
                 font_size: base_font_size,
             }),
             Inline::Emoji { id } => p.child(Emoji {

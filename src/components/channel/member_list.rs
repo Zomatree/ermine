@@ -4,18 +4,18 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
+    AppChannel, OptionalReadable, SizeExt,
     components::{
-        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, UserContextMenu,
-        file_image, use_floating,
+        Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
     },
-    http, member_display_color,
+    consume_material_theme, http, map_optional_readable, member_display_color,
 };
 
 #[derive(Clone)]
 enum ListValue {
     Name(String, Option<v0::File>, usize),
-    Member(Readable<v0::User>, Readable<v0::Member>),
+    Member(Readable<v0::User>, OptionalReadable<v0::Member>, bool),
 }
 
 impl PartialEq for ListValue {
@@ -24,7 +24,9 @@ impl PartialEq for ListValue {
             (Self::Name(name0, icon0, length0), Self::Name(name1, icon1, length1)) => {
                 name0 == name1 && icon0 == icon1 && length0 == length1
             }
-            (Self::Member(user0, _), Self::Member(user1, _)) => user0.peek().id == user1.peek().id,
+            (Self::Member(user0, _, _), Self::Member(user1, _, _)) => {
+                user0.peek().id == user1.peek().id
+            }
             _ => false,
         }
     }
@@ -151,7 +153,7 @@ impl Component for MemberList {
                     let members = groups.remove(&role.id).unwrap();
 
                     if !members.is_empty() {
-                        out.push((role.name.clone(), role.icon.clone(), members));
+                        out.push((role.name.clone(), role.icon.clone(), members, true));
                     };
                 }
 
@@ -159,11 +161,11 @@ impl Component for MemberList {
                 let offline = groups.remove("offline").unwrap();
 
                 if !default.is_empty() {
-                    out.push(("Online".to_string(), None, default));
+                    out.push(("Online".to_string(), None, default, true));
                 };
 
                 if !offline.is_empty() {
-                    out.push(("Offline".to_string(), None, offline));
+                    out.push(("Offline".to_string(), None, offline, false));
                 };
 
                 out
@@ -171,12 +173,12 @@ impl Component for MemberList {
         });
 
         let role_members = use_memo({
-            let server_id = self.server.peek().id.clone();
+            let members: Readable<HashMap<String, v0::Member>> = slice.clone().into_readable();
 
             move || {
                 let mut out = Vec::new();
 
-                for (role, icon, user_ids) in groups.read().iter() {
+                for (role, icon, user_ids, is_online) in groups.read().iter() {
                     let mut users = user_ids
                         .iter()
                         .cloned()
@@ -186,21 +188,13 @@ impl Component for MemberList {
                                 move |state| state.users.get(&user_id).unwrap()
                             });
 
-                            let member = radio.slice(AppChannel::Members, {
-                                let server_id = server_id.clone();
-                                move |state| {
-                                    state
-                                        .members
-                                        .get(&server_id)
-                                        .unwrap()
-                                        .get(&user_id)
-                                        .unwrap()
-                                }
+                            let member = map_optional_readable(members.clone(), move |members| {
+                                members.get(&user_id)
                             });
 
-                            (user.into_readable(), member.into_readable())
+                            (user.into_readable(), member)
                         })
-                        .collect::<Vec<(Readable<v0::User>, Readable<v0::Member>)>>();
+                        .collect::<Vec<(Readable<v0::User>, OptionalReadable<v0::Member>)>>();
 
                     users.sort_by(|(user1, member1), (user2, member2)| {
                         let user1 = user1.read();
@@ -210,15 +204,15 @@ impl Component for MemberList {
                         let member2 = member2.read();
 
                         let a = member1
-                            .nickname
                             .as_ref()
+                            .and_then(|m| m.nickname.as_ref())
                             .or(user1.display_name.as_ref())
                             .unwrap_or(&user1.username)
                             .to_ascii_lowercase();
 
                         let b = member2
-                            .nickname
                             .as_ref()
+                            .and_then(|m| m.nickname.as_ref())
                             .or(user2.display_name.as_ref())
                             .unwrap_or(&user2.username)
                             .to_ascii_lowercase();
@@ -254,7 +248,7 @@ impl Component for MemberList {
                         // }
                     });
 
-                    out.push((role.clone(), icon.clone(), users));
+                    out.push((role.clone(), icon.clone(), *is_online, users));
                 }
 
                 out
@@ -270,11 +264,11 @@ impl Component for MemberList {
             move || {
                 let mut elements = Vec::new();
 
-                for (title, icon, members) in role_members.read().iter() {
+                for (title, icon, is_online, members) in role_members.read().iter() {
                     elements.push(ListValue::Name(title.clone(), icon.clone(), members.len()));
 
                     for (user, member) in members.clone() {
-                        elements.push(ListValue::Member(user, member));
+                        elements.push(ListValue::Member(user, member, *is_online));
                     }
                 }
 
@@ -304,10 +298,11 @@ impl Component for MemberList {
                             }))
                             .child(label().text(format!("{name} - {count}")).font_size(11.))
                             .into_element(),
-                        ListValue::Member(user, member) => MemberListMember {
+                        ListValue::Member(user, member, is_online) => MemberListMember {
                             server: server.clone(),
                             member,
                             user,
+                            is_online,
                         }
                         .into_element(),
                     }
@@ -322,19 +317,27 @@ impl Component for MemberList {
 #[derive(PartialEq)]
 pub struct MemberListMember {
     pub server: Readable<v0::Server>,
-    pub member: Readable<v0::Member>,
+    pub member: OptionalReadable<v0::Member>,
     pub user: Readable<v0::User>,
+    pub is_online: bool,
 }
 
 impl Component for MemberListMember {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let floating = use_floating();
 
         let role_color = use_memo({
             let server = self.server.clone();
             let member = self.member.clone();
 
-            move || member_display_color(&member.read(), &server.read())
+            move || {
+                if let Some(member) = member.read() {
+                    member_display_color(&member, &server.read())
+                } else {
+                    None
+                }
+            }
         });
 
         let display_name = use_memo({
@@ -342,13 +345,18 @@ impl Component for MemberListMember {
             let member = self.member.clone();
 
             move || {
-                member.read().nickname.clone().unwrap_or_else(|| {
-                    let user = user.read();
+                member
+                    .read()
+                    .and_then(|m| m.nickname.clone())
+                    .unwrap_or_else(|| {
+                        let user = user.read();
 
-                    user.display_name.as_ref().unwrap_or(&user.username).clone()
-                })
+                        user.display_name.as_ref().unwrap_or(&user.username).clone()
+                    })
             }
         });
+
+        let is_bot = use_hook(|| self.user.read().bot.is_some());
 
         rect()
             .padding((0., 8.))
@@ -365,7 +373,7 @@ impl Component for MemberListMember {
                             floating.clone().set(Some(
                                 UserCard {
                                     user: user.clone(),
-                                    member: Some(member.clone()),
+                                    member: member.read().map(|m| m.clone().into_readable()),
                                 }
                                 .into_element(),
                             ));
@@ -373,6 +381,7 @@ impl Component for MemberListMember {
                     })
                     .child(
                         rect()
+                            .opacity(if self.is_online { 1. } else { 0.4 })
                             .padding((0., 8.))
                             .horizontal()
                             .expanded()
@@ -392,21 +401,40 @@ impl Component for MemberListMember {
                                 }
                             })
                             .child(
-                                Avatar::new(self.user.clone(), Some(self.member.clone()), 32.)
-                                    .presence(true),
+                                Avatar::new(
+                                    self.user.clone(),
+                                    self.member.read().map(|m| m.clone().into_readable()),
+                                    32.,
+                                )
+                                .presence(self.is_online),
                             )
                             .child(
                                 rect()
                                     .child(
-                                        label()
-                                            .text(display_name.read().clone())
-                                            .map(role_color.read().clone(), |mut this, color| {
-                                                this.get_text_style_data().color = Some(color);
-                                                this
-                                            })
-                                            .font_size(14)
-                                            .max_lines(1)
-                                            .text_overflow(TextOverflow::Ellipsis),
+                                        rect()
+                                            .horizontal()
+                                            .spacing(4.)
+                                            .cross_align(Alignment::Center)
+                                            .child(
+                                                label()
+                                                    .text(display_name.read().clone())
+                                                    .map(
+                                                        role_color.read().clone(),
+                                                        |mut this, color| {
+                                                            this.get_text_style_data().color =
+                                                                Some(color);
+                                                            this
+                                                        },
+                                                    )
+                                                    .font_size(14)
+                                                    .max_lines(1)
+                                                    .text_overflow(TextOverflow::Ellipsis),
+                                            )
+                                            .maybe_child(is_bot.then(|| {
+                                                MaterialIcon::new(smart_toy())
+                                                    .color(theme.md.outline.as_argb_u32())
+                                                    .size(Size::px(12.))
+                                            })),
                                     )
                                     .maybe_child(
                                         self.user
@@ -439,11 +467,20 @@ impl Component for MemberListMember {
                                                     }))
                                             })
                                             .map(|text| {
-                                                label()
-                                                    .text(text)
-                                                    .font_size(11)
-                                                    .max_lines(1)
-                                                    .text_overflow(TextOverflow::Ellipsis)
+                                                StoatTooltip::new(
+                                                    label()
+                                                        .font_size(11)
+                                                        .max_lines(1)
+                                                        .text(text.clone()),
+                                                )
+                                                .position(AttachedPosition::Top)
+                                                .child(
+                                                    label()
+                                                        .text(text)
+                                                        .font_size(11)
+                                                        .max_lines(1)
+                                                        .text_overflow(TextOverflow::Ellipsis),
+                                                )
                                             }),
                                     ),
                             ),
@@ -452,6 +489,6 @@ impl Component for MemberListMember {
     }
 
     fn render_key(&self) -> DiffKey {
-        (&self.member.peek().id).into()
+        (&self.user.peek().id).into()
     }
 }

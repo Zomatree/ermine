@@ -85,12 +85,6 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
             }
         });
 
-        use_drop(move || {
-            if hovering() {
-                Cursor::set(CursorIcon::default());
-            }
-        });
-
         use_side_effect(move || {
             let platform = Platform::get();
             let should_close = platform
@@ -112,12 +106,10 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
 
         let on_pointer_enter = move |_| {
             *hovering.write() = true;
-            Cursor::set(CursorIcon::Pointer);
         };
 
         let on_pointer_leave = move |_| {
             *hovering.write() = false;
-            Cursor::set(CursorIcon::default());
         };
 
         let on_global_pointer_press = move |_: Event<PointerEventData>| {
@@ -172,6 +164,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                             .a11y_member_of(a11y_id)
                             .a11y_role(AccessibilityRole::ListBox)
                             .a11y_focusable(Focusable::Enabled)
+                            .cursor(CursorIcon::Pointer)
                             .on_pointer_enter(on_pointer_enter)
                             .on_pointer_leave(on_pointer_leave)
                             .on_press(on_press)
@@ -230,6 +223,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                 .background(theme.md.surface_container.as_argb_u32())
                                 .opacity(opacity)
                                 .shadow(Shadow::new().blur(8.).y(2.).color(0x33000000))
+                                .on_wheel(|e: Event<WheelEventData>| e.stop_propagation())
                                 .child(
                                     ScrollView::new()
                                         .max_height(Size::window_percent(40.))

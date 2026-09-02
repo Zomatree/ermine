@@ -98,7 +98,7 @@ impl Component for Category {
                         .or({
                             let selected = selected_channel.read();
 
-                            if let Some(id) = &*selected
+                            if let Some((id, _)) = &*selected
                                 && let Some(channel) = channels
                                     .read()
                                     .iter()
@@ -135,12 +135,6 @@ impl Component for CategoryHeader {
         let mut config = use_config();
         let mut hovering = use_state(|| false);
 
-        use_drop(move || {
-            if hovering() {
-                Cursor::set(CursorIcon::default());
-            }
-        });
-
         rect()
             .color(
                 if hovering() {
@@ -155,12 +149,7 @@ impl Component for CategoryHeader {
                 hovering.set(true);
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
-            .on_pointer_enter(move |_| {
-                Cursor::set(CursorIcon::Pointer);
-            })
-            .on_pointer_leave(move |_| {
-                Cursor::set(CursorIcon::default());
-            })
+            .cursor(CursorIcon::Pointer)
             .on_press({
                 let category_id = self.category.read().id.clone();
                 let is_expanded = self.is_expanded.clone();
@@ -208,6 +197,7 @@ impl Component for CategoryHeader {
                     .child(
                         label()
                             .font_size(13)
+                            .font_weight(500)
                             .max_lines(1)
                             .text_overflow(TextOverflow::Ellipsis)
                             .text(self.category.read().title.clone()),

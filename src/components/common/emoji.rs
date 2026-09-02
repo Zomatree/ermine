@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::{Tag, http};
+use crate::{Tag, components::AnimatedImage, http};
 
 #[derive(PartialEq)]
 pub struct Emoji {
@@ -36,13 +36,9 @@ impl Component for Emoji {
                 &self.value
             );
 
-            ImageViewer::new(url.parse::<Url>().unwrap())
+            AnimatedImage::new(url.parse::<Url>().unwrap())
                 .sampling_mode(SamplingMode::Trilinear)
                 .layout(self.layout.clone())
-                .error_renderer({
-                    let layout = self.layout.clone();
-                    move |_| rect().layout(layout.clone()).into_element()
-                })
                 .into_element()
         } else {
             let codes = self

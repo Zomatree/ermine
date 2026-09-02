@@ -1,18 +1,21 @@
 use freya::prelude::*;
 use stoat_models::v0;
 
-use crate::{components::file_image, consume_material_theme};
+use crate::{SizeExt, components::file_image, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct ServerIcon {
     server: Readable<v0::Server>,
+    size: f32,
 }
 
 impl ServerIcon {
-    pub fn new(server: impl IntoReadable<v0::Server>) -> Self {
-        Self {
-            server: server.into_readable(),
-        }
+    pub fn new(server: impl IntoReadable<v0::Server>, size: f32) -> Self {
+        Self::from_readable(server.into_readable(), size)
+    }
+
+    pub fn from_readable(server: Readable<v0::Server>, size: f32) -> Self {
+        Self { server, size }
     }
 }
 
@@ -22,11 +25,11 @@ impl Component for ServerIcon {
         let server = self.server.read();
 
         match &server.icon {
-            Some(file) => file_image(file).into_element(),
+            Some(file) => file_image(file).size(Size::px(self.size)).into_element(),
             None => rect()
                 .background(theme.md.surface_container_low.as_argb_u32())
-                .width(Size::Fill)
-                .height(Size::Fill)
+                .size(Size::px(self.size))
+                .font_size((12. / 32.) * self.size)
                 .center()
                 .child(
                     server

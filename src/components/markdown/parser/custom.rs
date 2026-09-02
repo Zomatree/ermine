@@ -8,6 +8,7 @@ pub enum InlineParserElement {
     Text(String),
     UserMention(String),
     ChannelMention(String),
+    MessageLink(String, String),
     RoleMention(String),
     Emoji(String),
     Link {
@@ -94,8 +95,27 @@ pub fn hyperlink_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserE
         .filter(|c: &char| !c.is_whitespace())
         .repeated()
         .collect::<String>()
-        .filter(|text| Url::parse(text).is_ok_and(|url| ["https", "http"].contains(&url.scheme())))
-        .map(InlineParserElement::Hyperlink)
+        .filter_map(|text| Url::parse(&text).ok())
+        .filter(|url| ["https", "http"].contains(&url.scheme()))
+        .map(|url| {
+            if url.host_str() == Some("stoat.chat")
+                && let Some(path) = url.path_segments()
+            {
+                match path.collect::<Vec<_>>().as_slice() {
+                    ["server", _, "channel", channel_id] | ["channel", channel_id] => {
+                        InlineParserElement::ChannelMention(channel_id.to_string())
+                    }
+                    ["server", _, "channel", channel_id, message_id]
+                    | ["channel", channel_id, message_id] => InlineParserElement::MessageLink(
+                        channel_id.to_string(),
+                        message_id.to_string(),
+                    ),
+                    _ => InlineParserElement::Hyperlink(url.to_string()),
+                }
+            } else {
+                InlineParserElement::Hyperlink(url.to_string())
+            }
+        })
 }
 
 pub fn custom_element_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserElement> {
@@ -136,6 +156,9 @@ pub fn map_element(
         }),
         InlineParserElement::UserMention(id) => Inline::UserMention { id },
         InlineParserElement::ChannelMention(id) => Inline::ChannelMention { id },
+        InlineParserElement::MessageLink(channel_id, id) => {
+            Inline::MessageMention { channel_id, id }
+        }
         InlineParserElement::RoleMention(id) => Inline::RoleMention { id },
         InlineParserElement::Emoji(id) => Inline::Emoji { id },
         InlineParserElement::Link { url, title, text } => Inline::Link {

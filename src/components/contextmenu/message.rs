@@ -40,7 +40,7 @@ impl Component for MessageContextMenu {
 
         let mut floating = use_floating();
         let mut modals = use_modals();
-        let editable = use_consume::<Option<UseEditable>>();
+        let editable = consume_root_context::<Option<UseEditable>>();
 
         rect()
             .content(Content::Fit)

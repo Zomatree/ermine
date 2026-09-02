@@ -45,10 +45,10 @@ impl Component for MaterialIcon {
         let mut inherited_color = use_state::<Option<Color>>(|| None);
 
         rect()
+            .layout(self.layout.clone())
             .child(
                 SvgViewer::new(self.content.clone())
                     .accessibility(self.accessibility.clone())
-                    .layout(self.layout.clone())
                     .image_data(self.image_data.clone())
                     .effect(self.effect.clone())
                     .event_handlers(self.event_handlers.clone())

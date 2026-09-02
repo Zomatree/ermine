@@ -3,17 +3,20 @@ use std::{
     ops::{Deref, DerefMut},
     rc::Rc,
     sync::{Arc, LazyLock},
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 
-use freya::{prelude::*, radio::Readable};
+use freya::{
+    prelude::*,
+    radio::{Radio, Readable},
+};
 use indexmap::IndexMap;
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
 use crate::{
-    ChannelUnread, LocalFile, NotificationBadge, NotificationsSettings, Tag, color::parse_fill,
-    http,
+    AppChannel, AppState, ChannelUnread, LocalFile, NotificationBadge, NotificationsSettings, Tag,
+    color::parse_fill, http,
 };
 
 pub fn map_readable<T, U: PartialEq>(
@@ -103,6 +106,12 @@ impl<T: 'static> OptionalReadable<T> {
 
     pub fn peek(&self) -> Option<ReadableRef<T>> {
         (self.peek_fn)()
+    }
+}
+
+impl<T: 'static> PartialEq for OptionalReadable<T> {
+    fn eq(&self, _other: &Self) -> bool {
+        true
     }
 }
 
@@ -246,6 +255,14 @@ pub struct Initial<T> {
     initial: State<T>,
     current: State<T>,
 }
+
+impl<T: 'static> PartialEq for Initial<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.initial == other.initial && self.current == other.current
+    }
+}
+
+impl<T: 'static> Eq for Initial<T> {}
 
 impl<T> Clone for Initial<T> {
     fn clone(&self) -> Self {
@@ -401,6 +418,67 @@ pub async fn prompt_image_upload(tag: Tag) -> Option<String> {
     None
 }
 
+pub fn get_channel_name(radio: &Radio<AppState, AppChannel>, channel: &v0::Channel) -> String {
+    match channel {
+        v0::Channel::SavedMessages { .. } => "Saved Messages".to_string(),
+        v0::Channel::DirectMessage { recipients, .. } => {
+            let state = radio.peek_state();
+            let user_id = state.user_id.as_ref().unwrap();
+
+            let other = recipients.iter().find(|id| id != &user_id).unwrap();
+
+            let users = radio.slice(AppChannel::Users, |state| &state.users);
+
+            users.read().get(other).unwrap().username.clone()
+        }
+        v0::Channel::Group { name, .. } => name.clone(),
+        v0::Channel::TextChannel { name, .. } => name.clone(),
+    }
+}
+
+pub fn proxy_url(url: &str) -> Url {
+    format!(
+        "{}/proxy?url={}",
+        http().api_config.features.january.url,
+        url
+    )
+    .parse::<Url>()
+    .unwrap()
+}
+
+pub fn format_autumn_url(file: &v0::File) -> Url {
+    let url = if matches!(
+        file.metadata,
+        v0::Metadata::Image {
+            animated: Some(true),
+            ..
+        }
+    ) && &file.tag == "avatars"
+    {
+        format!(
+            "{}/{}/{}/original",
+            http().api_config.features.autumn.url,
+            &file.tag,
+            &file.id
+        )
+    } else {
+        format!(
+            "{}/{}/{}",
+            http().api_config.features.autumn.url,
+            &file.tag,
+            &file.id
+        )
+    };
+
+    url.parse().unwrap()
+}
+
+pub fn format_duration(duration: jiff::Span) -> String {
+    format!(
+        "{:#}",
+        duration.nanoseconds(0).microseconds(0).milliseconds(0)
+    )
+}
 // pub fn map_optional_readable<T, U>(
 //     readable: Readable<T>,
 //     f: impl Fn(&T) -> Option<&U> + 'static,

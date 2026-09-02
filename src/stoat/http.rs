@@ -13,24 +13,26 @@ use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_string};
 use stoat_models::v0::{
-    AllMemberResponse, AuditLogQueryResponse, BanListResult, BulkMessageResponse, Channel,
-    ChannelUnread, CreateServerLegacyResponse, CreateVoiceUserResponse, CreateWebhookBody,
-    DataBanCreate, DataCreateEmoji, DataCreateRole, DataCreateServer, DataCreateServerChannel,
-    DataDefaultChannelPermissions, DataEditChannel, DataEditMessage, DataEditRole,
-    DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
-    DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions,
-    DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite,
-    InviteJoinResponse, MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse,
-    NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers,
-    OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete,
-    OptionsUnreact, ResponseWebhook, Role, Server, ServerBan, SessionInfo, User, UserProfile,
-    UserSettings, Webhook,
+    AllMemberResponse, AuditLogQueryResponse, BanListResult, BotWithUserResponse,
+    BulkMessageResponse, Channel, ChannelUnread, CreateServerLegacyResponse,
+    CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataCreateBot, DataCreateEmoji,
+    DataCreateRole, DataCreateServer, DataCreateServerChannel, DataDefaultChannelPermissions,
+    DataEditBot, DataEditChannel, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer,
+    DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch,
+    DataMessageSend, DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission,
+    Emoji, FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
+    MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse, NewRoleResponse,
+    OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer,
+    OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete, OptionsUnreact,
+    OwnedBotsResponse, PublicBot, ResponseWebhook, Role, Server, ServerBan, SessionInfo, User,
+    UserProfile, UserSettings, Webhook,
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
 
 use crate::{
-    Session,
+    CategoriesQueryParams, CategoryResponse, PaginatedMediaResponse, SearchQueryParams, Session,
+    TrendingQueryParams,
     error::{Error, Result},
     types::{AutumnResponse, DataLogin, ResponseLogin, StoatConfig},
 };
@@ -51,6 +53,7 @@ pub struct RatelimitEntry {
 enum Service {
     Api,
     Autumn,
+    Gifbox,
 }
 
 pub struct LocalFile {
@@ -147,6 +150,25 @@ impl HttpClient {
         HttpRequest {
             ratelimits: self.ratelimits.clone(),
             service: Service::Autumn,
+            builder,
+            query: None,
+        }
+    }
+
+    /// Creates a raw gifbox http request for a specific method and route.
+    pub fn gifbox_request(&self, method: Method, route: impl AsRef<str>) -> HttpRequest {
+        let mut builder = self
+            .inner
+            .request(method, format!("https://api.gifbox.me{}", route.as_ref()))
+            .header("Accept", "application/json");
+
+        if let Some(session) = &*self.session.read().unwrap() {
+            builder = builder.header("x-session-token", session.token.clone());
+        }
+
+        HttpRequest {
+            ratelimits: self.ratelimits.clone(),
+            service: Service::Gifbox,
             builder,
             query: None,
         }
@@ -885,6 +907,76 @@ impl HttpClient {
             .send()
             .await
     }
+
+    pub async fn get_me_bots(&self) -> Result<OwnedBotsResponse> {
+        self.request(Method::GET, "/bots/@me").response().await
+    }
+
+    pub async fn create_bot(&self, data: &DataCreateBot) -> Result<BotWithUserResponse> {
+        self.request(Method::POST, "/bots/create")
+            .body(data)
+            .response()
+            .await
+    }
+
+    pub async fn edit_bot(&self, bot_id: &str, data: &DataEditBot) -> Result<BotWithUserResponse> {
+        self.request(Method::PATCH, format!("/bots/{bot_id}"))
+            .body(data)
+            .response()
+            .await
+    }
+
+    pub async fn delete_bot(&self, bot_id: &str) -> Result<()> {
+        self.request(Method::DELETE, format!("/bots/{bot_id}"))
+            .send()
+            .await
+    }
+
+    pub async fn fetch_public_bot(&self, bot_id: &str) -> Result<PublicBot> {
+        self.request(Method::GET, format!("/bots/{bot_id}/invite"))
+            .response()
+            .await
+    }
+
+    pub async fn invite_bot(&self, bot_id: &str, data: &InviteBotDestination) -> Result<()> {
+        self.request(Method::POST, format!("/bots/{bot_id}/invite"))
+            .body(data)
+            .send()
+            .await
+    }
+
+    pub async fn logout(&self) -> Result<()> {
+        self.request(Method::POST, "/auth/session/logout")
+            .send()
+            .await
+    }
+
+    pub async fn fetch_gif_categories(
+        &self,
+        query: &CategoriesQueryParams,
+    ) -> Result<Vec<CategoryResponse>> {
+        self.gifbox_request(Method::GET, "/categories")
+            .query(query)
+            .response()
+            .await
+    }
+
+    pub async fn fetch_gif_trending(
+        &self,
+        query: &TrendingQueryParams,
+    ) -> Result<PaginatedMediaResponse> {
+        self.gifbox_request(Method::GET, "/trending")
+            .query(query)
+            .response()
+            .await
+    }
+
+    pub async fn search_gifs(&self, query: &SearchQueryParams) -> Result<PaginatedMediaResponse> {
+        self.gifbox_request(Method::GET, "/search")
+            .query(query)
+            .response()
+            .await
+    }
 }
 
 pub struct HttpRequest {
@@ -948,6 +1040,16 @@ impl HttpRequest {
 
                 match (request.method(), path.as_slice()) {
                     (&Method::POST, &[tag]) => ("upload", Some(tag)),
+                    _ => ("any", None),
+                }
+            }
+            Service::Gifbox => {
+                let path = request.url().path_segments().unwrap().next();
+
+                match path {
+                    Some("categories") => ("categories", None),
+                    Some("trending") => ("trending", None),
+                    Some("search") => ("search", None),
                     _ => ("any", None),
                 }
             }
@@ -1032,6 +1134,11 @@ impl HttpRequest {
         }
 
         let response = client.execute(request).await?;
+
+        if response.status().as_u16() == 502 {
+            log::error!("502 Error: {:?}", response.text().await?);
+            return Err(Error::InternalError);
+        };
 
         let remaining = response
             .headers()

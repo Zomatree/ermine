@@ -1,14 +1,22 @@
-use freya::{prelude::*, radio::use_radio};
+use std::mem::discriminant;
+
+use freya::{
+    prelude::*,
+    radio::{use_radio, use_radio_station},
+};
 
 use crate::{
-    AppChannel, SettingsPage, SizeExt,
+    AppChannel, AppState, Config, SettingsPage, SizeExt,
     components::{
-        AccountSettings, AppearanceSettings, Avatar, MaterialIcon, ProfileSettings,
+        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings,
         SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
-        material::{filled::clear, outlined::logout},
+        material::{
+            filled::clear,
+            outlined::{chevron_right, logout},
+        },
     },
-    consume_material_theme,
+    consume_material_theme, http,
     theme::Theme,
     use_config,
 };
@@ -85,7 +93,7 @@ impl Component for Settings {
                                     .child(settings_category(
                                         "STOAT",
                                         &theme,
-                                        &[SettingsPage::MyBots, SettingsPage::Feedback],
+                                        &[SettingsPage::MyBots(None), SettingsPage::Feedback],
                                     ))
                                     .child(settings_category(
                                         "CLIENT SETTINGS",
@@ -140,13 +148,54 @@ impl Component for Settings {
                                         current_page.read().clone().map(|page| {
                                             rect()
                                                 .spacing(8.)
-                                                .child(
-                                                    label()
-                                                        .text(page.title())
+                                                .child({
+                                                    let selected_bot =
+                                                        if let SettingsPage::MyBots(bot) =
+                                                            page.clone()
+                                                        {
+                                                            bot
+                                                        } else {
+                                                            None
+                                                        };
+
+                                                    rect()
+                                                        .cross_align(Alignment::Center)
+                                                        .spacing(8.)
                                                         .font_size(22)
-                                                        .line_height(1.75)
-                                                        .font_weight(550),
-                                                )
+                                                        .font_weight(550)
+                                                        .horizontal()
+                                                        .child(
+                                                            rect()
+                                                                .child(page.title())
+                                                                .maybe(selected_bot.is_some(), |label| {
+                                                                    label
+                                                                        .color(theme.md.outline.as_argb_u32())
+                                                                        .cursor(CursorIcon::Pointer)
+                                                                        .on_press({
+                                                                            let mut current_page =
+                                                                                current_page.clone();
+                                                                            move |_| {
+                                                                                if let Some(v) = current_page
+                                                                                    .write()
+                                                                                    .as_mut()
+                                                                                {
+                                                                                    *v = SettingsPage::MyBots(None);
+                                                                                }
+                                                                            }
+                                                                        })
+                                                                    })
+                                                        )
+                                                    .maybe_child(selected_bot.is_some().then(
+                                                        || {
+                                                            MaterialIcon::new(chevron_right())
+                                                                .size(Size::px(14.))
+                                                                .color(
+                                                                    theme.md.outline.as_argb_u32(),
+                                                                )
+                                                        },
+                                                    ))
+                                                    .maybe_child(selected_bot.map(|(_id, name)| label().text(name)))
+                                                })
                                                 .child(match page {
                                                     SettingsPage::Account => {
                                                         AccountSettings {}.into_element()
@@ -157,8 +206,8 @@ impl Component for Settings {
                                                     SettingsPage::Sessions => {
                                                         SessionsSettings {}.into_element()
                                                     }
-                                                    SettingsPage::MyBots => {
-                                                        "Coming soon!".into_element()
+                                                    SettingsPage::MyBots(selected_bot) => {
+                                                        BotsSettings { selected_bot }.into_element()
                                                     }
                                                     SettingsPage::Feedback => {
                                                         "Coming soon!".into_element()
@@ -270,9 +319,13 @@ impl Component for SettingsButton {
 
         StoatButton::new()
             .corner_radius(8.)
-            .maybe(*current_page.read() == Some(self.page), |this| {
-                this.background(theme.md.primary_container.as_argb_u32())
-            })
+            .maybe(
+                current_page
+                    .read()
+                    .as_ref()
+                    .is_some_and(|page| discriminant(page) == discriminant(&self.page)),
+                |this| this.background(theme.md.primary_container.as_argb_u32()),
+            )
             .child(
                 rect()
                     .horizontal()
@@ -290,8 +343,8 @@ impl Component for SettingsButton {
             )
             .on_press({
                 let mut current_page = current_page.clone();
-                let page = self.page;
-                move |_| *current_page.write() = Some(page)
+                let page = self.page.clone();
+                move |_| *current_page.write() = Some(page.clone())
             })
     }
 }
@@ -311,7 +364,7 @@ fn settings_category(title: &'static str, theme: &Theme, pages: &[SettingsPage])
             rect().spacing(6.).children(
                 pages
                     .into_iter()
-                    .map(|page| SettingsButton { page: *page }.into_element()),
+                    .map(|page| SettingsButton { page: page.clone() }.into_element()),
             ),
         )
 }
@@ -322,6 +375,7 @@ struct LogoutButton {}
 impl Component for LogoutButton {
     fn render(&self) -> impl IntoElement {
         let mut config = use_config();
+        let mut radio = use_radio(AppChannel::UserId);
         let theme = consume_material_theme();
 
         StoatButton::new()
@@ -342,6 +396,13 @@ impl Component for LogoutButton {
                             .text("Log Out"),
                     ),
             )
-            .on_press(move |_| config.write().session = None)
+            .on_press(move |_| {
+                config.set(Config::default());
+                radio.set(AppState::new());
+
+                spawn_forever(async move {
+                    http().logout().await.unwrap();
+                });
+            })
     }
 }

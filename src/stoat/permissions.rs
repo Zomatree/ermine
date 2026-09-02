@@ -9,6 +9,7 @@ use stoat_permissions::{
 use crate::{AppChannel, AppState, HttpClient, http};
 
 /// Stores all relavent info for a permission query.
+#[derive(Clone)]
 pub struct PermissionQuery {
     state: Radio<AppState, AppChannel>,
     http: HttpClient,

@@ -50,7 +50,7 @@ impl Component for ChannelMention {
                     });
 
                     if let Some((channel_id, server_id)) = ids {
-                        channel_selection.set(Some(channel_id));
+                        channel_selection.set(Some((channel_id, None)));
 
                         selection.set(server_id.map(Selection::Server).unwrap_or(Selection::Home));
                     }

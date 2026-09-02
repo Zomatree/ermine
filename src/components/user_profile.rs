@@ -7,11 +7,13 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SizeExt,
     components::{
-        Avatar, MarkdownViewer, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, UserContextMenu, file_image,
+        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
+        file_image,
         material::{filled::cancel, outlined::more_vert},
+        use_floating, use_modals,
     },
-    consume_material_theme, http, parse_fill,
+    consume_material_theme, format_autumn_url, http, parse_fill,
     theme::Theme,
 };
 
@@ -75,10 +77,12 @@ impl Component for UserProfile {
                                     .content(Content::Flex)
                                     .child(ProfileBanner {
                                         user: self.user.clone(),
+                                        member: None,
                                         profile: profile.into_readable(),
                                     })
                                     .child(ProfileButtons {
                                         user: self.user.clone(),
+                                        close: Rc::new(close_profile),
                                     })
                                     .child({
                                         let status_text = user
@@ -159,33 +163,35 @@ fn empty_card() -> Rect {
 #[derive(PartialEq)]
 pub struct ProfileBanner {
     pub user: Readable<v0::User>,
+    pub member: Option<Readable<v0::Member>>,
     pub profile: Readable<Option<v0::UserProfile>>,
 }
 
 impl Component for ProfileBanner {
     fn render(&self) -> impl IntoElement {
+        let mut modals = use_modals();
+
+        let profile = self.profile.read();
+
+        let background = profile.as_ref().and_then(|p| p.background.as_ref());
+
         rect()
             .width(Size::Fill)
             .height(Size::px(120.))
             .corner_radius(28.)
             .overflow(Overflow::Clip)
-            .maybe_child(
-                self.profile
-                    .read()
-                    .as_ref()
-                    .and_then(|p| p.background.as_ref())
-                    .map(|background| {
-                        file_image(background)
-                            .aspect_ratio(AspectRatio::Max)
-                            .image_cover(ImageCover::Center)
-                            .expanded()
-                    }),
-            )
+            .maybe_child(background.map(|background| {
+                file_image(background)
+                    .aspect_ratio(AspectRatio::Max)
+                    .image_cover(ImageCover::Center)
+                    .expanded()
+                // .selectable(true)
+            }))
             .child(
                 rect()
                     .padding(15.)
                     .position(Position::new_absolute().top(0.).left(0.))
-                    .layer(Layer::Relative(1))
+                    .layer(Layer::Relative(3))
                     .width(Size::Fill)
                     .height(Size::px(120.))
                     .main_align(Alignment::End)
@@ -196,21 +202,49 @@ impl Component for ProfileBanner {
                     )
                     .corner_radius(28.)
                     .overflow(Overflow::Clip)
+                    .map(background.cloned(), |this, file| {
+                        this.cursor(CursorIcon::Pointer).on_press(move |_| {
+                            modals
+                                .write()
+                                .push_modal(ModalValue::ImageViewer(format_autumn_url(&file)))
+                        })
+                    })
                     .child(
                         rect()
                             .horizontal()
                             .spacing(15.)
                             .cross_align(Alignment::Center)
-                            .child(Avatar::new(self.user.clone(), None, 48.).presence(true))
+                            .child(
+                                Avatar::new(self.user.clone(), None, 48.)
+                                    .presence(true)
+                                    .selectable(true),
+                            )
                             .child({
                                 let user = self.user.read();
 
-                                paragraph()
-                                    .font_size(14.)
-                                    .span(Span::new(user.username.clone()))
-                                    .span(
-                                        Span::new(format!("#{}", user.discriminator))
-                                            .font_weight(300),
+                                rect()
+                                    .maybe_child(
+                                        self.member
+                                            .as_ref()
+                                            .and_then(|r| r.read().nickname.clone())
+                                            .or_else(|| user.display_name.clone())
+                                            .map(|name| {
+                                                label()
+                                                    .font_weight(600)
+                                                    .font_size(14.)
+                                                    .max_lines(1)
+                                                    .text(name)
+                                            }),
+                                    )
+                                    .child(
+                                        paragraph()
+                                            .max_lines(1)
+                                            .font_size(14.)
+                                            .span(Span::new(user.username.clone()).font_weight(500))
+                                            .span(
+                                                Span::new(format!("#{}", user.discriminator))
+                                                    .font_weight(200),
+                                            ),
                                     )
                             }),
                     ),
@@ -218,93 +252,125 @@ impl Component for ProfileBanner {
     }
 }
 
-#[derive(PartialEq)]
 pub struct ProfileButtons {
     pub user: Readable<v0::User>,
+    pub close: Rc<dyn Fn()>,
+}
+
+impl PartialEq for ProfileButtons {
+    fn eq(&self, other: &Self) -> bool {
+        self.user == other.user
+    }
 }
 
 impl Component for ProfileButtons {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Users);
         let theme = consume_material_theme();
+        let mut modals = use_modals();
 
         let user = self.user.read();
 
         let (main_action, secondary_action): (
             Option<(&str, Rc<dyn Fn()>)>,
             Option<(Bytes, Rc<dyn Fn()>)>,
-        ) = match &user.relationship {
-            v0::RelationshipStatus::None if user.bot.is_none() => (
+        ) = if user.bot.is_some() {
+            (
                 Some((
-                    "Add Friend",
+                    "Add Bot",
                     Rc::new({
                         let id = user.id.clone();
+                        let close = self.close.clone();
 
                         move || {
                             let id = id.clone();
+                            let close = close.clone();
 
                             spawn(async move {
-                                if let Ok(user) = http().add_friend_by_id(&id).await {
-                                    radio.clone().write().users.insert(user.id.clone(), user);
+                                if let Ok(bot) = http().fetch_public_bot(&id).await {
+                                    close();
+                                    modals.write().push_modal(ModalValue::InviteBot { bot });
                                 }
                             });
                         }
                     }),
                 )),
                 None,
-            ),
-            v0::RelationshipStatus::Friend => (Some(("Message", Rc::new(move || {}))), None),
-            v0::RelationshipStatus::Outgoing => (
-                Some((
-                    "Cancel Friend Request",
-                    Rc::new({
-                        let id = user.id.clone();
-                        move || {
-                            let id = id.clone();
+            )
+        } else {
+            match &user.relationship {
+                v0::RelationshipStatus::None if user.bot.is_none() => (
+                    Some((
+                        "Add Friend",
+                        Rc::new({
+                            let id = user.id.clone();
 
-                            spawn(async move {
-                                if let Ok(user) = http().remove_friend(&id).await {
-                                    radio.clone().write().users.insert(user.id.clone(), user);
-                                }
-                            });
-                        }
-                    }),
-                )),
-                None,
-            ),
-            v0::RelationshipStatus::Incoming => (
-                Some((
-                    "Accept Friend Request",
-                    Rc::new({
-                        let id = user.id.clone();
-                        move || {
-                            let id = id.clone();
+                            move || {
+                                let id = id.clone();
 
-                            spawn(async move {
-                                if let Ok(user) = http().add_friend_by_id(&id).await {
-                                    radio.clone().write().users.insert(user.id.clone(), user);
-                                }
-                            });
-                        }
-                    }),
-                )),
-                Some((
-                    cancel(),
-                    Rc::new({
-                        let id = user.id.clone();
-                        move || {
-                            let id = id.clone();
+                                spawn(async move {
+                                    if let Ok(user) = http().add_friend_by_id(&id).await {
+                                        radio.clone().write().users.insert(user.id.clone(), user);
+                                    }
+                                });
+                            }
+                        }),
+                    )),
+                    None,
+                ),
+                v0::RelationshipStatus::Friend => (Some(("Message", Rc::new(move || {}))), None),
+                v0::RelationshipStatus::Outgoing => (
+                    Some((
+                        "Cancel Friend Request",
+                        Rc::new({
+                            let id = user.id.clone();
+                            move || {
+                                let id = id.clone();
 
-                            spawn(async move {
-                                if let Ok(user) = http().remove_friend(&id).await {
-                                    radio.clone().write().users.insert(user.id.clone(), user);
-                                }
-                            });
-                        }
-                    }),
-                )),
-            ),
-            _ => (None, None),
+                                spawn(async move {
+                                    if let Ok(user) = http().remove_friend(&id).await {
+                                        radio.clone().write().users.insert(user.id.clone(), user);
+                                    }
+                                });
+                            }
+                        }),
+                    )),
+                    None,
+                ),
+                v0::RelationshipStatus::Incoming => (
+                    Some((
+                        "Accept Friend Request",
+                        Rc::new({
+                            let id = user.id.clone();
+                            move || {
+                                let id = id.clone();
+
+                                spawn(async move {
+                                    if let Ok(user) = http().add_friend_by_id(&id).await {
+                                        radio.clone().write().users.insert(user.id.clone(), user);
+                                    }
+                                });
+                            }
+                        }),
+                    )),
+                    Some((
+                        cancel(),
+                        Rc::new({
+                            let id = user.id.clone();
+                            move || {
+                                let id = id.clone();
+
+                                spawn(async move {
+                                    if let Ok(user) = http().remove_friend(&id).await {
+                                        radio.clone().write().users.insert(user.id.clone(), user);
+                                    }
+                                });
+                            }
+                        }),
+                    )),
+                ),
+                _ => (None, None),
+            }
         };
 
         rect()

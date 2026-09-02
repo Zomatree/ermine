@@ -23,7 +23,7 @@ use crate::{
 };
 
 fn generate(theme_config: &ThemeConfig) -> Theme {
-    let material_theme = generate_theme(theme_config.theme_source);
+    let material_theme = generate_theme(theme_config.theme_source, theme_config.variant.into());
 
     let material_scheme = match theme_config.scheme {
         ThemeScheme::Light => material_theme.schemes.light,
@@ -95,6 +95,17 @@ fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
             shadow: Preference::Reference("shadow"),
             border_fill: Preference::Specific(Color::BLACK),
             corner_radius: Preference::Specific(CornerRadius::new_all(4.)),
+        },
+    );
+
+    theme.set(
+        "scrollbar",
+        ScrollBarThemePreference {
+            background: Preference::Specific(material.md.surface_dim.as_argb_u32().into()),
+            thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
+            hover_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
+            active_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
+            size: Preference::Specific(7.),
         },
     );
 }

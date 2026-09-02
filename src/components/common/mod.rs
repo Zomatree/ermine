@@ -1,3 +1,4 @@
+pub mod animated_image;
 pub mod avatar;
 pub mod button;
 pub mod checkbox;
@@ -14,6 +15,7 @@ pub mod server_icon;
 pub mod tooltip;
 pub mod user_mention;
 
+pub use animated_image::*;
 pub use avatar::*;
 pub use button::*;
 pub use color_picker::*;

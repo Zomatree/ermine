@@ -4,7 +4,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, calculate_channel_permissions,
+    AppChannel, SizeExt, calculate_channel_permissions,
     components::{
         Avatar, ChannelContextMenu, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
         file_image,
@@ -15,12 +15,14 @@ use crate::{
 #[derive(PartialEq)]
 pub struct DMButton {
     pub channel: Readable<v0::Channel>,
-    pub selection: State<HomeSelection>,
 }
 
 impl Component for DMButton {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserId);
+        let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
+            &mut state.selected_channel
+        });
         let user_id = radio.read().user_id.clone().unwrap();
         let theme = consume_material_theme();
 
@@ -57,8 +59,10 @@ impl Component for DMButton {
                             .main_align(Alignment::Center)
                             .color(theme.md.outline.as_argb_u32())
                             .maybe(
-                                self.selection.read().channel_id()
-                                    == Some(self.channel.read().id()),
+                                dm_channel
+                                    .read()
+                                    .as_ref()
+                                    .is_some_and(|(id, _)| id == self.channel.read().id()),
                                 |btn| {
                                     btn.background(theme.md.primary_container.as_argb_u32())
                                         .color(theme.md.on_primary_container.as_argb_u32())
@@ -90,12 +94,12 @@ impl Component for DMButton {
                     )
                     .on_press({
                         let channel = self.channel.clone();
-                        let mut selection = self.selection.clone();
+                        let mut dm_channel = dm_channel.clone();
 
                         move |_| {
                             let id = channel.read().id().to_string();
 
-                            *selection.write() = HomeSelection::DM(id);
+                            dm_channel.set(Some((id.clone(), None)));
                         }
                     }),
             )
@@ -162,55 +166,103 @@ impl Component for DMDirectMessageButton {
 }
 
 #[derive(PartialEq)]
+pub struct GroupDMIcon {
+    channel: Readable<v0::Channel>,
+    size: f32,
+    invert: bool,
+}
+
+impl GroupDMIcon {
+    pub fn new(channel: Readable<v0::Channel>) -> Self {
+        Self {
+            channel,
+            size: 32.,
+            invert: false,
+        }
+    }
+
+    pub fn size(mut self, size: f32) -> Self {
+        self.size = size;
+
+        self
+    }
+
+    pub fn invert(mut self, invert: bool) -> Self {
+        self.invert = invert;
+
+        self
+    }
+}
+
+impl Component for GroupDMIcon {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        let (name, icon) = match &*self.channel.read() {
+            v0::Channel::Group { name, icon, .. } => (name.clone(), icon.clone()),
+            _ => unreachable!(),
+        };
+
+        rect()
+            .size(Size::px(self.size))
+            .corner_radius((12. / 32.) * self.size)
+            .overflow(Overflow::Clip)
+            .child(match icon {
+                Some(icon) => file_image(&icon).into_element(),
+                None => {
+                    let initials = name
+                        .trim()
+                        .split_whitespace()
+                        .filter_map(|run| run.chars().next())
+                        .take(2)
+                        .collect::<String>();
+
+                    rect()
+                        .background(
+                            if self.invert {
+                                theme.md.surface_container
+                            } else {
+                                theme.md.primary
+                            }
+                            .as_argb_u32(),
+                        )
+                        .width(Size::Fill)
+                        .height(Size::Fill)
+                        .center()
+                        .font_size((12. / 32.) * self.size)
+                        .child(initials)
+                        .color(
+                            if self.invert {
+                                theme.md.on_surface
+                            } else {
+                                theme.md.on_primary
+                            }
+                            .as_argb_u32(),
+                        )
+                        .into_element()
+                }
+            })
+    }
+}
+
+#[derive(PartialEq)]
 pub struct DMGroupButton {
     pub channel: Readable<v0::Channel>,
 }
 
 impl Component for DMGroupButton {
     fn render(&self) -> impl IntoElement {
-        let theme = consume_material_theme();
-
-        let (name, icon, users) = match &*self.channel.read() {
+        let (name, users) = match &*self.channel.read() {
             v0::Channel::Group {
-                name,
-                icon,
-                recipients,
-                ..
-            } => (name.clone(), icon.clone(), recipients.len()),
+                name, recipients, ..
+            } => (name.clone(), recipients.len()),
             _ => unreachable!(),
         };
 
         rect()
             .horizontal()
             .spacing(8.)
-            .child(
-                rect()
-                    .width(Size::px(32.))
-                    .height(Size::px(32.))
-                    .corner_radius(12.)
-                    .overflow(Overflow::Clip)
-                    .child(match icon {
-                        Some(icon) => file_image(&icon).into_element(),
-                        None => {
-                            let initials = name
-                                .trim()
-                                .split_whitespace()
-                                .filter_map(|run| run.chars().next())
-                                .take(2)
-                                .collect::<String>();
-
-                            rect()
-                                .background(theme.md.primary.as_argb_u32())
-                                .width(Size::Fill)
-                                .height(Size::Fill)
-                                .center()
-                                .font_size(12)
-                                .child(initials)
-                                .color(theme.md.on_primary.as_argb_u32())
-                                .into_element()
-                        }
-                    }),
-            )
+            .child(GroupDMIcon::new(self.channel.clone()))
             .child(
                 rect()
                     .child(label().text(name).font_size(15))

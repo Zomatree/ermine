@@ -51,6 +51,10 @@ pub enum Inline {
     ChannelMention {
         id: String,
     },
+    MessageMention {
+        channel_id: String,
+        id: String,
+    },
     RoleMention {
         id: String,
     },

@@ -22,6 +22,9 @@ pub struct DMList {
 impl Component for DMList {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
+        let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
+            &mut state.selected_channel
+        });
         let theme = consume_material_theme();
 
         let saved_messages = use_memo({
@@ -115,12 +118,15 @@ impl Component for DMList {
                             home(),
                             "Home",
                             &theme,
-                            &*self.selection.read() == &HomeSelection::Welcome,
+                            &*self.selection.read() == &HomeSelection::Welcome
+                                && dm_channel.read().is_none(),
                         )
                         .on_press({
                             let mut selection = self.selection.clone();
+                            let mut dm_channel = dm_channel.clone();
 
                             move |_| {
+                                dm_channel.set(None);
                                 *selection.write() = HomeSelection::Welcome;
                             }
                         }),
@@ -130,12 +136,15 @@ impl Component for DMList {
                             group(),
                             "Friends",
                             &theme,
-                            &*self.selection.read() == &HomeSelection::Friends,
+                            &*self.selection.read() == &HomeSelection::Friends
+                                && dm_channel.read().is_none(),
                         )
                         .on_press({
                             let mut selection = self.selection.clone();
+                            let mut dm_channel = dm_channel.clone();
 
                             move |_| {
+                                dm_channel.set(None);
                                 *selection.write() = HomeSelection::Friends;
                             }
                         }),
@@ -146,18 +155,20 @@ impl Component for DMList {
                             "Saved Notes",
                             &theme,
                             saved_messages.read().as_ref().is_some_and(|c| {
-                                self.selection
+                                dm_channel
                                     .read()
-                                    .channel_id()
-                                    .is_some_and(|s| s == c.id())
+                                    .as_ref()
+                                    .is_some_and(|(id, _)| id == c.id())
                             }),
                         )
                         .on_press({
                             let mut radio = radio.clone();
                             let saved_messages = saved_messages.clone();
-                            let mut selection = self.selection.clone();
+                            let dm_channel = dm_channel.clone();
 
                             move |_| {
+                                let mut dm_channel = dm_channel.clone();
+
                                 spawn(async move {
                                     let id = if let Some(channel) = &*saved_messages.peek() {
                                         channel.id().to_string()
@@ -176,7 +187,7 @@ impl Component for DMList {
                                         id
                                     };
 
-                                    *selection.write() = HomeSelection::DM(id);
+                                    dm_channel.set(Some((id.clone(), None)));
                                 });
                             }
                         }),
@@ -199,10 +210,7 @@ impl Component for DMList {
                                 rect()
                                     .padding((3., 0.))
                                     .key(channel.read().id())
-                                    .child(DMButton {
-                                        channel,
-                                        selection: selection.clone(),
-                                    })
+                                    .child(DMButton { channel })
                                     .into_element()
                             }
                         })

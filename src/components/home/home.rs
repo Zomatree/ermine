@@ -13,16 +13,6 @@ pub enum HomeSelection {
     #[default]
     Welcome,
     Friends,
-    DM(String),
-}
-
-impl HomeSelection {
-    pub fn channel_id(&self) -> Option<&str> {
-        match self {
-            HomeSelection::DM(id) => Some(id),
-            _ => None,
-        }
-    }
 }
 
 #[derive(PartialEq)]
@@ -35,6 +25,7 @@ impl Component for Home {
         let theme = consume_material_theme();
 
         let selection = use_state(HomeSelection::default);
+        let channel = radio.slice_current(|state| &state.selected_channel);
 
         rect()
             .corner_radius(CornerRadius::new(16., 0., 0., 16.))
@@ -47,19 +38,23 @@ impl Component for Home {
                     .width(Size::px(248.))
                     .child(DMList { selection })
             }))
-            .child(match selection.read().clone() {
-                HomeSelection::Welcome => Welcome {}.into_element(),
-                HomeSelection::Friends => Friends {}.into_element(),
-                HomeSelection::DM(channel_id) => {
+            .child(
+                if let Some((channel_id, jump_message)) = channel.read().cloned() {
                     let channel = radio.slice(AppChannel::Channels, move |state| {
                         state.channels.get(&channel_id).unwrap()
                     });
                     Channel {
                         channel: channel.into_readable(),
                         server: None,
+                        jump_message,
                     }
                     .into_element()
-                }
-            })
+                } else {
+                    match selection.read().clone() {
+                        HomeSelection::Welcome => Welcome {}.into_element(),
+                        HomeSelection::Friends => Friends {}.into_element(),
+                    }
+                },
+            )
     }
 }

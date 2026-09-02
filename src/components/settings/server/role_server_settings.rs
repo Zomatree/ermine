@@ -13,7 +13,7 @@ use crate::{
             filled::{chevron_right, clear, list},
             outlined::group_add,
         },
-        use_modals,
+        permission_values, use_modals,
     },
     consume_material_theme, http, parse_fill, prompt_image_upload, use_initial,
 };
@@ -474,7 +474,10 @@ impl Component for SelectedRoleServerSettings {
             )
             .child(
                 rect()
-                    .child(PermissionsEditor::new_overrite(overrides))
+                    .child(PermissionsEditor::new_overrite(
+                        overrides,
+                        permission_values::SERVER_PERMISSIONS,
+                    ))
                     .child(
                         rect()
                             .horizontal()
@@ -560,7 +563,10 @@ impl Component for DefaultRoleServerSettings {
 
         rect().child(
             rect()
-                .child(PermissionsEditor::new_value(permissions))
+                .child(PermissionsEditor::new_value(
+                    permissions,
+                    permission_values::SERVER_PERMISSIONS,
+                ))
                 .child(
                     rect()
                         .horizontal()

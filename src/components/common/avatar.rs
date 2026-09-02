@@ -9,6 +9,7 @@ pub struct Avatar {
     member: Option<Readable<v0::Member>>,
     size: f32,
     presence: bool,
+    selectable: bool,
 }
 
 impl Avatar {
@@ -18,11 +19,17 @@ impl Avatar {
             member,
             size,
             presence: false,
+            selectable: false,
         }
     }
 
     pub fn presence(mut self, presence: bool) -> Self {
         self.presence = presence;
+        self
+    }
+
+    pub fn selectable(mut self, selectable: bool) -> Self {
+        self.selectable = selectable;
         self
     }
 }
@@ -47,6 +54,8 @@ impl Component for Avatar {
                     .expanded()
                     .corner_radius(self.size)
                     .overflow(Overflow::Clip)
+                    .selectable(self.selectable)
+                    .into_element()
             } else {
                 ImageViewer::new(
                     http()
@@ -58,6 +67,7 @@ impl Component for Avatar {
                 .expanded()
                 .corner_radius(self.size)
                 .overflow(Overflow::Clip)
+                .into_element()
             })
             .maybe_child(self.presence.then(|| {
                 let diameter = (12. / 32.) * self.size;
@@ -84,7 +94,7 @@ impl Component for Avatar {
 
                 rect()
                     .position(Position::new_absolute().left(pos).top(pos))
-                    .layer(Layer::Relative(1))
+                    .layer(Layer::Relative(2))
                     .width(Size::px(diameter))
                     .height(Size::px(diameter))
                     .corner_radius(diameter)

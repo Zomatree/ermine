@@ -133,24 +133,28 @@ impl Component for MessageSearch {
                 .height(40.),
             )
             .child(
-                ScrollView::new().child(match results.read().cloned() {
-                    None => rect()
-                        .width(Size::Fill)
-                        .center()
-                        .child(CircularLoader::new())
-                        .into_element(),
+                ScrollView::new()
+                    .width(Size::Fill)
+                    .child(match results.read().cloned() {
+                        None => rect()
+                            .width(Size::Fill)
+                            .center()
+                            .child(CircularLoader::new())
+                            .into_element(),
 
-                    Some(messages) => rect()
-                        .spacing(8.)
-                        .children(messages.into_iter().map(|message| {
-                            Message {
-                                channel: self.channel.clone(),
-                                message,
-                            }
-                            .into_element()
-                        }))
-                        .into_element(),
-                }),
+                        Some(messages) => rect()
+                            .width(Size::Fill)
+                            .child(rect().margin((0., 8., 0., 0.)).spacing(8.).children(
+                                messages.into_iter().map(|message| {
+                                    Message {
+                                        channel: self.channel.clone(),
+                                        message,
+                                    }
+                                    .into_element()
+                                }),
+                            ))
+                            .into_element(),
+                    }),
             )
     }
 }

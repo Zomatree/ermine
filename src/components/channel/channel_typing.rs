@@ -98,7 +98,7 @@ impl Component for ChannelTyping {
                             .into_element()
                     }),
                 ))
-                .child(names)
+                .child(label().font_size(12).text(names))
             })
     }
 }

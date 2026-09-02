@@ -116,7 +116,7 @@ impl Component for ServerListButton {
                         } else {
                             24.
                         }))
-                        .corner_radius(CornerRadius::new(0., 4., 0., 4.))
+                        .corner_radius(CornerRadius::new(0., 4., 4., 0.))
                         .background(theme.md.on_surface.as_argb_u32())
                 }),
             )
@@ -135,12 +135,7 @@ impl Component for ServerListButton {
                                     .child(
                                         StoatButton::new()
                                             .corner_radius(42.)
-                                            .child(
-                                                rect()
-                                                    .width(Size::px(42.0))
-                                                    .height(Size::px(42.0))
-                                                    .child(ServerIcon::new(server)),
-                                            )
+                                            .child(ServerIcon::new(server, 42.))
                                             .on_press({
                                                 move |_| {
                                                     radio
@@ -171,7 +166,8 @@ impl Component for ServerListButton {
 
                                                     radio
                                                         .write_channel(AppChannel::SelectedChannel)
-                                                        .selected_channel = channel_id;
+                                                        .selected_channel =
+                                                        channel_id.map(|id| (id, None));
                                                 }
                                             }),
                                     )
@@ -198,7 +194,8 @@ impl Component for ServerListButton {
                                                     .center()
                                                     .background(theme.md.error.as_argb_u32())
                                                     .color(theme.md.on_error.as_argb_u32())
-                                                    .font_size(10.)
+                                                    .font_size(8.)
+                                                    .font_weight(FontWeight::SEMI_BOLD)
                                                     .child(if *count <= 9 {
                                                         count.to_string()
                                                     } else {

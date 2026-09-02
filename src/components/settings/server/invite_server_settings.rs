@@ -60,9 +60,8 @@ impl Component for InviteServerSettings {
         rect()
             .spacing(8.)
             .child(
-                StoatButton::new().child(
+                StoatButton::new().corner_radius(20.).child(
                     rect()
-                        .corner_radius(20.)
                         .height(Size::px(40.))
                         .width(Size::Fill)
                         .center()
@@ -75,6 +74,7 @@ impl Component for InviteServerSettings {
             .child(
                 rect()
                     .corner_radius(12.)
+                    .overflow(Overflow::Clip)
                     .border(
                         Border::new()
                             .width(1.)
@@ -91,7 +91,7 @@ impl Component for InviteServerSettings {
                                     .width(BorderWidth {
                                         top: 0.,
                                         right: 0.,
-                                        bottom: if invites.read().len() != 0 { 1. } else { 0. },
+                                        bottom: 1.,
                                         left: 0.,
                                     })
                                     .fill(theme.md.outline_variant.as_argb_u32()),
@@ -106,13 +106,14 @@ impl Component for InviteServerSettings {
                             .child(rect().padding(15.).child(rect().width(Size::px(80.)))),
                     )
                     .child({
-                        let users = users.read();
-                        let channels = channels.read();
-                        let invites = invites.read();
+                        VirtualScrollView::new(move |item, _| {
+                            let invites = invites.read();
+                            let users = users.read();
+                            let channels = channels.read();
 
-                        rect().children(invites.iter().enumerate().map(|(idx, invite)| {
+                            let invite = &invites[item.index];
                             let user = users.get(&invite.creator);
-                            let channel = channels.get(&invite.channel).unwrap();
+                            let channel = channels.get(&invite.channel);
 
                             rect()
                                 .horizontal()
@@ -124,10 +125,14 @@ impl Component for InviteServerSettings {
                                         .width(BorderWidth {
                                             top: 0.,
                                             right: 0.,
-                                            bottom: if idx != invites.len() - 1 { 1. } else { 0. },
+                                            bottom: 1.,
                                             left: 0.,
                                         })
-                                        .fill(theme.md.outline_variant.as_argb_u32()),
+                                        .fill(theme.md.outline_variant.as_argb_u32()), // .fill(if item.index != invites.len() - 1 {
+                                                                                       //     theme.md.outline_variant.as_argb_u32().into()
+                                                                                       // } else {
+                                                                                       //     Color::TRANSPARENT
+                                                                                       // }),
                                 )
                                 .child(
                                     rect()
@@ -154,12 +159,19 @@ impl Component for InviteServerSettings {
                                             rect()
                                                 .child(label().font_size(16.).text(match user {
                                                     Some(user) => Cow::Owned(user.username.clone()),
-                                                    None => Cow::Borrowed("Unknown user"),
+                                                    None => Cow::Borrowed("Unknown User"),
                                                 }))
-                                                .child(label().font_size(12.).text(format!(
-                                                    "#{}",
-                                                    channel.name().unwrap().to_string()
-                                                ))),
+                                                .child(
+                                                    label().font_size(12.).text(
+                                                        channel
+                                                            .map(|c| {
+                                                                format!("#{}", c.name().unwrap())
+                                                            })
+                                                            .unwrap_or_else(|| {
+                                                                "Unknown Channel".to_string()
+                                                            }),
+                                                    ),
+                                                ),
                                         ),
                                 )
                                 .child(
@@ -236,7 +248,11 @@ impl Component for InviteServerSettings {
                                         ),
                                 )
                                 .into_element()
-                        }))
+                        })
+                        .length(invites.read().len())
+                        .item_size(66.)
+                        .min_height(Size::Inner)
+                        .max_height(Size::Fill)
                     }),
             )
     }

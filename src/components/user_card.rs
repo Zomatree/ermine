@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
@@ -50,6 +52,7 @@ impl Component for UserCard {
             .corner_radius(28.)
             .overflow(Overflow::Clip)
             .background(theme.md.surface_container_high.as_argb_u32())
+            .shadow(Shadow::new().blur(3.).color(theme.md.shadow.as_argb_u32()))
             .width(Size::px(340.))
             .height(Size::px(400.))
             .child(
@@ -61,10 +64,11 @@ impl Component for UserCard {
                         .child(
                             StoatButton::new()
                                 .corner_radius(28.)
-                                .child(ProfileBanner {
+                                .child(rect().interactive(false).child(ProfileBanner {
                                     user: self.user.clone(),
+                                    member: self.member.clone(),
                                     profile: profile.into_readable(),
-                                })
+                                }))
                                 .on_press(move |_| {
                                     floating.set(None);
                                     let user_id = user.read().id.clone();
@@ -73,6 +77,7 @@ impl Component for UserCard {
                         )
                         .child(ProfileButtons {
                             user: self.user.clone(),
+                            close: Rc::new(move || floating.clone().set(None)),
                         })
                         .maybe_child({
                             (self

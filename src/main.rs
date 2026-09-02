@@ -60,21 +60,24 @@ fn main() {
 
     get_unicode_emojis();
 
-    launch(
-        LaunchConfig::new()
-            .with_window(
-                WindowConfig::new(app)
-                    .with_title("Ermine - Stoat")
-                    .with_app_id("live.zomatree.ermine")
-                    .with_size(1280., 720.)
-                    .with_decorations(true),
-            )
-            .with_font("Inter", include_bytes!("./assets/Inter.ttf") as &[u8])
-            .with_font(
-                "Fira Code",
-                include_bytes!("./assets/FiraCode.ttf") as &[u8],
-            )
-            .with_default_font("Inter")
-            .with_plugin(WebViewPlugin::new()),
-    );
+    let config = LaunchConfig::new()
+        .with_window(
+            WindowConfig::new(app)
+                .with_title("Ermine - Stoat")
+                .with_app_id("live.zomatree.ermine")
+                .with_size(1280., 720.)
+                .with_decorations(true),
+        )
+        .with_font("Inter", include_bytes!("./assets/Inter.ttf") as &[u8])
+        .with_font(
+            "Fira Code",
+            include_bytes!("./assets/FiraCode.ttf") as &[u8],
+        )
+        .with_default_font("Inter")
+        .with_plugin(WebViewPlugin::new());
+
+    #[cfg(feature = "performance")]
+    let config = config.with_plugin(freya_performance_plugin::PerformanceOverlayPlugin::default());
+
+    launch(config);
 }

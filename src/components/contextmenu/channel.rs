@@ -130,17 +130,21 @@ impl Component for ChannelContextMenu {
                         }
                     }),
             ),
-            v0::Channel::TextChannel { .. } => menu.child(
-                ContextMenuButton::new(delete(), "Delete Channel")
-                    .danger()
-                    .on_press({
-                        let id = self.channel_id.clone();
+            v0::Channel::TextChannel { .. } => menu.maybe_child(
+                self.current_permissions
+                    .has_channel_permission(ChannelPermission::ManageChannel)
+                    .then(|| {
+                        ContextMenuButton::new(delete(), "Delete Channel")
+                            .danger()
+                            .on_press({
+                                let id = self.channel_id.clone();
 
-                        move |_| {
-                            modals.write().push_modal(ModalValue::DeleteChannel {
-                                channel: id.clone(),
-                            });
-                        }
+                                move |_| {
+                                    modals.write().push_modal(ModalValue::DeleteChannel {
+                                        channel: id.clone(),
+                                    });
+                                }
+                            })
                     }),
             ),
             _ => menu,

@@ -39,7 +39,7 @@ impl Component for EditOwnServerIdentity {
 
         let member_value = member.read();
 
-        let avatar = use_initial(|| member_value.avatar.clone());
+        let mut avatar = use_initial(|| member_value.avatar.clone());
         let nickname = use_initial(|| member_value.nickname.clone().unwrap_or_default());
         let pronouns = use_initial(|| member_value.pronouns.clone().unwrap_or_default());
 
@@ -116,18 +116,22 @@ impl Component for EditOwnServerIdentity {
                                                 if let Some(id) =
                                                     prompt_image_upload(Tag::Avatars).await
                                                 {
-                                                    edit_member(v0::DataMemberEdit {
-                                                        nickname: None,
-                                                        pronouns: None,
-                                                        avatar: Some(id),
-                                                        roles: None,
-                                                        timeout: None,
-                                                        can_publish: None,
-                                                        can_receive: None,
-                                                        voice_channel: None,
-                                                        remove: Vec::new(),
-                                                    })
-                                                    .await;
+                                                    if let Some(member) =
+                                                        edit_member(v0::DataMemberEdit {
+                                                            nickname: None,
+                                                            pronouns: None,
+                                                            avatar: Some(id),
+                                                            roles: None,
+                                                            timeout: None,
+                                                            can_publish: None,
+                                                            can_receive: None,
+                                                            voice_channel: None,
+                                                            remove: Vec::new(),
+                                                        })
+                                                        .await
+                                                    {
+                                                        avatar.set_new(member.avatar);
+                                                    }
                                                 };
                                             });
                                         }
@@ -157,6 +161,7 @@ impl Component for EditOwnServerIdentity {
 
                                             spawn(async move {
                                                 remove_field(v0::FieldsMember::Avatar).await;
+                                                avatar.set_new(None);
                                             });
                                         }
                                     })

@@ -1,6 +1,10 @@
 use freya::{prelude::*, radio::use_radio};
 
-use crate::{AppChannel, SizeExt, components::StoatTooltip, http};
+use crate::{
+    AppChannel, SizeExt,
+    components::{AnimatedImage, StoatTooltip},
+    http,
+};
 
 #[derive(PartialEq)]
 pub struct Emoji {
@@ -45,7 +49,7 @@ impl Component for Emoji {
                         .spacing(15.)
                         .cross_align(Alignment::Center)
                         .child(
-                            ImageViewer::new(url.clone())
+                            AnimatedImage::new(url.clone())
                                 .size(Size::px(33.))
                                 .sampling_mode(SamplingMode::Trilinear)
                                 .aspect_ratio(AspectRatio::Min)
@@ -65,7 +69,7 @@ impl Component for Emoji {
         .position(AttachedPosition::Top)
         .child(
             rect().padding((0., 0.7, 0., 1.4)).child(
-                ImageViewer::new(url)
+                AnimatedImage::new(url)
                     .sampling_mode(SamplingMode::Trilinear)
                     .aspect_ratio(AspectRatio::Min)
                     .image_cover(ImageCover::Center)

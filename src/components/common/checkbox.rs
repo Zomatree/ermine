@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use freya::{
-    animation::{AnimColor, AnimatedValue, Ease, OnChange, OnCreation, use_animation},
+    animation::{
+        AnimColor, AnimNum, AnimatedValue, Ease, OnChange, OnCreation, ReadAnimatedValue,
+        use_animation, use_animation_with_dependencies,
+    },
     prelude::*,
 };
 
@@ -9,7 +12,7 @@ use crate::{
     SizeExt,
     components::{
         MaterialIcon,
-        material::outlined::{check_box, check_box_outline_blank},
+        material::filled::{check_box, check_box_outline_blank},
     },
     consume_material_theme,
 };
@@ -27,6 +30,13 @@ impl StoatCheckbox {
             children: Vec::new(),
         }
     }
+
+    pub fn from_writable(value: Writable<bool>) -> Self {
+        Self {
+            value,
+            children: Vec::new(),
+        }
+    }
 }
 
 impl ChildrenExt for StoatCheckbox {
@@ -39,32 +49,32 @@ impl Component for StoatCheckbox {
     fn render(&self) -> impl IntoElement {
         let mut hover = use_state(|| false);
         let a11y_id = use_a11y();
+
         let theme = consume_material_theme();
 
-        let animation = use_animation({
-            let value = self.value.clone();
-            move |anim| {
+        let animation = use_animation_with_dependencies(&*self.value.read(), {
+            move |anim, value| {
                 anim.on_creation(OnCreation::Finish);
                 anim.on_change(OnChange::Rerun);
 
-                let c = AnimColor::new(
-                    theme.md.on_surface.as_argb_u32(),
-                    theme.md.primary.as_argb_u32(),
-                )
-                .duration(Duration::from_millis(200))
-                .ease(Ease::InOut);
+                let opacity = AnimNum::new(0., 1.)
+                    .duration(Duration::from_millis(200))
+                    .ease(Ease::Out);
 
-                if *value.read() { c } else { c.into_reversed() }
+                if *value {
+                    opacity
+                } else {
+                    opacity.into_reversed()
+                }
             }
         });
 
-        let color = animation.read().value();
-
-        use_drop(move || {
-            if hover() {
-                Cursor::set(CursorIcon::default());
-            }
-        });
+        let opacity = animation.read().value();
+        let color = Color::lerp(
+            theme.md.on_surface.as_argb_u32().into(),
+            theme.md.primary.as_argb_u32().into(),
+            opacity,
+        );
 
         rect()
             .horizontal()
@@ -86,12 +96,7 @@ impl Component for StoatCheckbox {
                 hover.set(true);
             })
             .on_pointer_out(move |_| hover.set_if_modified(false))
-            .on_pointer_enter(move |_| {
-                Cursor::set(CursorIcon::Pointer);
-            })
-            .on_pointer_leave(move |_| {
-                Cursor::set(CursorIcon::default());
-            })
+            .cursor(CursorIcon::Pointer)
             .child(
                 rect()
                     .child(
@@ -99,14 +104,20 @@ impl Component for StoatCheckbox {
                             .width(Size::px(40.))
                             .height(Size::px(40.))
                             .center()
-                            .color(color)
                             .child(
-                                MaterialIcon::new(if *self.value.read() {
-                                    check_box()
-                                } else {
-                                    check_box_outline_blank()
-                                })
-                                .size(Size::px(24.)),
+                                rect()
+                                    .child(
+                                        MaterialIcon::new(check_box_outline_blank())
+                                            .color(color)
+                                            .size(Size::px(24.)),
+                                    )
+                                    .child(
+                                        MaterialIcon::new(check_box())
+                                            .opacity(opacity)
+                                            .color(color)
+                                            .size(Size::px(24.))
+                                            .position(Position::new_absolute()),
+                                    ),
                             ),
                     )
                     .maybe_child(hover().then(|| {

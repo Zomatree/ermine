@@ -73,7 +73,7 @@ impl Component for JoinServer {
 
                                     if let Some(first_channel) = channels.first() {
                                         *selected_channel.write() =
-                                            Some(first_channel.id().to_string());
+                                            Some((first_channel.id().to_string(), None));
                                     }
 
                                     for channel in channels {
@@ -100,7 +100,7 @@ impl Component for JoinServer {
                                         insert_user(user, station);
                                     }
 
-                                    *selected_channel.write() = Some(id);
+                                    *selected_channel.write() = Some((id, None));
                                     *selection.write() = Selection::Home;
 
                                     modals.write().pop_modal();

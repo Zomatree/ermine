@@ -83,12 +83,7 @@ impl Component for Server {
                                         .push_modal(ModalValue::ServerInfo { server: id.clone() })
                                 }
                             })
-                            .on_pointer_enter(move |_| {
-                                Cursor::set(CursorIcon::Pointer);
-                            })
-                            .on_pointer_leave(move |_| {
-                                Cursor::set(CursorIcon::default());
-                            })
+                            .cursor(CursorIcon::Pointer)
                             .child(if let Some(banner) = &self.server.read().banner {
                                 rect()
                                     .height(Size::px(120.))
@@ -100,7 +95,7 @@ impl Component for Server {
                                         rect()
                                             .width(Size::Fill)
                                             .position(Position::new_absolute().bottom(0.))
-                                            .layer(Layer::Relative(1))
+                                            .layer(Layer::Relative(3))
                                             .padding((6., 14.))
                                             .background(
                                                 LinearGradient::new()
@@ -125,18 +120,27 @@ impl Component for Server {
                     .width(Size::px(248.))
             }))
             .child(
-                if let Some(channel) = selected_channel.read().clone().and_then(|channel| {
-                    if channels.read().contains_key(&channel) {
-                        Some(radio.slice(AppChannel::Channels, move |state| {
-                            state.channels.get(&channel).unwrap()
-                        }))
-                    } else {
-                        None
-                    }
-                }) {
+                if let Some((channel, message_id)) =
+                    selected_channel
+                        .read()
+                        .clone()
+                        .and_then(|(channel, message_id)| {
+                            if channels.read().contains_key(&channel) {
+                                Some((
+                                    radio.slice(AppChannel::Channels, move |state| {
+                                        state.channels.get(&channel).unwrap()
+                                    }),
+                                    message_id,
+                                ))
+                            } else {
+                                None
+                            }
+                        })
+                {
                     Channel {
                         channel: channel.into_readable(),
                         server: Some(self.server.clone()),
+                        jump_message: message_id,
                     }
                     .into_element()
                 } else {

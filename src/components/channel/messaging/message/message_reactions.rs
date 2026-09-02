@@ -3,7 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel, SizeExt,
-    components::{MessageModel, StoatButton, StoatButtonLayoutThemePartialExt},
+    components::{AnimatedImage, MessageModel, StoatButton, StoatButtonLayoutThemePartialExt},
     consume_material_theme, http,
     types::Tag,
 };
@@ -81,10 +81,9 @@ impl Component for MessageReactions {
                                         Tag::Emojis
                                     );
 
-                                    ImageViewer::new(url.parse::<Url>().unwrap())
+                                    AnimatedImage::new(url.parse::<Url>().unwrap())
                                         .sampling_mode(SamplingMode::Trilinear)
                                         .size(Size::px(16.8))
-                                        .error_renderer(|_| rect().size(Size::px(16.8)).into_element())
                                         .into_element()
                                 } else {
                                     let codes = emoji

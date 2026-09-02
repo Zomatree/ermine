@@ -13,7 +13,7 @@ use crate::{
     components::{
         Autocomplete, MessageAttachmentsPreview, MessageModel, MessageReplyPreview, Textbox,
     },
-    map_readable,
+    map_readable, use_config,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -204,9 +204,47 @@ pub struct MessageInput {
 
 impl Component for MessageInput {
     fn render(&self) -> impl IntoElement {
-        let editable = use_editable(String::new, EditableConfig::new);
-        use_hook(|| provide_root_context(Some(editable)));
-        use_drop(|| provide_root_context::<Option<UseEditable>>(None));
+        let mut config = use_config();
+
+        let mut editable = use_editable(
+            || {
+                config
+                    .read()
+                    .drafts
+                    .get(self.channel.read().id())
+                    .cloned()
+                    .unwrap_or_default()
+            },
+            EditableConfig::new,
+        );
+
+        use_hook(|| {
+            let mut editor = editable.editor_mut().write();
+            let char_count = editor.len_chars();
+            editor.selection_mut().move_to(char_count);
+            editor.selection_mut().set_as_cursor();
+
+            provide_root_context(Some(editable))
+        });
+        use_drop(|| {
+            provide_root_context::<Option<UseEditable>>(None);
+        });
+
+        use_side_effect({
+            let id = self.channel.read().id().to_string();
+            move || {
+                let contents = editable.editor().read();
+
+                if contents.len_chars() == 0 {
+                    config.write().drafts.remove(&id);
+                } else {
+                    config
+                        .write()
+                        .drafts
+                        .insert(id.clone(), contents.to_string());
+                }
+            }
+        });
 
         let is_server = matches!(&*self.channel.read(), v0::Channel::TextChannel { .. });
 

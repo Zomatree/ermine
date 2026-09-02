@@ -82,7 +82,7 @@ struct StoatInnerSegmentedButton<T: 'static> {
 
 impl<T: Hash + Clone + PartialEq + 'static> Component for StoatInnerSegmentedButton<T> {
     fn render(&self) -> impl IntoElement {
-        const ANIM_TIME: u64 = 250;
+        const ANIM_TIME: u64 = 200;
         let radius = self.height / 2.;
 
         let theme = consume_material_theme();

@@ -42,18 +42,19 @@ impl Component for MessageAttachment {
                                 .width(Size::Fill)
                                 .height(Size::Fill)
                                 .aspect_ratio(AspectRatio::Min)
-                                .image_cover(ImageCover::Fill), // .map(thumbhash.as_ref(), |this, thumbnail| {
-                                                                //     this.loading_placeholder(
-                                                                //         ImageViewer::new(ImageSource::Bytes(
-                                                                //             0,
-                                                                //             Bytes::copy_from_slice(thumbnail),
-                                                                //         ))
-                                                                //         .width(Size::Fill)
-                                                                //         .height(Size::Fill)
-                                                                //         .aspect_ratio(AspectRatio::Min)
-                                                                //         .image_cover(ImageCover::Fill),
-                                                                //     )
-                                                                // }),
+                                .image_cover(ImageCover::Fill)
+                                .selectable(true), // .map(thumbhash.as_ref(), |this, thumbnail| {
+                                                   //     this.loading_placeholder(
+                                                   //         ImageViewer::new(ImageSource::Bytes(
+                                                   //             0,
+                                                   //             Bytes::copy_from_slice(thumbnail),
+                                                   //         ))
+                                                   //         .width(Size::Fill)
+                                                   //         .height(Size::Fill)
+                                                   //         .aspect_ratio(AspectRatio::Min)
+                                                   //         .image_cover(ImageCover::Fill),
+                                                   //     )
+                                                   // }),
                         )
                         .maybe_child(spoilered.read().then(|| {
                             rect()

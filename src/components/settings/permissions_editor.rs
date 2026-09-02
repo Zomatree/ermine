@@ -16,24 +16,33 @@ use crate::{
 
 #[derive(PartialEq)]
 pub struct PermissionsEditor {
+    values: &'static [(&'static str, &'static [(&'static str, &'static str, i64)])],
     overrite: bool,
     allow: Writable<i64>,
     deny: Writable<i64>,
 }
 
 impl PermissionsEditor {
-    pub fn new_value(permission: impl IntoWritable<i64>) -> Self {
+    pub fn new_value(
+        permission: impl IntoWritable<i64>,
+        values: &'static [(&'static str, &'static [(&'static str, &'static str, i64)])],
+    ) -> Self {
         Self {
+            values,
             overrite: false,
             allow: permission.into_writable(),
             deny: Writable::from_state(State::create(0)),
         }
     }
 
-    pub fn new_overrite(overrite: impl IntoWritable<OverrideField>) -> Self {
+    pub fn new_overrite(
+        overrite: impl IntoWritable<OverrideField>,
+        values: &'static [(&'static str, &'static [(&'static str, &'static str, i64)])],
+    ) -> Self {
         let writable = overrite.into_writable();
 
         Self {
+            values,
             overrite: true,
             allow: writable.map(|v| &v.a, |v| &mut v.a),
             deny: writable.map(|v| &v.d, |v| &mut v.d),
@@ -41,182 +50,49 @@ impl PermissionsEditor {
     }
 }
 
-static PERMISSION_VALUES: &[(&'static str, &[(&'static str, &'static str, i64)])] = &[
-    (
-        "Admin",
-        &[
-            ("Manage Channel", "Edit and delete channel", 1 << 0),
-            (
-                "Manage Server",
-                "Edit the server's information and settings",
-                1 << 1,
-            ),
-            (
-                "Manage Permissions",
-                "Edit channel-specific role and default permissions",
-                1 << 2,
-            ),
-            ("Manage Roles", "Create and edit server roles", 1 << 3),
-            ("Manage Customisation", "Create server emoji", 1 << 4),
-        ],
-    ),
-    (
-        "Members",
-        &[
-            (
-                "Kick Members",
-                "Kick lower-ranking members from the server",
-                1 << 6,
-            ),
-            (
-                "Ban Members",
-                "Ban lower-ranking members from the server",
-                1 << 7,
-            ),
-            (
-                "Timeout Members",
-                "Temporarily prevent lower-ranking members from interacting",
-                1 << 8,
-            ),
-            (
-                "Assign Roles",
-                "Assign lower-ranked roles to lower-ranking members",
-                1 << 9,
-            ),
-            ("Change Nickname", "Change own nickname", 1 << 10),
-            (
-                "Manage Nicknames",
-                "Change other members' nicknames",
-                1 << 11,
-            ),
-            ("Change Avatar", "Change own avatar", 1 << 12),
-            ("Remove Avatars", "Remove other members' avatars", 1 << 13),
-        ],
-    ),
-    (
-        "Channels",
-        &[
-            (
-                "View Channel",
-                "Able to access channels on this server",
-                1 << 20,
-            ),
-            (
-                "Read Message History",
-                "Read past messages sent in channels",
-                1 << 21,
-            ),
-            ("Send Messages", "Send messages in channels", 1 << 22),
-            (
-                "Manage Messages",
-                "Delete and pin messages sent by other members",
-                1 << 23,
-            ),
-            ("Manage Webhooks", "Create and edit webhooks", 1 << 24),
-            ("Invite Others", "Create invites for others to use", 1 << 25),
-        ],
-    ),
-    (
-        "Messaging",
-        &[
-            (
-                "Send Embeds",
-                "Send embedded content such as link embeds or custom embeds",
-                1 << 26,
-            ),
-            ("Upload Files", "Send attachments to chat", 1 << 27),
-            (
-                "Masquerade",
-                "Allow members to change name and avatar per-message",
-                1 << 28,
-            ),
-            ("React", "React to messages with emoji", 1 << 29),
-            ("Bypass Slowmode", "Bypasses slowmode in channels", 1 << 39),
-        ],
-    ),
-    (
-        "Voice",
-        &[
-            ("Connect", "Connect to voice channel", 1 << 30),
-            ("Speak", "Able to speak in voice call", 1 << 31),
-            ("Video", "Share camera or screen in voice call", 1 << 32),
-            (
-                "Mute Members",
-                "Mute lower-ranking members in voice call",
-                1 << 33,
-            ),
-            (
-                "Deafen Members",
-                "Deafen lower-ranking members in voice call",
-                1 << 34,
-            ),
-            (
-                "Move Members",
-                "Move members between voice channels",
-                1 << 35,
-            ),
-            ("Listen", "Hear other people and see their video", 1 << 36),
-        ],
-    ),
-    (
-        "Mentions",
-        &[
-            (
-                "Mention Everyone",
-                "Mention everyone and online members inside the server",
-                1 << 37,
-            ),
-            ("Mention Roles", "Mention specific roles", 1 << 38),
-        ],
-    ),
-];
-
 impl Component for PermissionsEditor {
     fn render(&self) -> impl IntoElement {
         rect()
-            .spacing(8.)
-            .children(
-                PERMISSION_VALUES
-                    .iter()
-                    .copied()
-                    .map(|(header, permissions)| {
+            .spacing(15.)
+            .children(self.values.iter().copied().map(|(header, permissions)| {
+                rect()
+                    .spacing(15.)
+                    .child(
                         rect()
+                            .padding((15., 0., 4., 0.))
+                            .height(Size::px(24.))
+                            .main_align(Alignment::Center)
                             .child(
-                                rect()
-                                    .height(Size::px(24.))
-                                    .main_align(Alignment::Center)
-                                    .child(
-                                        label()
-                                            .font_size(12.)
-                                            .font_weight(FontWeight::MEDIUM)
-                                            .text(header),
-                                    ),
-                            )
-                            .child(rect().children(permissions.iter().copied().map(
-                                |(title, description, bit)| {
-                                    if self.overrite {
-                                        PermissionOverrite {
-                                            allow: self.allow.clone(),
-                                            deny: self.deny.clone(),
-                                            title,
-                                            description,
-                                            bit,
-                                        }
-                                        .into_element()
-                                    } else {
-                                        PermissionToggle {
-                                            value: self.allow.clone(),
-                                            title,
-                                            description,
-                                            bit,
-                                        }
-                                        .into_element()
-                                    }
-                                },
-                            )))
-                            .into_element()
-                    }),
-            )
+                                label()
+                                    .font_size(12.)
+                                    .font_weight(FontWeight::MEDIUM)
+                                    .text(header),
+                            ),
+                    )
+                    .child(rect().children(permissions.iter().copied().map(
+                        |(title, description, bit)| {
+                            if self.overrite {
+                                PermissionOverrite {
+                                    allow: self.allow.clone(),
+                                    deny: self.deny.clone(),
+                                    title,
+                                    description,
+                                    bit,
+                                }
+                                .into_element()
+                            } else {
+                                PermissionToggle {
+                                    value: self.allow.clone(),
+                                    title,
+                                    description,
+                                    bit,
+                                }
+                                .into_element()
+                            }
+                        },
+                    )))
+                    .into_element()
+            }))
     }
 }
 
@@ -230,6 +106,7 @@ struct PermissionToggle {
 
 impl Component for PermissionToggle {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let toggle = use_state(|| (*self.value.read() & self.bit) == self.bit);
 
         use_side_effect({
@@ -249,9 +126,16 @@ impl Component for PermissionToggle {
         StoatCheckbox::new(toggle).child(
             rect()
                 .padding((10., 0.))
-                .child(label().font_size(16.).line_height(1.5).text(self.title))
                 .child(
                     label()
+                        .font_size(16.)
+                        .line_height(1.5)
+                        .font_weight(550)
+                        .text(self.title),
+                )
+                .child(
+                    label()
+                        .color(theme.md.on_surface_variant.as_argb_u32())
                         .font_size(14.)
                         .line_height(1.25)
                         .text(self.description),
@@ -271,6 +155,8 @@ struct PermissionOverrite {
 
 impl Component for PermissionOverrite {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
         let current = if (*self.allow.read() & self.bit) == self.bit {
             Some(true)
         } else if (*self.deny.read() & self.bit) == self.bit {
@@ -288,9 +174,16 @@ impl Component for PermissionOverrite {
                 rect()
                     .width(Size::flex(1.))
                     .padding((10., 0.))
-                    .child(label().font_size(16.).line_height(1.5).text(self.title))
                     .child(
                         label()
+                            .font_size(16.)
+                            .line_height(1.5)
+                            .font_weight(550)
+                            .text(self.title),
+                    )
+                    .child(
+                        label()
+                            .color(theme.md.on_surface_variant.as_argb_u32())
                             .font_size(14.)
                             .line_height(1.25)
                             .text(self.description),
@@ -394,12 +287,7 @@ impl Component for PermissionOverriteSwitchOverride {
                 hover.set(true);
             })
             .on_pointer_out(move |_| hover.set_if_modified(false))
-            .on_pointer_enter(move |_| {
-                Cursor::set(CursorIcon::Pointer);
-            })
-            .on_pointer_leave(move |_| {
-                Cursor::set(CursorIcon::default());
-            })
+            .cursor(CursorIcon::Pointer)
             .background(if self.current == self.value {
                 match self.value {
                     Some(true) => theme.md.on_primary_container.as_argb_u32(),

@@ -110,13 +110,19 @@ impl Component for App {
             &state.settings.ermine
         });
 
+        let mut update_settings_task = use_state(|| None::<TaskHandle>);
+
         use_side_effect_with_deps(&ermine_settings.read().cloned(), move |settings| {
+            update_settings_task.take().map(|task| task.cancel());
+
             if let Some(settings) = settings.clone() {
-                spawn(async move {
+                update_settings_task.set(Some(spawn(async move {
+                    sleep(Duration::from_secs(5)).await;
+
                     let mut map = HashMap::new();
                     map.insert("ermine".to_string(), to_value(settings).unwrap());
                     http().set_settings(&map).await.unwrap();
-                });
+                })));
             };
         });
 

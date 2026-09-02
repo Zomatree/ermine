@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, mem::discriminant};
 
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
@@ -128,17 +128,12 @@ impl Component for ChannelSettings {
                                                     .font_size(22)
                                                     .font_weight(550)
                                                     .horizontal()
-                                                    .child(label()
-                                                        .text(page.title())
+                                                    .child(rect()
+                                                        .child(page.title())
                                                         .maybe(selected_role.is_some(), |label|
                                                             label
                                                                 .color(theme.md.outline.as_argb_u32())
-                                                                .on_pointer_enter(move |_| {
-                                                                    Cursor::set(CursorIcon::Pointer);
-                                                                })
-                                                                .on_pointer_leave(move |_| {
-                                                                    Cursor::set(CursorIcon::default());
-                                                                })
+                                                                .cursor(CursorIcon::Pointer)
                                                                 .on_press({
                                                                     let mut current_page =
                                                                         current_page.clone();
@@ -246,7 +241,7 @@ impl Component for ChannelSettingsButton {
                 current_page
                     .read()
                     .as_ref()
-                    .is_some_and(|v| &v.1 == &self.page),
+                    .is_some_and(|(_, page)| discriminant(page) == discriminant(&self.page)),
                 |this| this.background(theme.md.primary_container.as_argb_u32()),
             )
             .child(

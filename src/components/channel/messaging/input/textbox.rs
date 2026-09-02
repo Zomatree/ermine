@@ -5,6 +5,7 @@ use std::{
 };
 
 use freya::{prelude::*, radio::use_radio, text_edit::*};
+use freya_components::cursor_blink::use_cursor_blink;
 use jiff::Timestamp;
 use regex::Regex;
 use stoat_models::v0;
@@ -14,11 +15,11 @@ use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use crate::{
     AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions,
     components::{
-        AttachmentController, EmojiPicker, ReplyController, StoatButton,
-        StoatButtonLayoutThemePartialExt,
+        AttachmentController, EmojiGifPicker, EmojiPicker, GifPicker, PickerSelection,
+        ReplyController, StoatButton, StoatButtonLayoutThemePartialExt,
         material::{
             MaterialIcon,
-            filled::{add, do_not_disturb},
+            filled::{add, do_not_disturb, gif},
             round::insert_emoticon,
         },
         use_floating,
@@ -53,6 +54,7 @@ impl Component for Textbox {
         let theme = consume_material_theme();
         let holder = use_state(ParagraphHolder::default);
         let a11y_id = use_a11y();
+        let focus = use_focus(a11y_id);
         let mut floating = use_floating();
         let mut clipboard = use_clipboard();
 
@@ -62,9 +64,13 @@ impl Component for Textbox {
         let mut stop_typing = use_state(|| None::<TaskHandle>);
         let events = consume_context::<UnboundedSender<ClientMessage>>();
 
+        let (mut movement_timeout, cursor_color) =
+            use_cursor_blink(focus().is_focused(), 0xFFFFFFFF.into());
+
         use_side_effect_with_deps(&editable.editor().read().to_string(), {
             let id = self.channel.read().id().to_string();
             move |content| {
+                movement_timeout.reset();
                 let ts = last_typing.peek().cloned();
                 let now = SystemTime::now();
 
@@ -139,27 +145,26 @@ impl Component for Textbox {
             .content(Content::Flex)
             .background(theme.md.surface_container_high.as_argb_u32())
             .corner_radius(28.)
-            .padding((4., 8., 4., 0.))
+            .padding((4., 8., 4., 8.))
             .cross_align(Alignment::Center)
             .min_height(Size::px(48.))
             // .max_height(Size::window_percent(32.))
             .child(
-                rect()
-                    .horizontal()
-                    .width(Size::px(62.))
-                    .height(Size::px(40.))
-                    .center()
-                    .maybe_child(if !can_send_messages {
-                        Some(
+                if !can_send_messages
+                    || permissions().has_channel_permission(ChannelPermission::UploadFiles)
+                {
+                    rect()
+                        .horizontal()
+                        .width(Size::px(42.))
+                        .height(Size::px(40.))
+                        .center()
+                        .child(if !can_send_messages {
                             MaterialIcon::new(do_not_disturb())
                                 .size(Size::px(24.))
-                                .into_element(),
-                        )
-                    } else if permissions
-                        .read()
-                        .has_channel_permission(ChannelPermission::UploadFiles)
-                    {
-                        Some(
+                                .into_element()
+                        } else if permissions()
+                            .has_channel_permission(ChannelPermission::UploadFiles)
+                        {
                             rect()
                                 .on_global_file_hover({
                                     let file_hover = file_hover.clone();
@@ -178,6 +183,7 @@ impl Component for Textbox {
                                             move |_| {
                                                 spawn(async move {
                                                     attachments.prompt().await;
+                                                    a11y_id.request_focus();
                                                 });
                                             }
                                         })
@@ -191,11 +197,13 @@ impl Component for Textbox {
                                                 ),
                                         ),
                                 )
-                                .into_element(),
-                        )
-                    } else {
-                        None
-                    }),
+                                .into_element()
+                        } else {
+                            unreachable!()
+                        })
+                } else {
+                    rect().width(Size::px(14.)).height(Size::px(40.))
+                },
             )
             .child(
                 ScrollView::new()
@@ -212,6 +220,7 @@ impl Component for Textbox {
                         rect()
                             .width(Size::Fill)
                             .padding((4., 0.))
+                            .cursor(CursorIcon::Text)
                             .child(
                                 paragraph()
                                     .a11y_focusable(Focusable::Enabled)
@@ -219,9 +228,13 @@ impl Component for Textbox {
                                     .width(Size::Fill)
                                     .a11y_id(a11y_id)
                                     .a11y_auto_focus(true)
-                                    .cursor_index(editable.editor().read().cursor_pos())
+                                    .cursor_index(if focus().is_focused() {
+                                        Some(editable.editor().read().cursor_pos())
+                                    } else {
+                                        None
+                                    })
                                     .cursor_style(CursorStyle::Line)
-                                    .cursor_color(0xFFFFFFFF)
+                                    .cursor_color(cursor_color)
                                     .highlights(
                                         editable
                                             .editor()
@@ -230,12 +243,7 @@ impl Component for Textbox {
                                             .map(|selection| vec![selection])
                                             .unwrap_or_default(),
                                     )
-                                    .on_pointer_enter(move |_| {
-                                        Cursor::set(CursorIcon::Text);
-                                    })
-                                    .on_pointer_leave(move |_| {
-                                        Cursor::set(CursorIcon::default());
-                                    })
+                                    .on_focus_press(move |_| movement_timeout.reset())
                                     .on_mouse_down(move |e: Event<MouseEventData>| {
                                         a11y_id.request_focus();
                                         editable.process_event(EditableEvent::Down {
@@ -440,6 +448,10 @@ impl Component for Textbox {
                                                         EditableEvent::KeyDown {
                                                             key: &e.key,
                                                             modifiers: e.modifiers,
+                                                            editor_line: Some(
+                                                                EditorLine::SingleParagraph,
+                                                            ),
+                                                            holder: Some(&holder.read()),
                                                         },
                                                     );
                                                 }
@@ -504,40 +516,73 @@ impl Component for Textbox {
                             ))
                     }),
             )
-            .maybe_child(can_send_messages.then(|| {
-                StoatButton::new()
-                    .corner_radius(40.)
-                    .on_press({
-                        move |_| {
-                            floating.set(Some(
-                                EmojiPicker::new(move |e: String| {
-                                    floating.set(None);
-
-                                    let e = if e.len() == 26 { format!(":{e}:") } else { e };
-
-                                    let mut editor = editable.editor_mut().write();
-                                    let selection = editor.get_selection_range();
-                                    if let Some((start, end)) = selection {
-                                        editor.remove(start..end);
-                                        editor.move_cursor_to(start);
-                                    }
-                                    let cursor_pos = editor.cursor_pos();
-                                    let last_idx = e.encode_utf16().count() + cursor_pos;
-                                    editor.insert(&e, cursor_pos);
-                                    editor.selection_mut().move_to(last_idx);
-                                    editor.selection_mut().set_as_cursor();
-                                })
-                                .into_element(),
-                            ));
+            .maybe(can_send_messages, |this| {
+                let callback = move |(value, selection): (String, PickerSelection)| {
+                    let value = match selection {
+                        PickerSelection::GIF => value,
+                        PickerSelection::Emoji => {
+                            if value.len() == 26 {
+                                format!(":{value}:")
+                            } else {
+                                value
+                            }
                         }
-                    })
-                    .child(
-                        rect()
-                            .width(Size::px(40.))
-                            .height(Size::px(40.))
-                            .center()
-                            .child(MaterialIcon::new(insert_emoticon()).size(Size::px(24.))),
-                    )
-            }))
+                    };
+
+                    floating.set(None);
+
+                    let mut editor = editable.editor_mut().write();
+                    let selection = editor.get_selection_range();
+                    if let Some((start, end)) = selection {
+                        editor.remove(start..end);
+                        editor.move_cursor_to(start);
+                    }
+                    let cursor_pos = editor.cursor_pos();
+                    let last_idx = value.encode_utf16().count() + cursor_pos;
+                    editor.insert(&value, cursor_pos);
+                    editor.selection_mut().move_to(last_idx);
+                    editor.selection_mut().set_as_cursor();
+                    a11y_id.request_focus();
+                };
+
+                this.child(
+                    StoatButton::new()
+                        .corner_radius(40.)
+                        .on_press({
+                            move |_| {
+                                floating.set(Some(
+                                    EmojiGifPicker::new(PickerSelection::GIF, callback.clone())
+                                        .into_element(),
+                                ));
+                            }
+                        })
+                        .child(
+                            rect()
+                                .width(Size::px(40.))
+                                .height(Size::px(40.))
+                                .center()
+                                .child(MaterialIcon::new(gif()).size(Size::px(24.))),
+                        ),
+                )
+                .child(
+                    StoatButton::new()
+                        .corner_radius(40.)
+                        .on_press({
+                            move |_| {
+                                floating.set(Some(
+                                    EmojiGifPicker::new(PickerSelection::Emoji, callback.clone())
+                                        .into_element(),
+                                ));
+                            }
+                        })
+                        .child(
+                            rect()
+                                .width(Size::px(40.))
+                                .height(Size::px(40.))
+                                .center()
+                                .child(MaterialIcon::new(insert_emoticon()).size(Size::px(24.))),
+                        ),
+                )
+            })
     }
 }

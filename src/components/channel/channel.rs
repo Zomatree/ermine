@@ -25,6 +25,7 @@ use crate::{
 pub struct Channel {
     pub channel: Readable<v0::Channel>,
     pub server: Option<Readable<v0::Server>>,
+    pub jump_message: Option<String>,
 }
 
 impl Component for Channel {
@@ -40,7 +41,9 @@ impl Component for Channel {
         let attachments = AttachmentController(use_state(IndexMap::new));
 
         use_hook(|| provide_root_context(Some(attachments)));
-        use_drop(|| provide_root_context::<Option<AttachmentController>>(None));
+        use_drop(|| {
+            provide_root_context::<Option<AttachmentController>>(None);
+        });
 
         let hide_members_list = config.read().hide_members_list;
 
@@ -314,6 +317,7 @@ impl Component for Channel {
                         rect()
                             .child(
                                 Input::new(search)
+                                    .height(Size::px(40.))
                                     .placeholder("Search messages...")
                                     .placeholder_color(theme.md.outline.as_argb_u32())
                                     .border_fill(Color::TRANSPARENT)
@@ -321,9 +325,17 @@ impl Component for Channel {
                                     .corner_radius(40.)
                                     .width(Size::Fill)
                                     .background(theme.md.surface_container_high.as_argb_u32())
+                                    .focus_background(theme.md.surface_container_high.as_argb_u32())
+                                    .focus_border_fill(theme.md.surface_tint.as_argb_u32())
                                     .on_submit(move |_| {
+                                        let query = search.read();
                                         show_pinned.set(false);
-                                        search_query.set(Some(search.read().cloned()))
+
+                                        search_query.set(if query.is_empty() {
+                                            None
+                                        } else {
+                                            Some(query.cloned())
+                                        });
                                     }),
                             )
                             .max_width(Size::px(240.)),
@@ -366,6 +378,7 @@ impl Component for Channel {
                                                 replies,
                                                 channel: self.channel.clone(),
                                                 server: self.server.clone(),
+                                                jump_message: self.jump_message.clone(),
                                             }),
                                     )
                                     .child(MessageInput {

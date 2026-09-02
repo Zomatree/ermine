@@ -1,8 +1,9 @@
 use crate::{
     AppChannel, LocalFile, SizeExt,
     components::{
-        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, material::filled::delete,
+        AnimatedImage, MaterialIcon, SingleLineEntry, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        material::filled::delete,
     },
     consume_material_theme, http,
     types::Tag,
@@ -161,7 +162,7 @@ impl Component for EmojiServerSettings {
                                     .width(Size::px(36.))
                                     .height(Size::px(36.))
                                     .child(
-                                        ImageViewer::new(
+                                        AnimatedImage::new(
                                             format!(
                                                 "{}/{}/{}",
                                                 http().api_config.features.autumn.url,

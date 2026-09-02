@@ -7,7 +7,7 @@ use std::{
 };
 
 use freya::{prelude::*, radio::use_radio};
-use jiff::{Timestamp, tz::TimeZone};
+use jiff::{Timestamp, civil::Date, tz::TimeZone};
 use stoat_models::v0;
 use tokio::time::sleep;
 
@@ -17,7 +17,7 @@ use crate::{
         ChannelSlowmode, ChannelTyping, Deferred, Message, MessageActions, MessageList,
         ReplyController, TrailingMessage,
     },
-    http, map_readable,
+    consume_material_theme, http, map_readable,
     types::Tag,
 };
 
@@ -26,6 +26,7 @@ pub struct ChannelMessages {
     pub replies: ReplyController,
     pub channel: Readable<v0::Channel>,
     pub server: Option<Readable<v0::Server>>,
+    pub jump_message: Option<String>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -54,12 +55,39 @@ enum FetchDirection {
     JumpMsg,
 }
 
+#[derive(Clone, PartialEq, Debug)]
+enum ListEntry {
+    Messages(Vec<MessageModel>),
+    UnreadDivider,
+    Date(Date),
+    Blocked(usize),
+}
+
+impl ListEntry {
+    fn message(&self) -> Option<&MessageModel> {
+        if let Self::Messages(messages) = self
+            && let Some(message) = messages.first()
+        {
+            Some(&message)
+        } else {
+            None
+        }
+    }
+}
+
 impl Component for ChannelMessages {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::ChannelStates);
         let user_id = radio.slice(AppChannel::UserId, |state| &state.user_id);
         let mut users_last_message = radio.slice_mut(AppChannel::UsersLastMessage, |state| {
             &mut state.users_last_message
+        });
+        let channel_unreads =
+            radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
+
+        let ermine_settings = radio.slice_mut(AppChannel::Settings("ermine"), |state| {
+            state.settings.ermine.get_or_insert_default()
         });
 
         let at_start = use_state(|| false);
@@ -77,7 +105,20 @@ impl Component for ChannelMessages {
         });
 
         let mut ack_task = use_state(|| None::<TaskHandle>);
-        let mut last_acked = use_state(|| None::<String>);
+        let mut last_acked = use_state(|| {
+            channel_unreads
+                .read()
+                .get(self.channel.read().id())
+                .as_ref()
+                .and_then(|unread| unread.last_id.clone())
+        });
+        let last_read = use_state(|| last_acked.read().cloned());
+
+        // let mut scroll_positions = use_state(|| HashMap::<usize, (String, f32)>::new());
+        // let mut scroll_area = use_state(Area::default);
+        // let mut outer_area = use_state(Area::default);
+
+        // let mut initialised = use_state(|| false);
 
         use_side_effect({
             let messages = messages.clone();
@@ -441,6 +482,19 @@ impl Component for ChannelMessages {
                             existing.rotate_left(cutoff);
                             existing.resize_with(75, || unreachable!());
                         };
+
+                        // spawn(async move {
+                        //     sleep(Duration::from_millis(50)).await;
+                        //     if let Some(first_message) = messages.read().back()
+                        //         && let Some((_, pos)) = scroll_positions
+                        //             .read()
+                        //             .values()
+                        //             .find(|(id, _)| id == &first_message.id)
+                        //     {
+                        //         println!("{} {}", pos, outer_area().height());
+                        //         scroll_controller.scroll_to_y((pos - outer_area().height()) as i32);
+                        //     };
+                        // });
                     };
 
                     fetching.set(None);
@@ -560,6 +614,106 @@ impl Component for ChannelMessages {
             }
         };
 
+        let case_jump_to_message = {
+            let channel = self.channel.clone();
+            let fetching = fetching.clone();
+            let mut at_start = at_start.clone();
+            let mut at_end = at_end.clone();
+            let new_preempted = new_preempted.clone();
+            let mut messages = messages.clone();
+            let server = self.server.clone();
+            let preempt = preempt.clone();
+
+            move |message_id: String| {
+                let channel = channel.clone();
+                let mut fetching = fetching.clone();
+                let server = server.clone();
+                let preempt = preempt.clone();
+
+                spawn(async move {
+                    // if let Some((_, pos)) = scroll_positions
+                    //     .read()
+                    //     .values()
+                    //     .find(|(id, _)| id == &message_id)
+                    // {
+                    //     scroll_controller.scroll_to_y((pos + (outer_area().height() / 2.)) as i32);
+                    //     return;
+                    // };
+
+                    preempt();
+                    fetching.set(Some(FetchDirection::JumpMsg));
+
+                    new_preempted();
+
+                    let channel = channel.read().clone();
+                    let v0::BulkMessageResponse::MessagesAndUsers {
+                        messages: mut new_messages,
+                        users,
+                        members,
+                    } = http()
+                        .fetch_messages(
+                            channel.id(),
+                            &v0::OptionsQueryMessages {
+                                limit: Some(25),
+                                before: None,
+                                after: None,
+                                sort: Some(v0::MessageSort::Oldest),
+                                nearby: Some(message_id.clone()),
+                                include_users: Some(true),
+                            },
+                        )
+                        .await
+                        .unwrap()
+                    else {
+                        panic!()
+                    };
+
+                    {
+                        let mut state = radio.clone().write_channel(AppChannel::Users);
+
+                        for user in users {
+                            state.users.entry(user.id.clone()).or_insert(user);
+                        }
+                    }
+
+                    {
+                        if let Some(members) = members
+                            && let Some(server_id) = server.map(|s| s.read().id.clone())
+                        {
+                            let mut state = radio.clone().write_channel(AppChannel::Members);
+
+                            let server_members = state.members.get_mut(&server_id).unwrap();
+
+                            for member in members {
+                                server_members
+                                    .entry(member.id.user.clone())
+                                    .or_insert(member);
+                            }
+                        }
+                    }
+
+                    if *preempted.read() {
+                        return;
+                    };
+
+                    at_start.set(false);
+                    at_end.set(false);
+
+                    new_messages.sort_by(|a, b| b.id.cmp(&a.id));
+                    messages.set(new_messages.into());
+
+                    // spawn(async move {
+                    //     sleep(Duration::from_millis(50)).await;
+
+                    //     if let Some((_, pos)) = scroll_positions.read().values().find(|(id, _)| id == &message_id) {
+                    //         scroll_controller.scroll_to_y((pos + (outer_area().height() / 2.)) as i32);
+                    //         fetching.set(None);
+                    //     };
+                    // });
+                })
+            }
+        };
+
         use_hook({
             let channel = self.channel.clone();
             let case_initial = case_initial.clone();
@@ -574,9 +728,14 @@ impl Component for ChannelMessages {
                     on_message: Rc::new({
                         let messages = messages.clone();
                         let channel = channel.clone();
+
                         move |message| {
                             if channel.id() != &message.channel || !*at_end.read() {
                                 return;
+                            };
+
+                            if &message.author == user_id.read().as_ref().unwrap() {
+                                last_read.clone().set(Some(message.id.clone()));
                             };
 
                             messages.clone().write().push_front(message);
@@ -719,6 +878,20 @@ impl Component for ChannelMessages {
                 case_initial(None);
             }
         });
+
+        // let jump_message = use_reactive(&self.jump_message);
+
+        // use_hook({
+        //     || {
+        //         Effect::create_after({
+        //             move || {
+        //                 if let Some(message_id) = &*jump_message.read() {
+        //                     case_jump_to_message(message_id.clone());
+        //                 }
+        //             }
+        //         })
+        //     }
+        // });
 
         use_drop({
             let fetching = fetching.clone();
@@ -931,68 +1104,126 @@ impl Component for ChannelMessages {
             let messages_models = messages_models.clone();
 
             use_memo(move || {
-                let mut groups: Vec<Vec<MessageModel>> = Vec::new();
+                let mut groups: Vec<ListEntry> = Vec::new();
+                let mut unread_divider = false;
+                let mut block_count = 0;
 
                 for model in messages_models.read().iter().cloned().rev() {
-                    if let Some(group) = groups.last_mut() {
-                        let last = group.last().unwrap();
+                    if let Some(group) = groups.last().cloned() {
+                        let (join_last, date_divider) = {
+                            || {
+                                if let Some(last) = group.message() {
+                                    let last_datetime = Timestamp::try_from(
+                                        ulid::Ulid::from_string(&last.message.id)
+                                            .unwrap()
+                                            .datetime(),
+                                    )
+                                    .unwrap()
+                                    .to_zoned(TimeZone::system());
 
-                        if last.user.peek().id != model.user.peek().id
-                            || model
-                                .message
-                                .replies
-                                .as_ref()
-                                .is_some_and(|r| !r.is_empty())
-                        {
-                            groups.push(vec![model]);
-                            continue;
+                                    let current_datetime = Timestamp::try_from(
+                                        ulid::Ulid::from_string(&model.message.id)
+                                            .unwrap()
+                                            .datetime(),
+                                    )
+                                    .unwrap()
+                                    .to_zoned(TimeZone::system());
+
+                                    if last_datetime.date() != current_datetime.date() {
+                                        return (false, Some(current_datetime.date()));
+                                    }
+
+                                    if last.user.peek().id != model.user.peek().id
+                                        || model
+                                            .message
+                                            .replies
+                                            .as_ref()
+                                            .is_some_and(|r| !r.is_empty())
+                                    {
+                                        return (false, None);
+                                    };
+
+                                    let diff = (current_datetime.timestamp().as_second()
+                                        - last_datetime.timestamp().as_second())
+                                    .abs();
+
+                                    if diff >= 420 {
+                                        return (false, None);
+                                    }
+
+                                    let last_msg = &last.message;
+
+                                    if last_msg.system.is_some() {
+                                        return (false, None);
+                                    }
+
+                                    let current_msg = &model.message;
+
+                                    if current_msg.system.is_some()
+                                        || current_msg.masquerade != last_msg.masquerade
+                                    {
+                                        return (false, None);
+                                    }
+
+                                    if !unread_divider
+                                        && last_read
+                                            .read()
+                                            .as_ref()
+                                            .is_none_or(|id| id < &model.message.id)
+                                    {
+                                        return (false, None);
+                                    }
+
+                                    (true, None::<Date>)
+                                } else {
+                                    (false, None)
+                                }
+                            }
+                        }();
+
+                        if let Some(date) = date_divider {
+                            if block_count != 0 {
+                                groups.push(ListEntry::Blocked(block_count));
+                                block_count = 0;
+                            };
+
+                            groups.push(ListEntry::Date(date));
                         };
 
-                        let last_datetime = Timestamp::try_from(
-                            ulid::Ulid::from_string(&last.message.id)
-                                .unwrap()
-                                .datetime(),
-                        )
-                        .unwrap()
-                        .to_zoned(TimeZone::system());
-
-                        let current_datetime = Timestamp::try_from(
-                            ulid::Ulid::from_string(&model.message.id)
-                                .unwrap()
-                                .datetime(),
-                        )
-                        .unwrap()
-                        .to_zoned(TimeZone::system());
-
-                        let diff = (current_datetime.timestamp().as_second()
-                            - last_datetime.timestamp().as_second())
-                        .abs();
-
-                        if last_datetime.date() != current_datetime.date() || diff >= 420 {
-                            groups.push(vec![model]);
-                            continue;
-                        }
-
-                        let last_msg = &last.message;
-
-                        if last_msg.system.is_some() {
-                            groups.push(vec![model]);
-                            continue;
-                        }
-
-                        let current_msg = &model.message;
-
-                        if current_msg.system.is_some()
-                            || current_msg.masquerade != last_msg.masquerade
+                        if !unread_divider
+                            && last_read
+                                .read()
+                                .as_ref()
+                                .is_none_or(|id| id < &model.message.id)
                         {
-                            groups.push(vec![model]);
-                            continue;
-                        }
+                            unread_divider = true;
+                            groups.push(ListEntry::UnreadDivider);
+                        };
 
-                        group.push(model);
+                        if model.user.read().relationship == v0::RelationshipStatus::Blocked
+                            && date_divider.is_none()
+                        {
+                            block_count += 1;
+                        } else if block_count != 0 {
+                            groups.push(ListEntry::Blocked(block_count));
+                            block_count = 0;
+                        } else if join_last
+                            && let ListEntry::Messages(messages) = groups.last_mut().unwrap()
+                        {
+                            messages.push(model)
+                        } else {
+                            groups.push(ListEntry::Messages(vec![model]));
+                        }
                     } else {
-                        groups.push(vec![model]);
-                    }
+                        if model.user.read().relationship == v0::RelationshipStatus::Blocked {
+                            block_count += 1;
+                        } else if block_count != 0 {
+                            groups.push(ListEntry::Blocked(block_count));
+                            block_count = 0;
+                        } else {
+                            groups.push(ListEntry::Messages(vec![model]));
+                        };
+                    };
                 }
 
                 groups
@@ -1002,38 +1233,107 @@ impl Component for ChannelMessages {
         let message_views = use_memo({
             let replies = self.replies.clone();
             let channel = self.channel.clone();
+
             move || {
                 groups
                     .read()
                     .iter()
                     .cloned()
-                    .map(|messages| {
-                        let first = messages.first().unwrap();
+                    .map(|entry| match entry {
+                        ListEntry::Messages(messages) => {
+                            let first = messages.first().unwrap();
 
-                        let mut elements = vec![
-                            MessageActions::new(replies, channel.clone(), first.clone())
-                                .margin((12., 0., 0., 0.))
-                                .padding((2., 0.))
-                                .child(Message {
-                                    channel: channel.clone(),
-                                    message: first.clone(),
-                                })
-                                .into_element(),
-                        ];
-
-                        for message in &messages[1..] {
-                            elements.push(
-                                MessageActions::new(replies, channel.clone(), message.clone())
-                                    .margin((0., 0., 0., 0.))
+                            let mut elements = vec![
+                                MessageActions::new(replies, channel.clone(), first.clone())
+                                    .margin((
+                                        ermine_settings.read().message_group_spacing as f32,
+                                        0.,
+                                        0.,
+                                        0.,
+                                    ))
                                     .padding((2., 0.))
-                                    .child(TrailingMessage {
+                                    .child(Message {
                                         channel: channel.clone(),
-                                        message: message.clone(),
+                                        message: first.clone(),
                                     })
                                     .into_element(),
-                            );
+                            ];
+
+                            for message in &messages[1..] {
+                                elements.push(
+                                    MessageActions::new(replies, channel.clone(), message.clone())
+                                        .margin((0., 0., 0., 0.))
+                                        .padding((2., 0.))
+                                        .child(TrailingMessage {
+                                            channel: channel.clone(),
+                                            message: message.clone(),
+                                        })
+                                        .into_element(),
+                                );
+                            }
+                            elements
                         }
-                        elements
+                        ListEntry::Blocked(count) => {
+                            vec![
+                                label()
+                                    .text(format!("{count} blocked messages"))
+                                    .into_element(),
+                            ]
+                        }
+                        ListEntry::Date(date) => {
+                            let el = rect()
+                                .content(Content::Flex)
+                                .padding((17., 12., 0., 12.))
+                                // .height(Size::px(34.))
+                                .direction(Direction::Horizontal)
+                                .cross_align(Alignment::Center)
+                                .spacing(5.)
+                                .child(
+                                    label()
+                                        .font_size(11.)
+                                        .font_weight(FontWeight::SEMI_BOLD)
+                                        .color(theme.md.outline.as_argb_u32())
+                                        .text(date.strftime("%e %B %Y").to_string()),
+                                )
+                                .child(
+                                    rect()
+                                        .height(Size::px(1.))
+                                        .width(Size::flex(1.))
+                                        .background(theme.md.outline_variant.as_argb_u32()),
+                                );
+
+                            vec![el.into_element()]
+                        }
+                        ListEntry::UnreadDivider => {
+                            let el = rect()
+                                .content(Content::Flex)
+                                .padding((17., 12., 0., 12.))
+                                .direction(Direction::Horizontal)
+                                .cross_align(Alignment::Center)
+                                .child(
+                                    rect()
+                                        .padding((0., 6.))
+                                        .corner_radius(12.)
+                                        .height(Size::px(15.))
+                                        .main_align(Alignment::Center)
+                                        .background(theme.md.primary.as_argb_u32())
+                                        .child(
+                                            label()
+                                                .font_size(10.)
+                                                .font_weight(FontWeight::SEMI_BOLD)
+                                                .color(theme.md.on_primary.as_argb_u32())
+                                                .text("NEW"),
+                                        ),
+                                )
+                                .child(
+                                    rect()
+                                        .height(Size::px(1.))
+                                        .width(Size::flex(1.))
+                                        .background(theme.md.primary.as_argb_u32()),
+                                );
+
+                            vec![el.into_element()]
+                        }
                     })
                     .flatten()
                     .collect::<Vec<_>>()
@@ -1045,83 +1345,106 @@ impl Component for ChannelMessages {
                 if fetching.is_none() { &true } else { &false }
             });
 
-        rect().padding((0., 8.)).child(
-            MessageList::new(
-                move |_| {
-                    case_fetch_upwards();
-                },
-                move |_| {
-                    case_fetch_downwards();
-                },
-                at_start.clone().into_readable(),
-                at_end.into_readable(),
-                at_bottom.into_writable(),
-                permit_fetching,
-                scroll_controller,
-            )
+        rect()
+            .padding((0., 8.))
+            // .on_sized(move |e: Event<SizedEventData>| {
+            //     outer_area.set_if_modified(e.area);
+            // })
             .child(
-                Deferred::new().child(
-                    rect()
-                        // .padding((16., 0., 0., 0.))
-                        .maybe_child(at_start.read().then(|| {
-                            rect()
-                                .margin((18., 16., 10., 16.))
-                                .child(label().font_size(32.).line_height(1.5).text(
-                                    match &*self.channel.read() {
-                                        v0::Channel::DirectMessage { recipients, .. } => {
-                                            let user_id =
-                                                radio.peek_state().user_id.clone().unwrap();
+                MessageList::new(
+                    move |_| {
+                        case_fetch_upwards();
+                    },
+                    move |_| {
+                        case_fetch_downwards();
+                    },
+                    at_start.clone().into_readable(),
+                    at_end.into_readable(),
+                    at_bottom.into_writable(),
+                    permit_fetching,
+                    scroll_controller,
+                )
+                .child(
+                    Deferred::new().child(
+                        rect()
+                            // .on_sized({
+                            //     move |e: Event<SizedEventData>| {
+                            //         scroll_area.set_if_modified(e.area);
+                            //     }
+                            // })
+                            .maybe_child(at_start.read().then(|| {
+                                rect()
+                                    .margin((18., 16., 10., 16.))
+                                    .child(label().font_size(32.).line_height(1.5).text(
+                                        match &*self.channel.read() {
+                                            v0::Channel::DirectMessage { recipients, .. } => {
+                                                let user_id =
+                                                    radio.peek_state().user_id.clone().unwrap();
 
-                                            let other = recipients
-                                                .iter()
-                                                .find(|&id| id != &*user_id)
-                                                .unwrap()
-                                                .clone();
+                                                let other = recipients
+                                                    .iter()
+                                                    .find(|&id| id != &*user_id)
+                                                    .unwrap()
+                                                    .clone();
 
-                                            let user = radio
-                                                .slice(AppChannel::Users, move |state| {
-                                                    state.users.get(&other).unwrap()
-                                                });
+                                                let user = radio
+                                                    .slice(AppChannel::Users, move |state| {
+                                                        state.users.get(&other).unwrap()
+                                                    });
 
-                                            Cow::Owned(user.read().username.clone())
-                                        }
-                                        v0::Channel::Group { name, .. }
-                                        | v0::Channel::TextChannel { name, .. } => {
-                                            Cow::Owned(name.clone())
-                                        }
-                                        v0::Channel::SavedMessages { .. } => {
-                                            Cow::Borrowed("Saved Messages")
-                                        }
-                                    },
-                                ))
-                                .child(
-                                    label()
-                                        .font_size(16.)
-                                        .font_weight(550)
-                                        .line_height(1.5)
-                                        .text("This is the start of your conversation."),
-                                )
-                        }))
-                        .child(rect().children(message_views.read().iter().cloned()))
-                        .child(
-                            rect()
-                                .padding((0., 15.))
-                                .width(Size::Fill)
-                                .height(Size::px(26.))
-                                .horizontal()
-                                .cross_align(Alignment::Center)
-                                .main_align(Alignment::SpaceBetween)
-                                .child(ChannelTyping {
-                                    channel: self.channel.clone(),
-                                    server: self.server.clone(),
-                                })
-                                .child(ChannelSlowmode {
-                                    channel: self.channel.clone(),
-                                }),
-                        ),
+                                                Cow::Owned(user.read().username.clone())
+                                            }
+                                            v0::Channel::Group { name, .. }
+                                            | v0::Channel::TextChannel { name, .. } => {
+                                                Cow::Owned(name.clone())
+                                            }
+                                            v0::Channel::SavedMessages { .. } => {
+                                                Cow::Borrowed("Saved Messages")
+                                            }
+                                        },
+                                    ))
+                                    .child(
+                                        label()
+                                            .font_size(16.)
+                                            .font_weight(550)
+                                            .line_height(1.5)
+                                            .text("This is the start of your conversation."),
+                                    )
+                            }))
+                            .child(
+                                rect().children(
+                                    message_views
+                                        .read()
+                                        .iter()
+                                        .cloned()
+                                        .map(|el| rect().child(el).into_element()), // .on_sized({
+                                                                                    //     move |e: Event<SizedEventData>| {
+                                                                                    //         let y = scroll_area().min_y() - e.area.min_y();
+                                                                                    //         println!("{idx} {}", e.area.min_y());
+                                                                                    //         scroll_positions.write().insert(idx, (id.clone(), y));
+                                                                                    //     }
+                                                                                    // })
+                                ),
+                            )
+                            .child(
+                                rect()
+                                    .padding((0., 15.))
+                                    .width(Size::Fill)
+                                    .height(Size::px(26.))
+                                    .horizontal()
+                                    .cross_align(Alignment::Center)
+                                    .main_align(Alignment::SpaceBetween)
+                                    .child(ChannelTyping {
+                                        channel: self.channel.clone(),
+                                        server: self.server.clone(),
+                                    })
+                                    .child(ChannelSlowmode {
+                                        channel: self.channel.clone(),
+                                    }),
+                            ),
+                    ),
                 ),
-            ),
-        )
+            )
     }
 
     fn render_key(&self) -> DiffKey {

@@ -51,13 +51,13 @@ pub enum Selection {
     Discover,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum SettingsPage {
     #[default]
     Account,
     Profile,
     Sessions,
-    MyBots,
+    MyBots(Option<(String, String)>),
     Feedback,
     Voice,
     Appearance,
@@ -73,7 +73,7 @@ impl SettingsPage {
             SettingsPage::Account => "My Account",
             SettingsPage::Profile => "Profile",
             SettingsPage::Sessions => "Sessions",
-            SettingsPage::MyBots => "My Bots",
+            SettingsPage::MyBots(_) => "My Bots",
             SettingsPage::Feedback => "Feedback",
             SettingsPage::Voice => "Voice",
             SettingsPage::Appearance => "Appearance",
@@ -89,7 +89,7 @@ impl SettingsPage {
             SettingsPage::Account => Bytes::new(),
             SettingsPage::Profile => account_circle(),
             SettingsPage::Sessions => verified_user(),
-            SettingsPage::MyBots => smart_toy(),
+            SettingsPage::MyBots(_) => smart_toy(),
             SettingsPage::Feedback => rate_review(),
             SettingsPage::Voice => mic(),
             SettingsPage::Appearance => color_lens(),
@@ -195,9 +195,25 @@ pub enum NotificationBadge {
     Mentions(usize),
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ErmineSettings {
+    #[serde(default)]
     pub hide_pronouns: bool,
+    #[serde(default = "default_message_group_spacing")]
+    pub message_group_spacing: u32,
+}
+
+fn default_message_group_spacing() -> u32 {
+    12
+}
+
+impl Default for ErmineSettings {
+    fn default() -> Self {
+        Self {
+            hide_pronouns: false,
+            message_group_spacing: default_message_group_spacing(),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -268,7 +284,7 @@ pub struct AppState {
     pub state: ConnectionState,
     pub ready: Ready,
     pub selection: Selection,
-    pub selected_channel: Option<String>,
+    pub selected_channel: Option<(String, Option<String>)>,
     pub user_id: Option<String>,
     pub users: HashMap<String, User>,
     pub servers: HashMap<String, Server>,
@@ -463,7 +479,7 @@ pub fn set_selection(selection: Selection, mut station: AppStation) {
 pub fn set_selected_channel(channel_id: Option<String>, mut station: AppStation) {
     station
         .write_channel(AppChannel::SelectedChannel)
-        .selected_channel = channel_id;
+        .selected_channel = channel_id.map(|id| (id, None));
 }
 
 pub fn update_settings(settings: UserSettings, mut station: AppStation) {
@@ -639,7 +655,7 @@ pub fn delete_channel(channel_id: &str, mut station: AppStation) {
     {
         let mut state = station.write_channel(AppChannel::SelectedChannel);
 
-        if let Some(id) = &state.selected_channel
+        if let Some((id, _)) = &state.selected_channel
             && id == channel_id
         {
             state.selected_channel = None;

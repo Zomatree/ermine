@@ -90,12 +90,6 @@ impl Component for StoatButton {
         let theme = consume_material_theme();
         let mut size = use_state(Size2D::default);
 
-        use_drop(move || {
-            if hovering() {
-                Cursor::set(CursorIcon::default());
-            }
-        });
-
         let theme_colors = get_theme!(
             &self.theme_colors,
             StoatButtonColorsThemePreference,
@@ -145,6 +139,7 @@ impl Component for StoatButton {
                     }
                 }
             })
+            .cursor(CursorIcon::Pointer)
             .on_pointer_over(move |_| {
                 hovering.set(true);
             })
@@ -152,15 +147,10 @@ impl Component for StoatButton {
             .on_pointer_enter({
                 let on_hover = self.on_hover.clone();
                 move |e| {
-                    Cursor::set(CursorIcon::Pointer);
-
                     if let Some(on_hover) = &on_hover {
                         on_hover.call(e);
                     }
                 }
-            })
-            .on_pointer_leave(move |_| {
-                Cursor::set(CursorIcon::default());
             })
             .on_sized(move |e: Event<SizedEventData>| size.set(e.area.size))
             .child(

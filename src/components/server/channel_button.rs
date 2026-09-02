@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
+use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
     AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt,
@@ -59,17 +60,47 @@ impl Component for ChannelButton {
             let muted = muted.clone();
 
             move || {
-                if *muted.read() {
+                let unread = unread.read().clone()?;
+
+                let badge = get_unread_badge(&channel.read(), &unread)?;
+
+                if muted() && !matches!(badge, NotificationBadge::Mentions(_)) {
                     return None;
                 };
 
-                let unread = unread.read().clone()?;
-
-                get_unread_badge(&channel.read(), &unread)
+                Some(badge)
             }
         });
 
-        let selected = use_memo(move || selected.read().as_deref() == Some(channel.read().id()));
+        let selected = selected
+            .read()
+            .as_ref()
+            .is_some_and(|(id, _)| id == channel.read().id());
+
+        let mut permissions = use_state(|| PermissionValue::from_raw(0));
+
+        use_side_effect({
+            move || {
+                spawn(async move {
+                    let channel = channel.read();
+
+                    let mut query = user_permissions_query(radio).channel(channel.clone());
+
+                    permissions.set(calculate_channel_permissions(&mut query).await);
+                });
+            }
+        });
+
+        let color = if muted() && !selected {
+            theme.md.outline_variant
+        } else if unread_badge.read().is_some() {
+            theme.md.on_surface
+        } else if selected {
+            theme.md.on_primary_container
+        } else {
+            theme.md.outline
+        }
+        .as_argb_u32();
 
         rect()
             .on_pointer_over(move |_| {
@@ -77,30 +108,21 @@ impl Component for ChannelButton {
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
-                let channel = self.channel.clone();
-
                 move |_| {
-                    let channel = channel.read().clone();
-
-                    spawn(async move {
-                        let mut query = user_permissions_query(radio).channel(channel.clone());
-
-                        let permissions = calculate_channel_permissions(&mut query).await;
-
-                        ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
-                            channel_id: channel.id().to_string(),
-                            current_permissions: permissions,
-                        }));
-                    });
+                    ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
+                        channel_id: channel.read().id().to_string(),
+                        current_permissions: permissions(),
+                    }));
                 }
             })
             .child(
                 StoatButton::new()
                     .corner_radius(42.)
-                    .color(theme.md.outline.as_argb_u32())
-                    .maybe(*selected.read(), |btn| {
+                    .color(color)
+                    // .color(theme.md.outline.as_argb_u32())
+                    .maybe(selected, |btn| {
                         btn.background(theme.md.primary_container.as_argb_u32())
-                            .color(theme.md.on_primary_container.as_argb_u32())
+                        // .color(theme.md.on_primary_container.as_argb_u32())
                     })
                     .on_press({
                         let channel = channel.clone();
@@ -110,7 +132,7 @@ impl Component for ChannelButton {
 
                             radio
                                 .write_channel(AppChannel::SelectedChannel)
-                                .selected_channel = Some(channel_id.clone());
+                                .selected_channel = Some((channel_id.clone(), None));
 
                             let server_id = match &*channel.read() {
                                 v0::Channel::TextChannel { server, .. } => Some(server.clone()),
@@ -133,6 +155,12 @@ impl Component for ChannelButton {
                             .overflow(Overflow::Clip)
                             .font_size(15)
                             .width(Size::Fill)
+                            // .maybe(unread_badge.read().is_some(), |this| {
+                            //     this.color(theme.md.on_surface.as_argb_u32())
+                            // })
+                            // .maybe(muted() && !selected, |this| {
+                            //     this.color(theme.md.outline_variant.as_argb_u32())
+                            // })
                             .child(
                                 MaterialIcon::new(
                                     if matches!(
@@ -144,6 +172,7 @@ impl Component for ChannelButton {
                                         grid_3x3()
                                     },
                                 )
+                                .color(color)
                                 .size(Size::px(24.)),
                             )
                             .child(
@@ -153,13 +182,10 @@ impl Component for ChannelButton {
                                     .width(Size::flex(1.))
                                     .max_lines(1),
                             )
-                            .maybe(unread_badge.read().is_some(), |this| {
-                                this.color(theme.md.on_surface.as_argb_u32())
-                            })
                             .maybe_child(
                                 unread_badge
                                     .read()
-                                    .filter(|_| !hovering() && !selected())
+                                    .filter(|_| !hovering() && !selected)
                                     .map(|badge| match badge {
                                         NotificationBadge::Mentions(count) => rect()
                                             .corner_radius(14.)
@@ -182,50 +208,70 @@ impl Component for ChannelButton {
                                     }),
                             )
                             .maybe_child(hovering().then(|| {
+                                let perms = permissions();
+
                                 rect()
                                     .horizontal()
                                     .spacing(4.)
-                                    .child(
-                                        StoatTooltip::new(
-                                            label()
-                                                .font_size(11.)
-                                                .max_lines(1)
-                                                .text("Create Invite"),
-                                        )
-                                        .position(AttachedPosition::Top)
-                                        .child(
-                                            MaterialIcon::new(person_add_alt_1())
-                                                .size(Size::px(16.))
-                                                .on_press(|e: Event<PressEventData>| {
-                                                    e.stop_propagation();
-                                                }),
-                                        ),
+                                    .maybe_child(
+                                        perms
+                                            .has_channel_permission(ChannelPermission::InviteOthers)
+                                            .then(|| {
+                                                StoatTooltip::new(
+                                                    label()
+                                                        .font_size(11.)
+                                                        .max_lines(1)
+                                                        .text("Create Invite"),
+                                                )
+                                                .position(AttachedPosition::Top)
+                                                .child(
+                                                    MaterialIcon::new(person_add_alt_1())
+                                                        .size(Size::px(16.))
+                                                        .color(color)
+                                                        .on_press(|e: Event<PressEventData>| {
+                                                            e.stop_propagation();
+                                                        }),
+                                                )
+                                            }),
                                     )
-                                    .child(
-                                        StoatTooltip::new(
-                                            label()
-                                                .font_size(11.)
-                                                .max_lines(1)
-                                                .text("Edit Channel"),
-                                        )
-                                        .position(AttachedPosition::Top)
-                                        .child(
-                                            MaterialIcon::new(settings())
-                                                .width(Size::px(16.))
-                                                .height(Size::px(16.))
-                                                .on_press({
-                                                    let id = self.channel.peek().id().to_string();
+                                    .maybe_child(
+                                        ([
+                                            ChannelPermission::ManageChannel,
+                                            ChannelPermission::ManagePermissions,
+                                            ChannelPermission::ManageWebhooks,
+                                            ChannelPermission::ManageRole,
+                                        ]
+                                        .iter()
+                                        .any(|&p| perms.has_channel_permission(p)))
+                                        .then(|| {
+                                            StoatTooltip::new(
+                                                label()
+                                                    .font_size(11.)
+                                                    .max_lines(1)
+                                                    .text("Edit Channel"),
+                                            )
+                                            .position(AttachedPosition::Top)
+                                            .child(
+                                                MaterialIcon::new(settings())
+                                                    .color(color)
+                                                    .width(Size::px(16.))
+                                                    .height(Size::px(16.))
+                                                    .on_press({
+                                                        let id =
+                                                            self.channel.peek().id().to_string();
 
-                                                    move |e: Event<PressEventData>| {
-                                                        e.stop_propagation();
+                                                        move |e: Event<PressEventData>| {
+                                                            e.stop_propagation();
 
-                                                        *channel_settings.clone().write() = Some((
-                                                            id.clone(),
-                                                            ChannelSettingsPage::default(),
-                                                        ));
-                                                    }
-                                                }),
-                                        ),
+                                                            *channel_settings.clone().write() =
+                                                                Some((
+                                                                    id.clone(),
+                                                                    ChannelSettingsPage::default(),
+                                                                ));
+                                                        }
+                                                    }),
+                                            )
+                                        }),
                                     )
                             })),
                     ),

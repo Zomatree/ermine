@@ -7,7 +7,7 @@ use etcetera::{AppStrategy, AppStrategyArgs, app_strategy::choose_native_strateg
 use freya::prelude::{State, use_consume};
 use serde::{Deserialize, Serialize};
 
-use crate::{Session, default_theme_source};
+use crate::{Session, ThemeVariant, default_theme_source};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum ThemeScheme {
@@ -27,7 +27,11 @@ impl ThemeScheme {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct ThemeConfig {
+    #[serde(default)]
     pub scheme: ThemeScheme,
+    #[serde(default)]
+    pub variant: ThemeVariant,
+    #[serde(default = "default_theme_source")]
     pub theme_source: u32,
 }
 
@@ -35,6 +39,7 @@ impl Default for ThemeConfig {
     fn default() -> Self {
         Self {
             scheme: Default::default(),
+            variant: Default::default(),
             theme_source: default_theme_source(),
         }
     }
@@ -44,7 +49,7 @@ fn default_api_url() -> String {
     "https://api.stoat.chat".to_string()
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Config {
     #[serde(default = "default_api_url")]
     pub api: String,
@@ -60,6 +65,23 @@ pub struct Config {
     pub hide_members_list: bool,
     #[serde(default)]
     pub theme: ThemeConfig,
+    #[serde(default)]
+    pub drafts: HashMap<String, String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            api: default_api_url(),
+            session: Default::default(),
+            last_channels: Default::default(),
+            collapsed_categories: Default::default(),
+            hide_channel_list: Default::default(),
+            hide_members_list: Default::default(),
+            theme: Default::default(),
+            drafts: Default::default(),
+        }
+    }
 }
 
 pub fn get_config_path() -> PathBuf {
@@ -83,9 +105,13 @@ pub fn get_config_path() -> PathBuf {
 pub fn read_config() -> Config {
     let path = get_config_path();
 
-    let value = std::fs::read_to_string(path).unwrap_or_else(|_| "{}".to_string());
-
-    serde_json::from_str(&value).unwrap_or_default()
+    if let Ok(value) = std::fs::read_to_string(path)
+        && let Ok(config) = serde_json::from_str(&value)
+    {
+        config
+    } else {
+        Config::default()
+    }
 }
 
 pub fn write_config(config: &Config) {
