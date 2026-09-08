@@ -134,8 +134,8 @@ impl Component for MaterialThemeProvider {
         let config = use_config();
 
         let mut state = use_hook(|| {
-            let theme_config = config.read().theme;
-            let theme = generate(&theme_config);
+            let theme_config = &config.read().theme;
+            let theme = generate(theme_config);
             *INITIAL_THEME.write().unwrap() = Some(theme);
             let state = State::create(theme);
             provide_context(state);
@@ -225,8 +225,8 @@ impl AnimTheme {
             origin,
             destination,
             inner: AnimNum::new(0., 1.)
-                .duration(Duration::from_millis(250))
-                .ease(Ease::InOut),
+                .duration(Duration::from_millis(200))
+                .ease(Ease::Out),
             value: origin,
         }
     }

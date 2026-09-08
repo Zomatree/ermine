@@ -101,20 +101,33 @@ impl Component for ServerList {
             }
         });
 
-        use_side_effect_with_deps(&*servers.read(), {
-            move |servers| {
-                let value = OrderingSettings {
-                    servers: Some(servers.iter().map(|server| server.id.clone()).collect()),
-                };
+        let mut before = use_state(|| servers.read().cloned());
 
-                *order_settings.clone().write() = Some(value.clone());
+        use_side_effect({
+            move || {
+                let servers = &*servers.read();
 
-                let mut settings = HashMap::new();
-                settings.insert("ordering".to_string(), to_value(value).unwrap());
+                let has_changed = servers
+                    .iter()
+                    .zip(before.peek().iter())
+                    .any(|(a, b)| a.id != b.id);
 
-                spawn(async move {
-                    http().set_settings(&settings).await.unwrap();
-                });
+                if has_changed {
+                    before.set(servers.clone());
+
+                    let value = OrderingSettings {
+                        servers: Some(servers.iter().map(|server| server.id.clone()).collect()),
+                    };
+
+                    *order_settings.clone().write() = Some(value.clone());
+
+                    let mut settings = HashMap::new();
+                    settings.insert("ordering".to_string(), to_value(value).unwrap());
+
+                    spawn(async move {
+                        http().set_settings(&settings).await.unwrap();
+                    });
+                }
             }
         });
 

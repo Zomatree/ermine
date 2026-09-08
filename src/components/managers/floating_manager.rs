@@ -1,6 +1,3 @@
-use std::marker::PhantomData;
-
-use euclid::{Point2D, Size2D};
 use freya::prelude::*;
 
 #[derive(PartialEq)]
@@ -93,23 +90,7 @@ impl Component for Floating {
             .opacity(if left != 0. && top != 0. { 100. } else { 0. })
             .on_sized(move |e: Event<SizedEventData>| area.set(e.area))
             .on_global_pointer_down(move |e: Event<PointerEventData>| {
-                let area = area.read();
-                let pos = e.global_location();
-
-                let new_area = euclid::Rect {
-                    origin: Point2D {
-                        x: area.origin.x as f64,
-                        y: area.origin.y as f64,
-                        _unit: PhantomData::<()>,
-                    },
-                    size: Size2D {
-                        width: area.size.width as f64,
-                        height: area.size.height as f64,
-                        _unit: PhantomData::<()>,
-                    },
-                };
-
-                if !new_area.contains(pos) {
+                if !area.read().to_f64().contains(e.global_location()) {
                     floating.set(None);
                 }
             })

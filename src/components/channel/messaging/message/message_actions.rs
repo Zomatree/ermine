@@ -10,16 +10,12 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, calculate_channel_permissions,
-    components::{
+    AppChannel, calculate_channel_permissions, components::{
         EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController,
         StoatButton, StoatButtonColorsThemePartialExt,
         material::outlined::{delete, edit, insert_emoticon, more_vert, reply},
         use_floating, use_modals,
-    },
-    consume_material_theme, http,
-    theme::Theme,
-    user_permissions_query,
+    }, consume_material_theme, http, peak_material_theme, theme::Theme, user_permissions_query
 };
 
 #[derive(PartialEq)]
@@ -99,7 +95,7 @@ impl Component for MessageActions {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Nothing);
 
-            let theme = consume_material_theme();
+            let theme = peak_material_theme();
 
             let start = if mentions_user() {
                 theme.md.primary_container.as_argb_u32()

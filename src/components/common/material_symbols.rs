@@ -12,6 +12,7 @@ pub struct MaterialIcon {
     color: Option<Color>,
 
     layout: LayoutData,
+    style: StyleState,
     image_data: ImageData,
     accessibility: AccessibilityData,
     effect: EffectData,
@@ -26,6 +27,7 @@ impl MaterialIcon {
             content,
             color: None,
             layout: LayoutData::default(),
+            style: StyleState::default(),
             image_data: ImageData::default(),
             accessibility: AccessibilityData::default(),
             effect: EffectData::default(),
@@ -46,6 +48,7 @@ impl Component for MaterialIcon {
 
         rect()
             .layout(self.layout.clone())
+            .style(self.style.clone())
             .child(
                 SvgViewer::new(self.content.clone())
                     .accessibility(self.accessibility.clone())
@@ -99,6 +102,12 @@ impl EffectExt for MaterialIcon {
 impl EventHandlersExt for MaterialIcon {
     fn get_event_handlers(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
         &mut self.event_handlers
+    }
+}
+
+impl StyleExt for MaterialIcon {
+    fn get_style(&mut self) -> &mut StyleState {
+        &mut self.style
     }
 }
 

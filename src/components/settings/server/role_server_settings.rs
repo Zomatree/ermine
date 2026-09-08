@@ -5,13 +5,13 @@ use stoat_permissions::{DataPermissionsValue, Override};
 use crate::{
     AppChannel, SelectedRole, ServerSettingsPage, SizeExt, Tag,
     components::{
-        MaterialIcon, ModalValue, PermissionsEditor, SingleLineEntry, StoatButton,
+        MaterialIcon, ModalValue, PermissionsEditor, Reorder, SingleLineEntry, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
         checkbox::StoatCheckbox,
         file_image,
         material::{
             filled::{chevron_right, clear, list},
-            outlined::group_add,
+            outlined::{drag_indicator, group_add},
         },
         permission_values, use_modals,
     },
@@ -30,6 +30,18 @@ impl Component for RoleServerSettings {
         let mut modals = use_modals();
         let mut radio = use_radio(AppChannel::ServerSettingsPage);
 
+        let member = radio.slice(AppChannel::Members, {
+            let server = self.server.clone();
+            move |state| {
+                state
+                    .members
+                    .get(&server.read().id)
+                    .unwrap()
+                    .get(state.user_id.as_ref().unwrap())
+                    .unwrap()
+            }
+        });
+
         let set_selected_role = {
             let server = self.server.read().id.clone();
             move |role| {
@@ -38,7 +50,7 @@ impl Component for RoleServerSettings {
             }
         };
 
-        let ordered_roles = use_memo({
+        let ordered_roles = use_side_effect_value({
             let server = self.server.clone();
             move || {
                 let mut roles = server
@@ -54,6 +66,67 @@ impl Component for RoleServerSettings {
 
                 roles.sort_by(|(a, _), (b, _)| a.rank.cmp(&b.rank));
                 roles
+            }
+        });
+
+        let roles = use_side_effect_value({
+            let member = member.clone();
+            move || {
+                let roles = ordered_roles.read();
+                let member = member.read();
+
+                if let Some(i) = roles
+                    .iter()
+                    .position(|(role, _)| member.roles.contains(&role.id))
+                {
+                    let (a, b) = roles.split_at(i + 1);
+
+                    (a.to_vec(), b.to_vec())
+                } else {
+                    (roles.cloned(), Vec::new())
+                }
+            }
+        });
+
+        let unorderable = roles.into_writable().map(|(a, _)| a, |(a, _)| a);
+        let orderable = roles.into_writable().map(|(_, b)| b, |(_, b)| b);
+        let mut previous = use_state(|| orderable.read().cloned());
+
+        use_side_effect({
+            let server = self.server.clone();
+
+            move || {
+                let (unoderable, after) = &*roles.read();
+                let has_changed = after
+                    .iter()
+                    .zip(previous.peek().iter())
+                    .any(|((a, _), (b, _))| a.id != b.id);
+
+                if has_changed {
+                    let mut new_order = Vec::new();
+                    new_order.extend(unoderable.iter().map(|(r, _)| r.id.clone()));
+                    new_order.extend(after.iter().map(|(r, _)| r.id.clone()));
+
+                    previous.set(after.clone());
+
+                    spawn({
+                        let server_id = server.peek().id.clone();
+
+                        async move {
+                            if let Ok(_) = http()
+                                .edit_role_positions(
+                                    &server_id,
+                                    &v0::DataEditRoleRanks { ranks: new_order },
+                                )
+                                .await
+                            {
+                                // previous.set(orderable.read().clone());
+                            } else {
+                                // orderable.set(previous.peek().clone());
+                            }
+                        }
+                    });
+                }
             }
         });
 
@@ -196,63 +269,118 @@ impl Component for RoleServerSettings {
                 )
                 .child(
                     rect()
-                        .spacing(4.)
+                        .spacing(8.)
                         .child(label().font_size(12.).text("Server Roles"))
-                        .child(rect().spacing(8.).children(ordered_roles.read().iter().map(
-                            |(role, color)| {
-                                let mut role_color =
-                                    rect().background(theme.md.outline_variant.as_argb_u32());
-
-                                if let Some(color) = color {
-                                    role_color.get_style().background = color.clone();
-                                };
-
-                                StoatButton::new()
-                                    .corner_radius(12.)
-                                    .on_press({
-                                        let id = role.id.clone();
-                                        let mut set_selected_role = set_selected_role.clone();
-
-                                        move |_| set_selected_role(SelectedRole::Role(id.clone()))
-                                    })
-                                    .child(
+                        .child(
+                            rect()
+                                .spacing(8.)
+                                .child(rect().spacing(8.).children(
+                                    unorderable.read().iter().cloned().map(|(role, color)| {
                                         rect()
-                                            .padding(13.)
-                                            .background(theme.md.secondary_container.as_argb_u32())
-                                            .color(theme.md.on_secondary_container.as_argb_u32())
-                                            .child(
-                                                rect()
-                                                    .horizontal()
-                                                    .spacing(16.)
-                                                    .cross_align(Alignment::Center)
-                                                    .content(Content::Flex)
-                                                    .child(
-                                                        role_color
-                                                            .corner_radius(36.)
-                                                            .width(Size::px(36.))
-                                                            .height(Size::px(36.)),
-                                                    )
-                                                    .child(
-                                                        label()
-                                                            .width(Size::flex(1.))
-                                                            .font_size(14.)
-                                                            .font_weight(FontWeight::SEMI_BOLD)
-                                                            .line_height(1.5)
-                                                            .text(role.name.clone()),
-                                                    )
-                                                    .child(
-                                                        MaterialIcon::new(chevron_right())
-                                                            .width(Size::px(18.))
-                                                            .height(Size::px(18.)),
-                                                    ),
-                                            ),
-                                    )
-                                    .into_element()
-                            },
-                        ))),
+                                            .padding((0., 0., 0., 32.))
+                                            .child(RoleButton {
+                                                server: self.server.clone(),
+                                                role,
+                                                color,
+                                            })
+                                            .into_element()
+                                    }),
+                                ))
+                                .child(
+                                    Reorder::from_writable(orderable, {
+                                        let server = self.server.clone();
+                                        move |(role, color)| {
+                                            rect()
+                                                .horizontal()
+                                                .spacing(8.)
+                                                .cross_align(Alignment::Center)
+                                                .child(
+                                                    MaterialIcon::new(drag_indicator())
+                                                        .size(Size::px(24.))
+                                                        .cursor(CursorIcon::Grab),
+                                                )
+                                                .child(RoleButton {
+                                                    server: server.clone(),
+                                                    role: role.clone(),
+                                                    color: color.clone(),
+                                                })
+                                                .into_element()
+                                        }
+                                    })
+                                    .spacing(8.),
+                                ),
+                        ),
                 )
                 .into_element(),
         }
+    }
+}
+
+#[derive(PartialEq)]
+pub struct RoleButton {
+    pub server: Readable<v0::Server>,
+    pub role: v0::Role,
+    pub color: Option<Fill>,
+}
+
+impl Component for RoleButton {
+    fn render(&self) -> impl IntoElement {
+        let mut radio = use_radio(AppChannel::ServerSettingsPage);
+
+        let set_selected_role = {
+            let server = self.server.read().id.clone();
+            move |role| {
+                radio.write().server_settings_page =
+                    Some((server.clone(), ServerSettingsPage::Roles(Some(role))))
+            }
+        };
+        let theme = consume_material_theme();
+        let mut role_color = rect().background(theme.md.outline_variant.as_argb_u32());
+
+        if let Some(color) = &self.color {
+            role_color.get_style().background = color.clone();
+        };
+
+        StoatButton::new()
+            .corner_radius(12.)
+            .on_press({
+                let id = self.role.id.clone();
+                let mut set_selected_role = set_selected_role.clone();
+
+                move |_| set_selected_role(SelectedRole::Role(id.clone()))
+            })
+            .child(
+                rect()
+                    .padding(13.)
+                    .background(theme.md.secondary_container.as_argb_u32())
+                    .color(theme.md.on_secondary_container.as_argb_u32())
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(16.)
+                            .cross_align(Alignment::Center)
+                            .content(Content::Flex)
+                            .child(
+                                role_color
+                                    .corner_radius(36.)
+                                    .width(Size::px(36.))
+                                    .height(Size::px(36.)),
+                            )
+                            .child(
+                                label()
+                                    .width(Size::flex(1.))
+                                    .font_size(14.)
+                                    .font_weight(FontWeight::SEMI_BOLD)
+                                    .line_height(1.5)
+                                    .text(self.role.name.clone()),
+                            )
+                            .child(
+                                MaterialIcon::new(chevron_right())
+                                    .width(Size::px(18.))
+                                    .height(Size::px(18.)),
+                            ),
+                    ),
+            )
     }
 }
 

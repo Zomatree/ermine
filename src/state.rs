@@ -181,7 +181,7 @@ pub struct MuteState {
     pub until: Option<u128>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct NotificationsSettings {
     pub server: HashMap<String, NotificationState>,
     pub channel: HashMap<String, NotificationState>,
@@ -216,7 +216,7 @@ impl Default for ErmineSettings {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,

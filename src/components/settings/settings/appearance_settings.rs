@@ -1,9 +1,12 @@
 use freya::{prelude::*, radio::use_radio};
+use stoat_models::v0;
+use ulid::Ulid;
 
 use crate::{
-    AppChannel, ThemeScheme, ThemeVariant,
-    components::{StoatColorPicker, StoatSegmentedButton, checkbox::StoatCheckbox},
-    consume_material_theme, use_config,
+    AppChannel, ThemeScheme, ThemeSet, ThemeVariant, components::{
+        Dropdown, Message, MessageModel, StoatColorPicker, StoatSegmentedButton,
+        checkbox::StoatCheckbox,
+    }, consume_material_theme, use_config
 };
 
 #[derive(PartialEq)]
@@ -31,6 +34,10 @@ impl Component for AppearanceSettings {
         let scheme = use_state(|| config.read().theme.scheme);
         let variant = use_state(|| config.read().theme.variant);
         let mut source = use_state(|| Color::new(config.read().theme.theme_source | (0xFF << 24)));
+        let code_theme = config.into_writable().map(
+            |config| &config.theme.code_theme,
+            |config| &mut config.theme.code_theme,
+        );
 
         use_side_effect(move || {
             let mut config = config.write();
@@ -44,6 +51,11 @@ impl Component for AppearanceSettings {
             config.write().theme.theme_source =
                 ((source.r() as u32) << 16) | ((source.g() as u32) << 8) | (source.b() as u32);
         });
+
+        let theme_set = consume_root_context::<ThemeSet>();
+
+        let id_1 = use_hook(|| Ulid::new());
+        let id_2 = use_hook(|| Ulid::new());
 
         rect()
             .spacing(15.)
@@ -113,11 +125,12 @@ impl Component for AppearanceSettings {
                                 ThemeVariant::FruitSalad,
                             ],
                             |variant| {
-                                label()
+                                paragraph()
+                                    // .width(Size::Inner)
                                     .max_lines(1)
                                     .text_overflow(TextOverflow::Ellipsis)
-                                    .font_size(13.)
-                                    .text(match variant {
+                                    .font_size(10.)
+                                    .span(match variant {
                                         ThemeVariant::Monochrome => "Monochrome",
                                         ThemeVariant::Neutral => "Neutral",
                                         ThemeVariant::TonalSpot => "Tonal Spot",
@@ -146,6 +159,88 @@ impl Component for AppearanceSettings {
                     .font_size(14.)
                     .font_weight(600),
             )
+            .child({
+                let user_id = radio.peek_state().user_id.clone().unwrap();
+
+                let user = radio
+                    .slice(AppChannel::Users, move |state| {
+                        state.users.get(state.user_id.as_ref().unwrap()).unwrap()
+                    })
+                    .into_readable();
+
+                let channel = v0::Channel::SavedMessages {
+                    id: "0".to_string(),
+                    user: user_id.clone(),
+                }
+                .into_readable();
+
+                rect()
+                    .padding(8.)
+                    .background(theme.md.surface_container_lowest.as_argb_u32())
+                    .width(Size::Fill)
+                    .height(Size::px(126.))
+                    .corner_radius(16.)
+                    .interactive(false)
+                    .spacing(*message_group_spacing.read() as f32)
+                    .child(Message {
+                        channel: channel.clone(),
+                        message: MessageModel {
+                            message: v0::Message {
+                                id: id_1.to_string(),
+                                nonce: None,
+                                channel: "0".to_string(),
+                                author: user_id.clone(),
+                                user: None,
+                                member: None,
+                                webhook: None,
+                                content: Some("Hello World!".to_string()),
+                                system: None,
+                                attachments: None,
+                                edited: None,
+                                embeds: None,
+                                mentions: None,
+                                role_mentions: None,
+                                replies: None,
+                                reactions: Default::default(),
+                                interactions: Default::default(),
+                                masquerade: None,
+                                pinned: None,
+                                flags: 0,
+                            },
+                            user: user.clone(),
+                            member: None,
+                        },
+                    })
+                    .child(Message {
+                        channel: channel.clone(),
+                        message: MessageModel {
+                            message: v0::Message {
+                                id: id_2.to_string(),
+                                nonce: None,
+                                channel: "0".to_string(),
+                                author: user_id.clone(),
+                                user: None,
+                                member: None,
+                                webhook: None,
+                                content: Some("`Lorem ipsum`".to_string()),
+                                system: None,
+                                attachments: None,
+                                edited: None,
+                                embeds: None,
+                                mentions: None,
+                                role_mentions: None,
+                                replies: None,
+                                reactions: Default::default(),
+                                interactions: Default::default(),
+                                masquerade: None,
+                                pinned: None,
+                                flags: 0,
+                            },
+                            user: user.clone(),
+                            member: None,
+                        },
+                    })
+            })
             .child(label().text("Message Group Spacing").font_size(12.))
             .child(
                 rect()
@@ -175,5 +270,26 @@ impl Component for AppearanceSettings {
                         .thumb_inner_background(theme.md.primary.as_argb_u32()),
                     ),
             )
+            .child(Dropdown::new(
+                "Codeblock Theme",
+                code_theme,
+                theme_set.themes.keys().cloned().collect(),
+                |theme| {
+                    match theme.as_str() {
+                        "OneHalfDark" => "One Half (dark)",
+                        "OneHalfLight" => "One Half (light)",
+                        "CatppuccinMacchiato" => "Catppuccin Macchiato (dark)",
+                        "base16-ocean.dark" => "Base16 Ocean (dark)",
+                        "base16-eighties.dark" => "Base16 Eighties (dark)",
+                        "base16-mocha.dark" => "Base16 Mocha (dark)",
+                        "base16-ocean.light" => "Base16 Ocean (light)",
+                        "InspiredGitHub" => "Github (light)",
+                        "Solarized (dark)" => "Solarized (dark)",
+                        "Solarized (light)" => "Solarized (light)",
+                        name => name,
+                    }
+                    .into_element()
+                },
+            ))
     }
 }

@@ -19,6 +19,15 @@ impl<T, B: Fn(&T) -> Element + 'static> Reorder<T, B> {
             style: StyleState::default(),
         }
     }
+
+    pub fn from_writable(values: Writable<Vec<T>>, builder: B) -> Self {
+        Self {
+            values,
+            builder: Rc::new(builder),
+            layout: LayoutData::default(),
+            style: StyleState::default(),
+        }
+    }
 }
 
 impl<T, B> LayoutExt for Reorder<T, B> {

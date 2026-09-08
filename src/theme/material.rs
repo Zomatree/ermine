@@ -20,6 +20,10 @@ pub fn consume_material_theme() -> crate::theme::Theme {
     *consume_context::<State<crate::theme::Theme>>().read()
 }
 
+pub fn peak_material_theme() -> crate::theme::Theme {
+    *consume_context::<State<crate::theme::Theme>>().peek()
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum ThemeVariant {
     Monochrome,

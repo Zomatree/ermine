@@ -25,7 +25,11 @@ impl ThemeScheme {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+fn default_code_theme() -> String {
+    "CatppuccinMacchiato".to_string()
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ThemeConfig {
     #[serde(default)]
     pub scheme: ThemeScheme,
@@ -33,6 +37,8 @@ pub struct ThemeConfig {
     pub variant: ThemeVariant,
     #[serde(default = "default_theme_source")]
     pub theme_source: u32,
+    #[serde(default = "default_code_theme")]
+    pub code_theme: String,
 }
 
 impl Default for ThemeConfig {
@@ -41,6 +47,7 @@ impl Default for ThemeConfig {
             scheme: Default::default(),
             variant: Default::default(),
             theme_source: default_theme_source(),
+            code_theme: default_code_theme(),
         }
     }
 }

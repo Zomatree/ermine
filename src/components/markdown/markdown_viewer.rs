@@ -8,6 +8,7 @@ use stoat_models::v0;
 
 use crate::{
     components::markdown::{
+        components::Codeblock,
         parser::{MarkdownElement, parse_markdown},
         render::render_content,
     },
@@ -192,24 +193,8 @@ impl Component for MarkdownViewer {
                         p_container = p_container.span("\n\n")
                     };
                 }
-                MarkdownElement::CodeBlock { code, .. } => {
-                    p_container = p_container.child(
-                        rect().width(Size::fill()).child(
-                            rect()
-                                .background(0xff0d1117)
-                                .color(0xffc9d1d9)
-                                .corner_radius(12.)
-                                .padding(Gaps::new_all(8.))
-                                .margin((4., 0.))
-                                .child(
-                                    label()
-                                        .text(code)
-                                        .line_height(1.5)
-                                        .font_family("Fira Code")
-                                        .font_size(self.font_size),
-                                ),
-                        ),
-                    )
+                MarkdownElement::CodeBlock { code, language } => {
+                    p_container = p_container.child(Codeblock { code, language })
                 }
                 MarkdownElement::UnorderedList { items } => {
                     let mut list = rect().key(idx).vertical().spacing(4.);
