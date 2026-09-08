@@ -59,10 +59,6 @@ fn generate_material_icons_style(name: &str) {
 }
 
 fn main() {
-    if cfg!(target_os = "macos") {
-        println!("cargo:rustc-link-arg=-ObjC");
-    };
-
     generate_material_icons_style("filled");
     generate_material_icons_style("outlined");
     generate_material_icons_style("round");

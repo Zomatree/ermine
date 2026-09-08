@@ -8,9 +8,13 @@ Also styled after Material 3 UI.
 
 ![alt text](.github/assets/screenshot.png)
 
+## Downloading
+
+Builds can be found from the [releases page](https://github.com/Zomatree/ermine/releases/latest).
+
 ## Running
 
-Please ensure you have rust-lang installed beforehand.
+Please ensure you have rust and the other necessities installed beforehand.
 
 ```bash
 git clone https://github.com/zomatree/ermine
