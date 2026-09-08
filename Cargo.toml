@@ -1,6 +1,6 @@
 [package]
 name = "Ermine"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 repository = "https://github.com/Zomatree/ermine"
 description = "Native desktop client for Stoat chat"
