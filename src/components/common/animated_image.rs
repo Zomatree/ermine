@@ -22,6 +22,8 @@ pub struct AnimatedImage {
     effect: EffectData,
     decode_mode: DecodeMode,
 
+    loading_placeholder: Option<Element>,
+
     key: DiffKey,
 }
 
@@ -37,9 +39,16 @@ impl AnimatedImage {
             corner_radius: None,
             effect: EffectData::default(),
             decode_mode: DecodeMode::default(),
+            loading_placeholder: None,
             key: DiffKey::None,
         }
     }
+
+    pub fn loading_placeholder(mut self, placeholder: impl Into<Element>) -> Self {
+        self.loading_placeholder = Some(placeholder.into());
+        self
+    }
+
 }
 
 impl KeyExt for AnimatedImage {
@@ -197,6 +206,7 @@ impl Component for AnimatedImage {
                             .decode_mode(self.decode_mode)
                             .layout(self.layout.clone())
                             .image_data(self.image_data.clone())
+                            .map(self.loading_placeholder.clone(), |img, placeholder| img.loading_placeholder(placeholder))
                             .into_element()
                     })
                     .into_element()
@@ -204,7 +214,11 @@ impl Component for AnimatedImage {
             Asset::Loading | Asset::Pending => rect()
                 .layout(self.layout.clone())
                 .center()
-                .child(CircularLoader::new())
+                .child(
+                    self.loading_placeholder
+                        .clone()
+                        .unwrap_or_else(|| CircularLoader::new().into_element()),
+                )
                 .into_element(),
             Asset::Error(_) => rect().child("error").into_element(),
         }

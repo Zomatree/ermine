@@ -11,7 +11,7 @@ use crate::{
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
         file_image,
         material::{filled::cancel, outlined::more_vert},
-        use_floating, use_modals,
+        use_modals,
     },
     consume_material_theme, format_autumn_url, http, parse_fill,
     theme::Theme,
@@ -20,6 +20,7 @@ use crate::{
 #[derive(PartialEq)]
 pub struct UserProfile {
     pub user: Readable<v0::User>,
+    pub member: Option<Readable<v0::Member>>,
 }
 
 impl Component for UserProfile {
@@ -77,7 +78,7 @@ impl Component for UserProfile {
                                     .content(Content::Flex)
                                     .child(ProfileBanner {
                                         user: self.user.clone(),
-                                        member: None,
+                                        member: self.member.clone(),
                                         profile: profile.into_readable(),
                                     })
                                     .child(ProfileButtons {
@@ -96,7 +97,6 @@ impl Component for UserProfile {
                                         let show_hidden = status_text.is_none() || badges == 0;
 
                                         row()
-                                            .content(Content::Flex)
                                             .maybe_child(
                                                 status_text.map(|text| ProfileStatus { text }),
                                             )
@@ -105,17 +105,39 @@ impl Component for UserProfile {
                                             )
                                             .child(ProfileJoined {
                                                 user: user.into_readable(),
-                                                member: None,
+                                                member: self.member.clone(),
                                             })
                                             .maybe_child(show_hidden.then(empty_card))
                                     })
-                                    .maybe_child(user.read().pronouns.is_some().then(|| {
-                                        ProfilePronouns {
-                                            user: user.into_readable(),
-                                            member: None,
-                                        }
-                                        .into_element()
-                                    }))
+                                    .maybe_child({
+                                        let has_roles = self
+                                            .member
+                                            .as_ref()
+                                            .is_some_and(|m| !m.read().roles.is_empty());
+
+                                        let has_pronouns = user.read().pronouns.is_some()
+                                            || self
+                                                .member
+                                                .as_ref()
+                                                .is_some_and(|m| m.read().pronouns.is_some());
+
+                                        (has_roles || has_pronouns).then(|| {
+                                            row()
+                                                .maybe_child(has_roles.then(|| {
+                                                    ProfileRoles {
+                                                        member: self.member.clone().unwrap(),
+                                                    }
+                                                    .into_element()
+                                                }))
+                                                .maybe_child(has_pronouns.then(|| {
+                                                    ProfilePronouns {
+                                                        user: user.into_readable(),
+                                                        member: self.member.clone(),
+                                                    }
+                                                    .into_element()
+                                                }))
+                                        })
+                                    })
                                     .maybe_child(
                                         profile
                                             .read()

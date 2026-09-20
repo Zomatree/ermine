@@ -1,7 +1,8 @@
 use freya::{prelude::*, radio::use_radio};
+use jiff::{Timestamp, tz::TimeZone};
 
 use crate::{
-    AppChannel, SizeExt,
+    AppChannel, SettingsPage, SizeExt,
     components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{filled::cake, outlined::edit},
@@ -17,8 +18,10 @@ impl Component for AccountSettings {
         let radio = use_radio(AppChannel::UserId);
         let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
         let user = radio.slice(AppChannel::Users, move |state| {
-            state.users.get(&*user_id.read()).unwrap()
+            state.users.get(state.user_id.as_ref().unwrap()).unwrap()
         });
+        let mut settings_page =
+            radio.slice_mut(AppChannel::SettingsPage, |state| &mut state.settings_page);
 
         let theme = consume_material_theme();
 
@@ -42,9 +45,7 @@ impl Component for AccountSettings {
                             .child(
                                 rect()
                                     .color(theme.md.on_secondary_container.as_argb_u32())
-                                    .height(Size::Fill)
                                     .width(Size::flex(1.))
-                                    .main_align(Alignment::SpaceAround)
                                     .child(
                                         label()
                                             .font_size(18.)
@@ -64,24 +65,37 @@ impl Component for AccountSettings {
                                     ))),
                             )
                             .child(
-                                StoatButton::new().corner_radius(12.).child(
-                                    rect()
-                                        .background(theme.md.primary.as_argb_u32())
-                                        .color(theme.md.on_primary.as_argb_u32())
-                                        .padding(8.)
-                                        .child(MaterialIcon::new(edit()).size(Size::px(24.))),
-                                ),
+                                StoatButton::new()
+                                    .corner_radius(12.)
+                                    .on_press(move |_| {
+                                        settings_page.set(Some(SettingsPage::Profile));
+                                    })
+                                    .child(
+                                        rect()
+                                            .background(theme.md.primary.as_argb_u32())
+                                            .color(theme.md.on_primary.as_argb_u32())
+                                            .padding(8.)
+                                            .child(MaterialIcon::new(edit()).size(Size::px(24.))),
+                                    ),
                             ),
                     )
                     .child(
                         rect().horizontal().child(
                             rect().margin((0., 0., 0., 73.)).child(
-                                StoatTooltip::new(
-                                    label()
-                                        .max_lines(1)
-                                        .font_size(11.)
-                                        .text("Account created some time long ago."),
-                                )
+                                StoatTooltip::new(label().max_lines(1).font_size(11.).text({
+                                    let datetime = Timestamp::try_from(
+                                        ulid::Ulid::from_string(&user_id.read())
+                                            .unwrap()
+                                            .datetime(),
+                                    )
+                                    .unwrap()
+                                    .to_zoned(TimeZone::system());
+
+                                    format!(
+                                        "Account created {}.",
+                                        datetime.strftime("%d/%m/%Y at %H:%M")
+                                    )
+                                }))
                                 .position(AttachedPosition::Top)
                                 .child(
                                     rect()

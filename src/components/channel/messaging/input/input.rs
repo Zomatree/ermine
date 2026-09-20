@@ -219,12 +219,14 @@ impl Component for MessageInput {
         );
 
         use_hook(|| {
+            provide_root_context(Some(editable));
+
             let mut editor = editable.editor_mut().write();
             let char_count = editor.len_chars();
             editor.selection_mut().move_to(char_count);
             editor.selection_mut().set_as_cursor();
 
-            provide_root_context(Some(editable))
+
         });
         use_drop(|| {
             provide_root_context::<Option<UseEditable>>(None);
@@ -253,21 +255,24 @@ impl Component for MessageInput {
         let autocomplete = use_side_effect_value(move || {
             let editor = editable.editor().read();
             let text = editor.rope().to_string();
-            let section = &text[0..text.floor_char_boundary(editor.cursor_pos())];
+            let section: &str = &text[0..text.floor_char_boundary(editor.cursor_pos())];
 
             if let Some(last_char) = section.chars().last()
                 && !last_char.is_whitespace()
                 && let Some(last_section) = section.split_whitespace().last()
             {
-                if let Some(ty) = match last_section.chars().next() {
-                    Some('@') => Some(AutocompleteType::User),
-                    Some('#') if is_server => Some(AutocompleteType::Channel),
-                    Some(':') => Some(AutocompleteType::Emoji),
-                    Some('%') if is_server => Some(AutocompleteType::Role),
-                    _ => None,
-                } {
-                    autocomplete_visible.set(true);
-                    return Some((ty, last_section[1..].to_string()));
+                let mut chars = last_section.chars().enumerate().skip_while(|(_, c)| !['@', '#', ':', '%'].contains(c) && !c.is_alphabetic());
+                if let Some((pos, char)) = chars.next() {
+                    if let Some(ty) = match char {
+                        '@' => Some(AutocompleteType::User),
+                        '#' if is_server => Some(AutocompleteType::Channel),
+                        ':' => Some(AutocompleteType::Emoji),
+                        '%' if is_server => Some(AutocompleteType::Role),
+                        _ => None,
+                    } {
+                        autocomplete_visible.set(true);
+                        return Some((ty, last_section[pos + 1..].to_string()));
+                    };
                 };
             };
 

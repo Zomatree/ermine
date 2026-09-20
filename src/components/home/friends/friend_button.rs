@@ -21,7 +21,7 @@ impl Component for FriendButton {
 
                 move |_| {
                     let id = user.read().id.clone();
-                    radio.write().user_profile = Some(id);
+                    radio.write().user_profile = Some((id, None));
                 }
             })
             .child(

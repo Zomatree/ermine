@@ -1,8 +1,4 @@
-use freya::{
-    // icons::lucide::{banknote, circle_plus, compass, house, message_square_text, users},
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 
 use crate::{
     AppChannel, Selection, SettingsPage, SizeExt,
@@ -25,6 +21,8 @@ impl Component for Welcome {
         let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Selection);
         let selection = radio.slice_mut_current(|state| &mut state.selection);
+        let settings_page =
+            radio.slice_mut(AppChannel::SettingsPage, |state| &mut state.settings_page);
 
         rect()
             .child(
@@ -108,17 +106,23 @@ impl Component for Welcome {
                                                     rate_review(),
                                                     "Give feedback on Stoat",
                                                     "Let us know how we can improve our app by giving us feedback.",
-                                                    move |_| {}
+                                                    {
+                                                        let mut settings_page = settings_page.clone();
+
+                                                        move |_| {
+                                                            settings_page.set(Some(SettingsPage::SourceCode));
+                                                        }
+                                                    }
                                                 ))
                                                 .child(WelcomeButton::new(
                                                     settings(),
                                                     "Open settings",
                                                     "You can also click the gear icon in the bottom left.",
                                                     {
-                                                        let mut radio = radio.clone();
+                                                        let mut settings_page = settings_page.clone();
 
                                                         move |_| {
-                                                            radio.write_channel(AppChannel::SettingsPage).settings_page = Some(SettingsPage::default())
+                                                            settings_page.set(Some(SettingsPage::default()));
                                                         }
                                                     }
                                                 ))

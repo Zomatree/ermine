@@ -1,15 +1,13 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::{use_radio, use_radio_station}};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt,
-    components::{
+    AppChannel, OptionalReadable, SizeExt, components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
-    },
-    consume_material_theme, http, map_optional_readable, member_display_color,
+    }, consume_material_theme, http, insert_user, map_optional_readable, member_display_color
 };
 
 #[derive(Clone)]
@@ -40,25 +38,24 @@ pub struct MemberList {
 impl Component for MemberList {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Members);
+        let station = use_radio_station();
 
         let slice = radio.slice_current({
             let server = self.server.clone();
             move |state| state.members.get(&server.peek().id).unwrap()
         });
 
-        let users = radio.slice_mut(AppChannel::Users, |state| &mut state.users);
+        let users = radio.slice(AppChannel::Users, |state| &state.users);
         let exclude_offline = use_hook(|| self.server.read().approximate_member_count > 1000);
 
         use_side_effect({
             let radio = radio.clone();
             let server = self.server.clone();
-            let users = users.clone();
 
             move || {
                 // let should_exclude_offline = exclude_offline();
                 let mut radio = radio.clone();
                 let server = server.clone();
-                let mut users = users.clone();
 
                 spawn(async move {
                     let server_id = server.peek().id.clone();
@@ -73,13 +70,9 @@ impl Component for MemberList {
                         .await
                         .unwrap();
 
-                    let mut users = users.write();
-
                     for user in response.users {
-                        users.insert(user.id.clone(), user);
+                        insert_user(user, station);
                     }
-
-                    drop(users);
 
                     let mut state = radio.write_channel(AppChannel::Members);
                     let server_members = state.members.get_mut(&server_id).unwrap();

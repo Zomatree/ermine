@@ -1,4 +1,5 @@
-use freya::prelude::*;
+use freya::{elements::image::ImageHandle, prelude::*};
+use freya_engine::prelude::AlphaType;
 use stoat_models::v0;
 
 use crate::{
@@ -24,15 +25,15 @@ impl Component for MessageAttachment {
         rect()
             .corner_radius(12.)
             .overflow(Overflow::Clip)
-            .child(match self.file.metadata {
+            .child(match &self.file.metadata {
                 v0::Metadata::Image {
                     width,
                     height,
-                    thumbhash: _,
+                    thumbhash,
                     ..
                 } => {
-                    let new_width = width.min(420) as f32;
-                    let new_height = (new_width / width as f32) * height as f32;
+                    let new_width = (*width).min(420) as f32;
+                    let new_height = (new_width / *width as f32) * *height as f32;
 
                     rect()
                         .width(Size::px(new_width))
@@ -43,18 +44,28 @@ impl Component for MessageAttachment {
                                 .height(Size::Fill)
                                 .aspect_ratio(AspectRatio::Min)
                                 .image_cover(ImageCover::Fill)
-                                .selectable(true), // .map(thumbhash.as_ref(), |this, thumbnail| {
-                                                   //     this.loading_placeholder(
-                                                   //         ImageViewer::new(ImageSource::Bytes(
-                                                   //             0,
-                                                   //             Bytes::copy_from_slice(thumbnail),
-                                                   //         ))
-                                                   //         .width(Size::Fill)
-                                                   //         .height(Size::Fill)
-                                                   //         .aspect_ratio(AspectRatio::Min)
-                                                   //         .image_cover(ImageCover::Fill),
-                                                   //     )
-                                                   // }),
+                                .selectable(true)
+                                .map(thumbhash.as_ref(), |this, thumbnail| {
+                                    let (width, height, rgba) =
+                                        thumbhash::thumb_hash_to_rgba(&thumbnail).unwrap();
+
+                                    this.loading_placeholder(
+                                        image(
+                                            ImageHandle::from_rgba(
+                                                width as u32,
+                                                height as u32,
+                                                rgba.into(),
+                                                AlphaType::Opaque,
+                                            )
+                                            .unwrap(),
+                                        )
+                                        .width(Size::Fill)
+                                        .height(Size::Fill)
+                                        .aspect_ratio(AspectRatio::Min)
+                                        .image_cover(ImageCover::Fill)
+                                        .corner_radius(12.),
+                                    )
+                                }),
                         )
                         .maybe_child(spoilered.read().then(|| {
                             rect()
@@ -70,7 +81,7 @@ impl Component for MessageAttachment {
                                                 .width(Size::px(new_width))
                                                 .height(Size::px(new_height))
                                                 .blur(24.)
-                                                .background(0x33FFFFFF)
+                                                .background(0xCC000000)
                                                 .center()
                                                 .child(
                                                     rect()

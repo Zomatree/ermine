@@ -101,6 +101,7 @@ impl Component for MessageAttachmentPreview {
                                 hovering.set(true);
                             })
                             .on_pointer_out(move |_| hovering.set_if_modified(false))
+                            .cursor(CursorIcon::Pointer)
                             .child(
                                 rect()
                                     .child(if is_image {
@@ -125,12 +126,21 @@ impl Component for MessageAttachmentPreview {
                                         move |e: Event<SizedEventData>| area.set(e.area)
                                     }),
                             )
+                            .maybe_child(self.attachment.spoiler.then(|| {
+                                rect()
+                                    .position(Position::new_absolute())
+                                    .width(Size::px(area.read().width() + 1.))
+                                    .height(Size::px(100.))
+                                    .layer(Layer::Relative(3))
+                                    .background(0x33FFFFFF)
+                                    .blur(8.)
+                            }))
                             .maybe_child(hovering.read().then(|| {
                                 rect()
                                     .position(Position::new_absolute())
                                     .width(Size::px(area.read().width()))
                                     .height(Size::px(100.))
-                                    .layer(Layer::Relative(1))
+                                    .layer(Layer::Relative(4))
                                     .background(0xcc000000)
                                     .center()
                                     .child(
@@ -141,7 +151,7 @@ impl Component for MessageAttachmentPreview {
                                     .child(
                                         rect()
                                             .position(Position::new_absolute().right(4.).top(4.))
-                                            .layer(Layer::Relative(1))
+                                            // .layer(Layer::Relative(3))
                                             .child(
                                                 StoatButton::new()
                                                     .corner_radius(4.)

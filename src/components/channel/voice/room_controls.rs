@@ -1,23 +1,31 @@
 use std::sync::Arc;
 
-use freya::{
-    icons::lucide::{
-        camera, headphone_off, headphones, mic, mic_off, monitor_up, phone,
-    },
-    prelude::*,
-    radio::use_radio,
-};
+use freya::{prelude::*, radio::use_radio};
 use livekit::{
     PlatformAudio, Room, RtcAudioSource,
     options::TrackPublishOptions,
     prelude::LocalParticipant,
-    track::{LocalAudioTrack, LocalTrack, TrackKind, TrackSource},
+    track::{LocalAudioTrack, LocalTrack, LocalVideoTrack, TrackKind, TrackSource},
+    webrtc::{
+        desktop_capturer::{DesktopCaptureSourceType, DesktopCapturer, DesktopCapturerOptions},
+        prelude::RtcVideoSource,
+        video_source::native::NativeVideoSource,
+    },
 };
 
 use crate::{
-    AppChannel,
-    components::{StoatButton, StoatButtonLayoutThemePartialExt},
-    use_material_theme,
+    AppChannel, SizeExt,
+    components::{
+        MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::{
+            filled::{
+                call_end, camera_alt as filled_camera_alt, headphones, headset_off, mic, mic_off,
+                screen_share as filled_screen_share,
+            },
+            outlined::{camera_alt, screen_share},
+        },
+    },
+    consume_material_theme,
 };
 
 pub struct RoomControls {
@@ -34,7 +42,7 @@ impl PartialEq for RoomControls {
 
 impl Component for RoomControls {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::CurrentRoom);
 
         let is_muted = use_memo({
@@ -72,7 +80,7 @@ impl Component for RoomControls {
                         let audio = self.audio.clone();
 
                         move |_| {
-                            let local_participant = local_participant.read();
+                            let local_participant = local_participant.read().cloned();
                             let audio = audio.clone();
 
                             spawn(async move {
@@ -130,9 +138,8 @@ impl Component for RoomControls {
                             .height(Size::px(40.))
                             .center()
                             .child(
-                                svg(if is_muted { mic_off() } else { mic() })
-                                    .width(Size::px(24.))
-                                    .width(Size::px(24.)),
+                                MaterialIcon::new(if is_muted { mic_off() } else { mic() })
+                                    .size(Size::px(24.)),
                             )
                     }),
             )
@@ -154,13 +161,12 @@ impl Component for RoomControls {
                     .height(Size::px(40.))
                     .center()
                     .child(
-                        svg(if is_deafend {
-                            headphone_off()
+                        MaterialIcon::new(if is_deafend {
+                            headset_off()
                         } else {
                             headphones()
                         })
-                        .width(Size::px(24.))
-                        .width(Size::px(24.)),
+                        .size(Size::px(24.)),
                     )
             }))
             .child(StoatButton::new().corner_radius(20.).child({
@@ -180,11 +186,40 @@ impl Component for RoomControls {
                     .width(Size::px(40.))
                     .height(Size::px(40.))
                     .center()
-                    .child(svg(camera()).width(Size::px(24.)).width(Size::px(24.)))
+                    .child(
+                        MaterialIcon::new(if !is_camera {
+                            camera_alt()
+                        } else {
+                            filled_camera_alt()
+                        })
+                        .size(Size::px(24.)),
+                    )
             }))
             .child(
                 StoatButton::new()
                     .corner_radius(20.)
+                    // .on_press({
+                    //     let room = self.room.clone();
+                    //     let audio = self.audio.clone();
+                    //     move |_| {
+                    //         let mut options =
+                    //             DesktopCapturerOptions::new(DesktopCaptureSourceType::Window);
+                    //         #[cfg(target_os = "macos")]
+                    //         {
+                    //             options.set_sck_system_picker(true);
+                    //         };
+
+                    //         let mut capturer = DesktopCapturer::new(options).unwrap();
+                    //         capturer.start_capture(capturer.get_source_list().first().cloned(), move |r| { println!("{:?}", r.unwrap().data().len()) });
+                    //         for source in capturer.get_source_list() {
+                    //             println!("{:?} {:?}", source.id(), source.title())
+                    //         }
+                    //         capturer.capture_frame();
+                    //         // NativeVideoSource::new(resolution, is_screencast)
+                    //         // LocalVideoTrack::create_video_track(name, source)
+                    //         // room.local_participant().publish_track(LocalTrack::Video(()), options)
+                    //     }
+                    // })
                     .child({
                         let is_screenshare = is_screenshare();
 
@@ -202,7 +237,14 @@ impl Component for RoomControls {
                             .width(Size::px(40.))
                             .height(Size::px(40.))
                             .center()
-                            .child(svg(monitor_up()).width(Size::px(24.)).width(Size::px(24.)))
+                            .child(
+                                MaterialIcon::new(if !is_screenshare {
+                                    screen_share()
+                                } else {
+                                    filled_screen_share()
+                                })
+                                .size(Size::px(24.)),
+                            )
                     }),
             )
             .child(
@@ -215,7 +257,7 @@ impl Component for RoomControls {
                             let room = room.clone();
                             let mut room_state = room_state.clone();
 
-                            spawn(async move {
+                            spawn_forever(async move {
                                 room_state.set(None);
                                 room.close().await.unwrap()
                             });
@@ -229,10 +271,8 @@ impl Component for RoomControls {
                             .height(Size::px(40.))
                             .center()
                             .child(
-                                svg(phone())
-                                    .width(Size::px(24.))
-                                    .width(Size::px(24.))
-                                    .rotate(135.)
+                                MaterialIcon::new(call_end())
+                                    .size(Size::px(24.))
                                     .margin((2., 0., 0., 0.)),
                             ),
                     ),

@@ -4,12 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, calculate_channel_permissions,
+    AppChannel, NotificationBadge, SizeExt, calculate_channel_permissions,
     components::{
         Avatar, ChannelContextMenu, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
         file_image,
     },
-    consume_material_theme, user_permissions_query,
+    consume_material_theme, get_unread_badge, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -23,8 +23,34 @@ impl Component for DMButton {
         let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
             &mut state.selected_channel
         });
+        let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
+
         let user_id = radio.read().user_id.clone().unwrap();
         let theme = consume_material_theme();
+
+        let unread_badge = use_memo({
+            let channel = self.channel.clone();
+
+            move || {
+                let channel = channel.read();
+                let unread = unreads.read().get(channel.id()).cloned()?;
+                get_unread_badge(&channel, &unread)
+            }
+        });
+
+        let selected = dm_channel
+            .read()
+            .as_ref()
+            .is_some_and(|(id, _)| id == self.channel.read().id());
+
+        let color = if selected {
+            theme.md.on_primary_container
+        } else if unread_badge.read().is_some() {
+            theme.md.on_surface
+        } else {
+            theme.md.outline
+        }
+        .as_argb_u32();
 
         rect()
             .on_secondary_down({
@@ -52,45 +78,66 @@ impl Component for DMButton {
                     .corner_radius(42.)
                     .child(
                         rect()
-                            .padding((0., 8., 0., 8.))
                             .spacing(8.)
                             .height(Size::px(42.))
-                            .width(Size::Fill)
-                            .main_align(Alignment::Center)
-                            .color(theme.md.outline.as_argb_u32())
-                            .maybe(
-                                dm_channel
-                                    .read()
-                                    .as_ref()
-                                    .is_some_and(|(id, _)| id == self.channel.read().id()),
-                                |btn| {
-                                    btn.background(theme.md.primary_container.as_argb_u32())
-                                        .color(theme.md.on_primary_container.as_argb_u32())
-                                },
+                            .horizontal()
+                            .content(Content::Flex)
+                            .cross_align(Alignment::Center)
+                            .color(color)
+                            .maybe(selected, |btn| {
+                                btn.background(theme.md.primary_container.as_argb_u32())
+                            })
+                            .child(
+                                rect().width(Size::flex(1.)).padding((0., 8.)).child(
+                                    match self.channel.read().clone() {
+                                        v0::Channel::DirectMessage { recipients, .. } => {
+                                            let other = recipients
+                                                .iter()
+                                                .find(|&id| id != &user_id)
+                                                .unwrap()
+                                                .clone();
+
+                                            let user = radio
+                                                .slice(AppChannel::Users, move |state| {
+                                                    state.users.get(&other).unwrap()
+                                                });
+
+                                            DMDirectMessageButton {
+                                                user: user.into_readable(),
+                                            }
+                                            .into_element()
+                                        }
+                                        v0::Channel::Group { .. } => DMGroupButton {
+                                            channel: self.channel.clone(),
+                                        }
+                                        .into_element(),
+                                        _ => unreachable!(),
+                                    },
+                                ),
                             )
-                            .child(match self.channel.read().clone() {
-                                v0::Channel::DirectMessage { recipients, .. } => {
-                                    let other = recipients
-                                        .iter()
-                                        .find(|&id| id != &user_id)
-                                        .unwrap()
-                                        .clone();
-
-                                    let user = radio.slice(AppChannel::Users, move |state| {
-                                        state.users.get(&other).unwrap()
-                                    });
-
-                                    DMDirectMessageButton {
-                                        user: user.into_readable(),
-                                    }
-                                    .into_element()
-                                }
-                                v0::Channel::Group { .. } => DMGroupButton {
-                                    channel: self.channel.clone(),
-                                }
-                                .into_element(),
-                                _ => unreachable!(),
-                            }),
+                            .maybe_child(unread_badge.read().filter(|_| !selected).map(|badge| {
+                                rect().padding((0., 8.)).child(
+                                match badge {
+                                    NotificationBadge::Mentions(count) => rect()
+                                        .corner_radius(14.)
+                                        .size(Size::px(14.))
+                                        .center()
+                                        .background(theme.md.error.as_argb_u32())
+                                        .color(theme.md.on_error.as_argb_u32())
+                                        .color(0xff690005)
+                                        .font_size(8.)
+                                        .child(if count <= 9 {
+                                            count.to_string()
+                                        } else {
+                                            "+".to_string()
+                                        }),
+                                    NotificationBadge::Unread => rect()
+                                        .corner_radius(7.)
+                                        .size(Size::px(7.))
+                                        .background(theme.md.on_surface.as_argb_u32())
+                                        .margin((0., 3.5)),
+                                })
+                            })),
                     )
                     .on_press({
                         let channel = self.channel.clone();
@@ -208,7 +255,11 @@ impl Component for GroupDMIcon {
             .corner_radius((12. / 32.) * self.size)
             .overflow(Overflow::Clip)
             .child(match icon {
-                Some(icon) => file_image(&icon).into_element(),
+                Some(icon) => file_image(&icon)
+                    .aspect_ratio(AspectRatio::Max)
+                    .image_cover(ImageCover::Center)
+                    .expanded()
+                    .into_element(),
                 None => {
                     let initials = name
                         .trim()

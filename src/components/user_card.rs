@@ -69,11 +69,11 @@ impl Component for UserCard {
                                     member: self.member.clone(),
                                     profile: profile.into_readable(),
                                 }))
-                                .on_press(move |_| {
+                                .on_press({let member = self.member.clone(); move |_| {
                                     floating.set(None);
                                     let user_id = user.read().id.clone();
-                                    open_profile.clone().set(Some(user_id));
-                                }),
+                                    open_profile.clone().set(Some((user_id, member.as_ref().map(|m| m.read().id.server.clone()))));
+                                }}),
                         )
                         .child(ProfileButtons {
                             user: self.user.clone(),

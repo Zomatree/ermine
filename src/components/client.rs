@@ -38,6 +38,7 @@ impl Component for Client {
         let connection_state = radio.slice_mut(AppChannel::State, |state| &mut state.state);
         let user_profile =
             radio.slice_mut(AppChannel::UserProfile, |state| &mut state.user_profile);
+        let members = radio.slice(AppChannel::Members, |state| &state.members);
 
         let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
 
@@ -272,10 +273,30 @@ impl Component for Client {
                             .into_element()
                     }),
             )
-            .maybe_child(user_profile.read().cloned().map(|user_id| {
-                let user = radio.slice(AppChannel::Users, move |state| {
-                    state.users.get(&user_id).unwrap()
-                });
+            .maybe_child(user_profile.read().cloned().map(|(user_id, server_id)| {
+                let user = radio.slice(AppChannel::Users, {
+                    let user_id = user_id.clone();
+                    move |state| state.users.get(&user_id).unwrap()
+                }).into_readable();
+
+                let member = server_id
+                    .filter(|server_id| {
+                        members
+                            .read()
+                            .get(server_id)
+                            .unwrap()
+                            .contains_key(&user_id)
+                    })
+                    .map(|server_id| {
+                        radio.slice(AppChannel::Members, move |state| {
+                            state
+                                .members
+                                .get(&server_id)
+                                .unwrap()
+                                .get(&user_id)
+                                .unwrap()
+                        }).into_readable()
+                    });
 
                 rect()
                     .position(Position::new_global())
@@ -283,7 +304,8 @@ impl Component for Client {
                     .height(Size::window_percent(100.))
                     .layer(Layer::OverlayLevel(6))
                     .child(UserProfile {
-                        user: user.into_readable(),
+                        user,
+                        member,
                     })
                     .into_element()
             }))

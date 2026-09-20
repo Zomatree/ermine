@@ -377,6 +377,7 @@ impl Component for ProfileSettings {
                             )
                             .child(
                                 StoatButton::new()
+                                    .enabled(display_name.is_different() || pronouns.is_different())
                                     .color(theme.md.on_primary.as_argb_u32())
                                     .background(theme.md.primary.as_argb_u32())
                                     .corner_radius(40.)

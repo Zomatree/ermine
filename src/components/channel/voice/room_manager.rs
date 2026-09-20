@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use freya::{icons::lucide::mic_off, prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::use_radio};
 use livekit::{
     PlatformAudio, Room,
     prelude::Participant,
@@ -9,9 +9,7 @@ use livekit::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, RoomControls},
-    use_material_theme,
+    AppChannel, SizeExt, components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off}, consume_material_theme
 };
 
 pub struct RoomManager {
@@ -127,7 +125,7 @@ impl PartialEq for RoomUserCard {
 
 impl Component for RoomUserCard {
     fn render(&self) -> impl IntoElement {
-        let theme = use_material_theme();
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Users);
         let users = radio.slice(AppChannel::Users, |state| &state.users);
         let members = radio.slice(AppChannel::Members, |state| &state.members);
@@ -216,7 +214,7 @@ impl Component for RoomUserCard {
                     .main_align(Alignment::SpaceBetween)
                     .child(display_name)
                     .child(rect().maybe_child(
-                        is_muted.then(|| svg(mic_off()).width(Size::px(16.)).height(Size::px(16.))),
+                        is_muted.then(|| MaterialIcon::new(mic_off()).size(Size::px(16.))),
                     )),
             )
     }

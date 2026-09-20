@@ -3,12 +3,10 @@ use freya::prelude::*;
 use crate::{
     SizeExt,
     components::{
-        FriendsList, HideSidebarHeader, MaterialIcon, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip,
-        material::{
+        FriendsList, HideSidebarHeader, MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{
             filled::{add, do_not_disturb},
             outlined::{group, inbox, notifications, waving_hand},
-        },
+        }, use_modals
     },
     consume_material_theme,
 };
@@ -27,8 +25,11 @@ pub struct Friends {}
 
 impl Component for Friends {
     fn render(&self) -> impl IntoElement {
-        let mut page = use_state(FriendPage::default);
         let theme = consume_material_theme();
+
+        let mut modals = use_modals();
+
+        let mut page = use_state(FriendPage::default);
 
         rect()
             .child(
@@ -72,6 +73,7 @@ impl Component for Friends {
                                                 StoatButton::new()
                                                     .margin((6., 0., 12., 0.))
                                                     .corner_radius(12.)
+                                                    .on_press(move |_| modals.write().push_modal(ModalValue::AddFriend))
                                                     .child(
                                                         rect()
                                                             .width(Size::px(40.))

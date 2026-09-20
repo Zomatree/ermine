@@ -101,7 +101,7 @@ fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
     theme.set(
         "scrollbar",
         ScrollBarThemePreference {
-            background: Preference::Specific(material.md.surface_dim.as_argb_u32().into()),
+            background: Preference::Specific(0x00FFFFFF.into()),
             thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
             hover_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
             active_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),

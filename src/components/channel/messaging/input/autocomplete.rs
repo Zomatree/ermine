@@ -295,7 +295,9 @@ impl Component for Autocomplete {
 
                 text.push(' ');
 
-                let mut editor = editable.clone().editor_mut().write();
+                let mut editable = editable.clone();
+
+                let mut editor = editable.editor_mut().write();
                 let end_pos = editor.selection().end();
                 let start_pos = end_pos - query.len() - 1;
 

@@ -977,6 +977,13 @@ impl HttpClient {
             .response()
             .await
     }
+
+    pub async fn send_friend_request(&self, data: &DataSendFriendRequest) -> Result<User> {
+        self.request(Method::POST, "/users/friend")
+            .body(data)
+            .response()
+            .await
+    }
 }
 
 pub struct HttpRequest {

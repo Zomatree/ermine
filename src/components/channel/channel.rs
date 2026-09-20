@@ -1,24 +1,24 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
-// use livekit::{PlatformAudio, Room, RoomOptions};
+use livekit::{PlatformAudio, Room, RoomOptions};
 use stoat_models::v0;
 
 use crate::{
     AppChannel, SizeExt,
     components::{
         AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
-        MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, StoatButton,
-        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, RoomManager,
+        StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
-            filled::{alternate_email, grid_3x3},
+            filled::{alternate_email, grid_3x3, phone},
             outlined::{group, push_pin, sticky_note_2},
         },
         message_pinned::MessagePinned,
         use_modals,
     },
-    consume_material_theme, use_config,
+    consume_material_theme, http, use_config,
 };
 
 #[derive(PartialEq)]
@@ -32,8 +32,8 @@ impl Component for Channel {
     fn render(&self) -> impl IntoElement {
         let mut config = use_config();
         let radio = use_radio(AppChannel::UserId);
-        // let current_room =
-        //     radio.slice_mut(AppChannel::CurrentRoom, |state| &mut state.current_room);
+        let current_room =
+            radio.slice_mut(AppChannel::CurrentRoom, |state| &mut state.current_room);
         let theme = consume_material_theme();
         let mut modals = use_modals();
 
@@ -151,113 +151,98 @@ impl Component for Channel {
                                     })
                             })),
                     )
-                    // .maybe_child(
-                    //     matches!(
-                    //         &channel,
-                    //         v0::Channel::Group { .. }
-                    //             | v0::Channel::DirectMessage { .. }
-                    //             | v0::Channel::TextChannel { voice: Some(_), .. }
-                    //     )
-                    //     .then(|| {
-                    //         StoatTooltip::new(
-                    //             label()
-                    //                 .font_size(11.)
-                    //                 .max_lines(1)
-                    //                 .text("Join voice channel"),
-                    //         )
-                    //         .position(AttachedPosition::Bottom)
-                    //         .child(
-                    //             StoatButton::new()
-                    //                 .corner_radius(40.)
-                    //                 .on_press({
-                    //                     let current_room = current_room.clone();
-                    //                     move |_| {
-                    //                         spawn({
-                    //                             let id = channel.id().to_string();
-                    //                             let current_room = current_room.clone();
-                    //                             async move {
-                    //                                 let http = http();
-                    //                                 if let Ok(resp) = http
-                    //                                     .join_call(
-                    //                                         &id,
-                    //                                         &v0::DataJoinCall {
-                    //                                             node: Some(
-                    //                                                 http.api_config
-                    //                                                     .features
-                    //                                                     .livekit
-                    //                                                     .nodes
-                    //                                                     .first()
-                    //                                                     .unwrap()
-                    //                                                     .name
-                    //                                                     .clone(),
-                    //                                             ),
-                    //                                             force_disconnect: Some(true),
-                    //                                             recipients: None,
-                    //                                         },
-                    //                                     )
-                    //                                     .await
-                    //                                 {
-                    //                                     let audio = PlatformAudio::new().unwrap();
-                    //                                     println!(
-                    //                                         "{:?}",
-                    //                                         audio
-                    //                                             .recording_devices()
-                    //                                             .collect::<Vec<_>>()
-                    //                                     );
-                    //                                     println!(
-                    //                                         "{:?}",
-                    //                                         audio
-                    //                                             .playout_devices()
-                    //                                             .collect::<Vec<_>>()
-                    //                                     );
-                    //                                     audio
-                    //                                         .set_playout_device(
-                    //                                             &audio
-                    //                                                 .playout_devices()
-                    //                                                 .next()
-                    //                                                 .unwrap()
-                    //                                                 .id,
-                    //                                         )
-                    //                                         .unwrap();
-                    //                                     audio
-                    //                                         .set_recording_device(
-                    //                                             &audio
-                    //                                                 .recording_devices()
-                    //                                                 .next()
-                    //                                                 .unwrap()
-                    //                                                 .id,
-                    //                                         )
-                    //                                         .unwrap();
-                    //                                     let (room, _) = Room::connect(
-                    //                                         &resp.url,
-                    //                                         &resp.token,
-                    //                                         RoomOptions::default(),
-                    //                                     )
-                    //                                     .await
-                    //                                     .unwrap();
-                    //                                     *current_room.clone().write() =
-                    //                                         Some((Arc::new(room), audio));
-                    //                                 };
-                    //                             }
-                    //                         });
-                    //                     }
-                    //                 })
-                    //                 .child(
-                    //                     rect()
-                    //                         .horizontal()
-                    //                         .height(Size::px(40.))
-                    //                         .padding((0., 8.))
-                    //                         .center()
-                    //                         .color(theme.md.on_surface_variant.as_argb_u32())
-                    //                         .child(
-                    //                             svg(phone_call())
-                    //                                 .width(Size::px(24.))
-                    //                                 .height(Size::px(24.)),
-                    //                         ),
-                    //                 ),
-                    //         )
-                    //     }),
-                    // )
+                    .maybe_child(
+                        matches!(
+                            &channel,
+                            v0::Channel::Group { .. }
+                                | v0::Channel::DirectMessage { .. }
+                                | v0::Channel::TextChannel { voice: Some(_), .. }
+                        )
+                        .then(|| {
+                            StoatTooltip::new(
+                                label()
+                                    .font_size(11.)
+                                    .max_lines(1)
+                                    .text("Join voice channel"),
+                            )
+                            .position(AttachedPosition::Bottom)
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(40.)
+                                    .on_press({
+                                        let current_room = current_room.clone();
+                                        move |_| {
+                                            spawn({
+                                                let id = channel.id().to_string();
+                                                let current_room = current_room.clone();
+                                                async move {
+                                                    let http = http();
+                                                    if let Ok(resp) = http
+                                                        .join_call(
+                                                            &id,
+                                                            &v0::DataJoinCall {
+                                                                node: Some(
+                                                                    http.api_config
+                                                                        .features
+                                                                        .livekit
+                                                                        .nodes
+                                                                        .first()
+                                                                        .unwrap()
+                                                                        .name
+                                                                        .clone(),
+                                                                ),
+                                                                force_disconnect: Some(true),
+                                                                recipients: None,
+                                                            },
+                                                        )
+                                                        .await
+                                                    {
+                                                        let audio = PlatformAudio::new().unwrap();
+
+                                                        audio
+                                                            .set_playout_device(
+                                                                &audio
+                                                                    .playout_devices()
+                                                                    .next()
+                                                                    .unwrap()
+                                                                    .id,
+                                                            )
+                                                            .unwrap();
+                                                        audio
+                                                            .set_recording_device(
+                                                                &audio
+                                                                    .recording_devices()
+                                                                    .next()
+                                                                    .unwrap()
+                                                                    .id,
+                                                            )
+                                                            .unwrap();
+                                                        let (room, _) = Room::connect(
+                                                            &resp.url,
+                                                            &resp.token,
+                                                            RoomOptions::default(),
+                                                        )
+                                                        .await
+                                                        .unwrap();
+                                                        *current_room.clone().write() =
+                                                            Some((Arc::new(room), audio));
+                                                    };
+                                                }
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .horizontal()
+                                            .height(Size::px(40.))
+                                            .padding((0., 8.))
+                                            .center()
+                                            .color(theme.md.on_surface_variant.as_argb_u32())
+                                            .child(MaterialIcon::new(phone()).size(Size::px(24.))),
+                                    ),
+                            )
+                        }),
+                    )
                     .child(
                         StoatTooltip::new(
                             label()
@@ -344,6 +329,7 @@ impl Component for Channel {
             .child(
                 rect()
                     .height(Size::Fill)
+                    .width(Size::Fill)
                     .horizontal()
                     .content(Content::Flex)
                     .child(
@@ -353,19 +339,20 @@ impl Component for Channel {
                             .height(Size::Fill)
                             .width(Size::flex(1.))
                             .spacing(8.)
-                            // .maybe_child(current_room.read().cloned().map(|(room, audio)| {
-                            //     rect()
-                            //         .height(Size::flex(4.))
-                            //         .width(Size::flex(1.))
-                            //         .content(Content::Flex)
-                            //         .corner_radius(28.)
-                            //         .background(theme.md.secondary_container.as_argb_u32())
-                            //         .padding(8.)
-                            //         .child(RoomManager { room: room, audio })
-                            // }))
+                            .maybe_child(current_room.read().cloned().map(|(room, audio)| {
+                                rect()
+                                    .height(Size::flex(4.))
+                                    .width(Size::flex(1.))
+                                    .content(Content::Flex)
+                                    .corner_radius(28.)
+                                    .background(theme.md.secondary_container.as_argb_u32())
+                                    .padding(8.)
+                                    .child(RoomManager { room: room, audio })
+                            }))
                             .child(
                                 rect()
                                     .height(Size::flex(6.))
+                                    .width(Size::Fill)
                                     .content(Content::Flex)
                                     .corner_radius(28.)
                                     .background(theme.md.surface_container_lowest.as_argb_u32())

@@ -73,9 +73,10 @@ impl Component for UserContextMenu {
             .child(
                 ContextMenuButton::new(account_circle(), "Profile").on_press({
                     let user_id = self.user_id.clone();
+                    let server_id = self.server_id.clone();
 
                     move |_| {
-                        *user_profile.write() = Some(user_id.clone());
+                        *user_profile.write() = Some((user_id.clone(), server_id.clone()));
                     }
                 }),
             )

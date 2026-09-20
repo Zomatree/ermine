@@ -10,7 +10,7 @@ use crate::{
     components::{
         AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings,
         SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
+        StoatButtonLayoutThemePartialExt, VoiceSettings,
         material::{
             filled::clear,
             outlined::{chevron_right, logout},
@@ -213,7 +213,7 @@ impl Component for Settings {
                                                         "Coming soon!".into_element()
                                                     }
                                                     SettingsPage::Voice => {
-                                                        "Coming soon!".into_element()
+                                                        VoiceSettings {}.into_element()
                                                     }
                                                     SettingsPage::Appearance => {
                                                         AppearanceSettings {}.into_element()
@@ -293,7 +293,13 @@ impl Component for MyAccountButton {
                         rect()
                             .child(
                                 label()
-                                    .text(current_user.read().username.clone())
+                                    .text({
+                                        let user = current_user.read();
+                                        
+                                        user.display_name
+                                            .clone()
+                                            .unwrap_or_else(|| user.username.clone())
+                                    })
                                     .font_size(11.),
                             )
                             .child(label().text("My Account").font_size(15.)),

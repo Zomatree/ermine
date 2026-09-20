@@ -36,6 +36,9 @@ define_theme! {
 pub struct StoatButton {
     theme_colors: Option<StoatButtonColorsThemePartial>,
     theme_layout: Option<StoatButtonLayoutThemePartial>,
+
+    enabled: bool,
+
     elements: Vec<Element>,
     on_press: Option<EventHandler<Event<PressEventData>>>,
     on_hover: Option<EventHandler<Event<PointerEventData>>>,
@@ -47,6 +50,7 @@ impl StoatButton {
         Self {
             theme_colors: None,
             theme_layout: None,
+            enabled: true,
             on_press: None,
             on_hover: None,
             elements: Vec::default(),
@@ -61,6 +65,11 @@ impl StoatButton {
 
     pub fn on_hover(mut self, on_hover: impl Into<EventHandler<Event<PointerEventData>>>) -> Self {
         self.on_hover = Some(on_hover.into());
+        self
+    }
+
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
         self
     }
 }
@@ -101,17 +110,27 @@ impl Component for StoatButton {
             "stoat_button_layout"
         );
 
-        let color = if theme_colors.color == Color::TRANSPARENT {
+        let enabled = self.enabled;
+
+        let color = if !enabled {
+            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.38)
+        } else if theme_colors.color == Color::TRANSPARENT {
             theme.md.on_surface.as_argb_u32().into()
         } else {
             theme_colors.color
+        };
+
+        let background = if !enabled {
+            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.1)
+        } else {
+            theme_colors.background
         };
 
         rect()
             .overflow(Overflow::Clip)
             .a11y_id(a11y_id)
             .a11y_role(AccessibilityRole::Button)
-            .background(theme_colors.background)
+            .background(background)
             .padding(theme_layout.padding)
             .margin(theme_layout.margin)
             .corner_radius(theme_layout.corner_radius)
@@ -120,7 +139,12 @@ impl Component for StoatButton {
             .color(color)
             .on_all_press({
                 let on_press = self.on_press.clone();
+
                 move |e: Event<PressEventData>| {
+                    if !enabled {
+                        return;
+                    };
+
                     a11y_id.request_focus();
                     match e.data() {
                         PressEventData::Mouse(data) => match data.button {
@@ -139,14 +163,25 @@ impl Component for StoatButton {
                     }
                 }
             })
-            .cursor(CursorIcon::Pointer)
+            .cursor(if self.enabled {
+                CursorIcon::Pointer
+            } else {
+                CursorIcon::NotAllowed
+            })
             .on_pointer_over(move |_| {
+                if !enabled {
+                    return;
+                };
+
                 hovering.set(true);
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_pointer_enter({
                 let on_hover = self.on_hover.clone();
                 move |e| {
+                    if !enabled {
+                        return;
+                    };
                     if let Some(on_hover) = &on_hover {
                         on_hover.call(e);
                     }
@@ -155,6 +190,7 @@ impl Component for StoatButton {
             .on_sized(move |e: Event<SizedEventData>| size.set(e.area.size))
             .child(
                 rect()
+                    .interactive(enabled)
                     // .layer(Layer::Relative(-100))
                     .children(self.elements.clone()),
             )

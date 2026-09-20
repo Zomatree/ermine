@@ -10,7 +10,7 @@ use freya::{
     prelude::*,
     radio::{Radio, Readable},
 };
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
@@ -247,8 +247,15 @@ static UNICODE_EMOJIS: LazyLock<Arc<IndexMap<String, String>>> = LazyLock::new(|
     Arc::new(serde_json::from_str(include_str!("./assets/emojiMapping.json")).unwrap())
 });
 
+static UNICODE_EMOJIS_SET: LazyLock<Arc<IndexSet<String>>> =
+    LazyLock::new(|| Arc::new(IndexSet::from_iter(UNICODE_EMOJIS.values().cloned())));
+
 pub fn get_unicode_emojis() -> Arc<IndexMap<String, String>> {
     UNICODE_EMOJIS.clone()
+}
+
+pub fn get_unicode_emoji_set() -> Arc<IndexSet<String>> {
+    UNICODE_EMOJIS_SET.clone()
 }
 
 pub struct Initial<T> {
@@ -278,6 +285,16 @@ impl<T> Copy for Initial<T> {}
 impl<T: Clone + 'static> Initial<T> {
     pub fn reset(&mut self) {
         self.current.set(self.initial.read().clone());
+    }
+
+    pub fn is_different(&self) -> bool
+    where
+        T: PartialEq,
+    {
+        let initial = &*self.initial.read();
+        let current = &*self.current.read();
+
+        initial != current
     }
 
     pub fn get_if_different(&self) -> Option<T>
@@ -479,6 +496,26 @@ pub fn format_duration(duration: jiff::Span) -> String {
         duration.nanoseconds(0).microseconds(0).milliseconds(0)
     )
 }
+
+pub fn use_changed<T: PartialEq + Clone + 'static>(
+    value: impl IntoReadable<T>,
+    mut callback: impl FnMut(&T) + 'static,
+) {
+    let readable = value.into_readable();
+    let mut previous = use_state(|| readable.read().clone());
+
+    use_side_effect(move || {
+        let after = readable.read();
+
+        let changed = &*previous.peek() != &*after;
+
+        if changed {
+            previous.set(after.clone());
+            callback(&after)
+        }
+    });
+}
+
 // pub fn map_optional_readable<T, U>(
 //     readable: Readable<T>,
 //     f: impl Fn(&T) -> Option<&U> + 'static,

@@ -50,7 +50,8 @@ pub fn format_error<'a>(error: &Error, context: impl Into<Option<&'a str>>) -> S
                     } else {
                         "Not found.".to_string()
                     }
-                }
+                },
+                AlreadyFriends => "Already friends with this user.".to_string(),
                 error => format!("{error:?}"),
             }
         }

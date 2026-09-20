@@ -90,6 +90,8 @@ impl Component for EditRoles {
                     let server = server.clone();
 
                     spawn(async move {
+                        let new_roles = roles.read().cloned().into_iter().collect();
+                        
                         if let Ok(member) = http()
                             .edit_member(
                                 &server,
@@ -98,7 +100,7 @@ impl Component for EditRoles {
                                     nickname: None,
                                     pronouns: None,
                                     avatar: None,
-                                    roles: Some(roles.read().cloned().into_iter().collect()),
+                                    roles: Some(new_roles),
                                     timeout: None,
                                     can_publish: None,
                                     can_receive: None,

@@ -176,8 +176,8 @@ impl Component for MessageActions {
             .maybe_child((*hovering.read() || *hover_actions.read()).then(|| {
                 rect()
                     .on_pointer_over(move |_| {
-                        hover_actions.set_if_modified(true);
                         change_background.set_if_modified(true);
+                        hover_actions.set_if_modified(true);
                     })
                     .on_pointer_out(move |_| {
                         hover_actions.set_if_modified_and_then(false, || {

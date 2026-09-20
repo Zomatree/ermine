@@ -3,7 +3,15 @@ name = "Ermine"
 version = "0.6.1"
 edition = "2024"
 repository = "https://github.com/Zomatree/ermine"
+homepage = "https://github.com/Zomatree/ermine"
 description = "Native desktop client for Stoat chat"
+authors = ["Zomatree <me@zomatree.live>"]
+
+[package.metadata.wix]
+upgrade-guid = "9EDC97C3-7713-477A-AB6E-C7D5B27E38E4"
+path-guid = "3CD796B6-9391-47E7-AE68-D02FE1C5BE7E"
+license = false
+eula = false
 
 [features]
 hotreload = ["freya/hotreload"]
@@ -14,17 +22,29 @@ devtools = ["freya/devtools", "freya-devtools"]
 serde_qs = { git = "https://github.com/Zomatree/serde_qs.git", rev = "b7497ee180401babefdf4701f5074710edc1a27b" }
 
 [dependencies]
-freya = { version = "0.5.0-rc.4", features = [
+freya = { version = "0.5.0-rc.6", features = [
     "radio",
     "remote-asset",
     "webview",
     "markdown",
     "zoom-shortcuts"
 ] }
-freya-core = { version = "0.5.0-rc.4" }
-freya-components = { version = "0.5.0-rc.4", features = ["remote-asset", "gif"] }
-freya-devtools = { version = "0.5.0-rc.4", optional = true }
-freya-performance-plugin = { version = "0.5.0-rc.4", optional = true }
+freya-engine = { version = "0.5.0-rc.6" }
+freya-core = { version = "0.5.0-rc.6" }
+freya-components = { version = "0.5.0-rc.6", features = ["remote-asset", "gif"] }
+freya-devtools = { version = "0.5.0-rc.6", optional = true }
+freya-performance-plugin = { version = "0.5.0-rc.6", optional = true }
+# freya = { path = "../freya/crates/freya", features = [
+#     "radio",
+#     "remote-asset",
+#     "webview",
+#     "markdown",
+#     "zoom-shortcuts"
+# ] }
+# freya-engine = { path = "../freya/crates/freya-engine" }
+# freya-core = { path = "../freya/crates/freya-core" }
+# freya-components = { path = "../freya/crates/freya-components", features = ["remote-asset", "gif"] }
+# freya-devtools = { path = "../freya/crates/freya-devtools", optional = true }
 
 tokio-tungstenite = { version = "0.27", features = ["native-tls"] }
 tungstenite = { version = "0.27", features = ["native-tls"] }
@@ -49,7 +69,9 @@ regex = "1.12.3"
 chumsky = { version = "0.13.0", features = [] }
 material-colors = { git = "https://github.com/Aiving/material-colors", rev = "3fe7f52" }
 open = "5.4.0"
-livekit = { version = "0.8.4", features = ["native-tls"] }
+# livekit = { version = "0.8.4", features = ["native-tls"] }
+livekit = { git = "https://github.com/livekit/rust-sdks.git", branch = "hiroshi/audioengine-platformaudio", features = ["native-tls"] }
+
 async-trait = "0.1.89"
 rustc-hash = "2.1.3"
 pulldown-cmark = { version = "0.13.4", default-features = false }
@@ -60,6 +82,7 @@ itertools = "0.15.0"
 mimetype-detector = "0.3.11"
 syntect = { version = "5.3.0", default-features = false, features = ["default-fancy"]}
 two-face = { version = "0.5.2", features = ["syntect-default-fancy"] }
+thumbhash = "0.1.0"
 
 stoat-models = { package = "revolt-models", version = "0.15.1", default-features = false, features = [
     "serde",

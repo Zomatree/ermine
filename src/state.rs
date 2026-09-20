@@ -4,13 +4,10 @@ use freya::{
     radio::{RadioChannel, RadioStation},
 };
 use jiff::Timestamp;
-// use livekit::{PlatformAudio, Room};
+use livekit::{PlatformAudio, Room};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    fmt::Debug,
-    rc::Rc,
-    time::Duration,
+    collections::{HashMap, HashSet, VecDeque}, fmt::Debug, rc::Rc, sync::Arc, time::Duration
 };
 
 use stoat_models::v0::{
@@ -201,6 +198,8 @@ pub struct ErmineSettings {
     pub hide_pronouns: bool,
     #[serde(default = "default_message_group_spacing")]
     pub message_group_spacing: u32,
+    #[serde(default)]
+    pub hide_send_button: bool,
 }
 
 fn default_message_group_spacing() -> u32 {
@@ -212,6 +211,7 @@ impl Default for ErmineSettings {
         Self {
             hide_pronouns: false,
             message_group_spacing: default_message_group_spacing(),
+            hide_send_button: false,
         }
     }
 }
@@ -295,13 +295,13 @@ pub struct AppState {
     pub channel_message_cache: HashMap<String, HashMap<String, Message>>,
     pub channel_unreads: HashMap<String, ChannelUnread>,
     pub settings_page: Option<SettingsPage>,
-    pub user_profile: Option<String>,
+    pub user_profile: Option<(String, Option<String>)>,
     pub settings: SettingsState,
     pub message_handlers: Option<MessageHandlers>,
     pub editing_message: Option<EditingMessage>,
     pub server_settings_page: Option<(String, ServerSettingsPage)>,
     pub channel_settings_page: Option<(String, ChannelSettingsPage)>,
-    // pub current_room: Option<(Arc<Room>, PlatformAudio)>,
+    pub current_room: Option<(Arc<Room>, PlatformAudio)>,
     pub users_last_message: Option<EditingMessage>,
     pub typing: HashMap<String, HashSet<String>>,
     pub file_hover: bool,
@@ -404,7 +404,11 @@ pub fn set_current_user_id(user_id: String, mut station: AppStation) {
     station.write_channel(AppChannel::UserId).user_id = Some(user_id);
 }
 
-pub fn insert_user(user: User, mut station: AppStation) {
+pub fn insert_user(mut user: User, mut station: AppStation) {
+    if let Some(user_id) = station.peek().user_id.as_ref() && &user.id == user_id && let Some(old) = station.peek().users.get(user_id) {
+        user.relations = old.relations.clone();
+    }
+
     station
         .write_channel(AppChannel::Users)
         .users

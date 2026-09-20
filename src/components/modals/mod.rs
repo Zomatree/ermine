@@ -25,6 +25,7 @@ mod open_link;
 mod rename_category;
 mod reset_bot_token;
 mod server_info;
+mod add_friend;
 
 use channel_description::*;
 use create_bot::*;
@@ -53,3 +54,4 @@ use open_link::*;
 use rename_category::*;
 use reset_bot_token::*;
 use server_info::*;
+use add_friend::*;

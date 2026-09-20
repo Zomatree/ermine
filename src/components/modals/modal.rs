@@ -12,14 +12,13 @@ use stoat_models::v0;
 use crate::{
     Error,
     components::{
-        StoatButton, StoatButtonLayoutThemePartialExt,
-        modals::{
-            ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer, DeleteBot,
-            DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi,
+        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, modals::{
+            AddFriend, ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer,
+            DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi,
             EditOwnServerIdentity, EditRoles, ErrorModal, ImageViewer, InviteBot, InviteInfo,
             JoinServer, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
             RenameCategory, ResetBotToken, ServerInfo,
-        },
+        }
     },
     consume_material_theme,
 };
@@ -99,6 +98,7 @@ pub enum ModalValue {
         user: String,
         server: String,
     },
+    AddFriend,
     Error {
         error: Error,
     },
@@ -292,6 +292,7 @@ impl Component for Modal {
                                     ModalValue::EditRoles { user, server } => {
                                         EditRoles { user, server }.into_element()
                                     }
+                                    ModalValue::AddFriend => AddFriend {}.into_element(),
                                 }),
                         ),
                 ),
@@ -328,7 +329,7 @@ impl PartialEq for DialogAction {
 pub struct Dialog {
     title: Vec<Element>,
     body: Vec<Element>,
-    actions: Vec<(&'static str, Option<DialogAction>)>,
+    actions: Vec<(&'static str, bool, Option<DialogAction>)>,
 }
 
 impl Dialog {
@@ -353,13 +354,19 @@ impl Dialog {
     }
 
     pub fn default_action(mut self, title: &'static str) -> Self {
-        self.actions.push((title, None));
+        self.actions.push((title, true, None));
 
         self
     }
 
     pub fn action(mut self, title: &'static str, callback: impl Into<DialogAction>) -> Self {
-        self.actions.push((title, Some(callback.into())));
+        self.actions.push((title, true, Some(callback.into())));
+
+        self
+    }
+
+    pub fn action_with_state(mut self, title: &'static str, enabled: bool, callback: impl Into<DialogAction>) -> Self {
+        self.actions.push((title, enabled, Some(callback.into())));
 
         self
     }
@@ -396,7 +403,7 @@ impl Component for Dialog {
 
                         move |e: Event<KeyboardEventData>| {
                             if e.key == Key::Named(NamedKey::Enter) && e.modifiers.is_empty() {
-                                if let Some((_, callback)) = &last_action {
+                                if let Some((_, true, callback)) = &last_action {
                                     if let Some(callback) = &callback {
                                         if callback.call() {
                                             controller.write().pop_modal();
@@ -413,9 +420,11 @@ impl Component for Dialog {
                     .width(Size::Fill)
                     .spacing(8.)
                     .main_align(Alignment::End)
-                    .children(self.actions.iter().cloned().map(|(title, callback)| {
+                    .children(self.actions.iter().cloned().map(|(title, enabled, callback)| {
                         StoatButton::new()
                             .corner_radius(20.)
+                            .enabled(enabled)
+                            .color(theme.md.primary.as_argb_u32())
                             .on_press(move |_| {
                                 if let Some(callback) = &callback {
                                     if callback.call() {
@@ -432,7 +441,6 @@ impl Component for Dialog {
                                     .center()
                                     .child(
                                         label()
-                                            .color(theme.md.primary.as_argb_u32())
                                             .font_size(14.)
                                             .text(title),
                                     ),

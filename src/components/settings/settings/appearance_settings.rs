@@ -24,9 +24,13 @@ impl Component for AppearanceSettings {
             |settings| &settings.hide_pronouns,
             |settings| &mut settings.hide_pronouns,
         );
-        let message_group_spacing = ermine_settings.into_writable().map(
+        let message_group_spacing = ermine_settings.clone().into_writable().map(
             |settings| &settings.message_group_spacing,
             |settings| &mut settings.message_group_spacing,
+        );
+        let hide_send_button = ermine_settings.clone().into_writable().map(
+            |settings| &settings.hide_send_button,
+            |settings| &mut settings.hide_send_button,
         );
 
         let mut config = use_config();
@@ -291,5 +295,12 @@ impl Component for AppearanceSettings {
                     .into_element()
                 },
             ))
+            .child(
+                label()
+                    .text("Chat Input")
+                    .font_size(14.)
+                    .font_weight(600),
+            )
+            .child(StoatCheckbox::from_writable(hide_send_button).child("Hide send message button"))
     }
 }
