@@ -142,7 +142,7 @@
             AllowAdvertise='no'
             Display='expand'
             Absent='disallow'>
-
+            
             <!--
               Uncomment the following `ComponentRef` tag to add the license
               sidecar file to the installer.
