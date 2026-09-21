@@ -3,7 +3,7 @@ use freya::prelude::*;
 use crate::{
     components::{
         ModalValue,
-        markdown::{parser::Inline, render::render_content},
+        markdown::{components::MessageUrl, parser::Inline, render::render_content},
         use_modals,
     },
     consume_material_theme,
@@ -24,32 +24,39 @@ impl Component for Link {
         let mut modals = use_modals();
         let mut hover = use_state(|| false);
 
-        rect().cursor(CursorIcon::Pointer).child(
-            render_content(
-                paragraph(),
-                &self.content,
-                self.font_size,
-                theme,
-                self.bold,
-                true,
-                hover(),
-            )
-            // .text_decoration(if hover() { TextDecoration::Underline } else { TextDecoration::None })
-            .on_press({
+        rect()
+            .on_secondary_down({
                 let url = self.url.clone();
-
                 move |_| {
-                    modals
-                        .write()
-                        .push_modal(ModalValue::OpenLink { url: url.clone() });
+                    provide_root_context(Some(MessageUrl(url.clone())));
                 }
             })
-            .on_pointer_enter(move |_| {
-                hover.set_if_modified(true);
-            })
-            .on_pointer_leave(move |_| {
-                hover.set_if_modified(false);
-            }),
-        )
+            .cursor(CursorIcon::Pointer)
+            .child(
+                render_content(
+                    paragraph(),
+                    &self.content,
+                    self.font_size,
+                    theme,
+                    self.bold,
+                    true,
+                    hover(),
+                )
+                .on_press({
+                    let url = self.url.clone();
+
+                    move |_| {
+                        modals
+                            .write()
+                            .push_modal(ModalValue::OpenLink { url: url.clone() });
+                    }
+                })
+                .on_pointer_enter(move |_| {
+                    hover.set_if_modified(true);
+                })
+                .on_pointer_leave(move |_| {
+                    hover.set_if_modified(false);
+                }),
+            )
     }
 }

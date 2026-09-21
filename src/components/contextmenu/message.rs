@@ -9,11 +9,12 @@ use crate::{
     AppChannel, EditingMessage,
     components::{
         ContextMenuButton, EmojiPicker, MessageModel, ModalValue, ReplyController,
+        markdown::components::MessageUrl,
         material::{
             filled::reply,
             outlined::{
-                alternate_email, badge, content_copy, delete, edit, insert_emoticon, pin_invoke,
-                share,
+                alternate_email, badge, content_copy, delete, edit, insert_emoticon, link,
+                open_in_browser, pin_invoke, share,
             },
         },
         use_floating, use_modals,
@@ -41,6 +42,12 @@ impl Component for MessageContextMenu {
         let mut floating = use_floating();
         let mut modals = use_modals();
         let editable = consume_root_context::<Option<UseEditable>>();
+
+        let current_url = try_consume_root_context::<Option<MessageUrl>>().flatten();
+
+        use_drop(|| {
+            provide_root_context(None::<MessageUrl>);
+        });
 
         rect()
             .content(Content::Fit)
@@ -208,6 +215,22 @@ impl Component for MessageContextMenu {
                             })
                     }),
             )
+            .map(current_url, |this, MessageUrl(url)| {
+                this.child(ContextMenuButton::new(link(), "Copy Link").on_press({
+                    let url = url.clone();
+                    move |_| {
+                        Clipboard::set(url.clone()).unwrap();
+                    }
+                }))
+                .child(
+                    ContextMenuButton::new(open_in_browser(), "Open Link").on_press({
+                        let url = url.clone();
+                        move |_| {
+                            open::that_in_background(&url);
+                        }
+                    }),
+                )
+            })
             .child(
                 ContextMenuButton::new(share(), "Copy Message Link").on_press({
                     let message_id = self.message.message.id.clone();

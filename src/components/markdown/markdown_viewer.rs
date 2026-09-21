@@ -131,9 +131,17 @@ impl Component for MarkdownViewer {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
-        provide_context(self.server.clone());
+        use_hook(|| provide_context(self.server.clone()));
 
-        let elements = parse_markdown(&self.content);
+        let deps = use_reactive(&self.content);
+        let elements = use_hook(move || {
+            Effect::create_value(move || {
+                let deps = deps.read();
+                parse_markdown(&deps)
+            })
+        })
+        .read()
+        .cloned();
 
         let mut p_container = paragraph()
             .layout(self.layout.clone())

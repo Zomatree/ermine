@@ -201,10 +201,13 @@ impl Component for StoatButton {
                     .width(Size::px(size.read().width))
                     .height(Size::px(size.read().height))
                     .interactive(false)
-                    .background(theme.md.on_surface.as_argb_u32())
+                    .background({
+                        let color = theme.md.on_surface;
+
+                        Color::from_af32rgb(if *hovering.read() { 0.08 } else { 0. }, color.red, color.green, color.blue)
+                    })
                     .overflow(Overflow::Clip)
                     .corner_radius(theme_layout.corner_radius)
-                    .opacity(if *hovering.read() { 0.08 } else { 0. }),
             )
     }
 

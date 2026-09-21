@@ -38,7 +38,7 @@ pub fn render_content(
                             ),
                     )
                 } else {
-                    let mut styled = Span::new(span.text.clone()).font_size(base_font_size);
+                    let mut styled = Span::new(span.text.replace('\t', " ").clone()).font_size(base_font_size);
 
                     if span.bold || bold {
                         styled = styled.font_weight(FontWeight::BOLD);

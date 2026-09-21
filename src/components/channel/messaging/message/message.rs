@@ -8,9 +8,10 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip,
-        SystemMessage, UserCard, UserContextMenu, material::filled::smart_toy, use_floating,
+        SystemMessage, UserCard, UserContextMenu, file_image, material::filled::smart_toy,
+        use_floating,
     },
-    consume_material_theme, member_display_color,
+    consume_material_theme, member_display_color, member_role_icon,
 };
 
 #[derive(PartialEq)]
@@ -55,6 +56,20 @@ impl Component for Message {
                     && let Some(server) = &*server.read()
                 {
                     member_display_color(&member.read(), server)
+                } else {
+                    None
+                }
+            }
+        });
+
+        let role_icon = use_memo({
+            let member = self.message.member.clone();
+
+            move || {
+                if let Some(member) = &member
+                    && let Some(server) = &*server.read()
+                {
+                    member_role_icon(&member.read(), server)
                 } else {
                     None
                 }
@@ -191,7 +206,7 @@ impl Component for Message {
                                 .child(
                                     rect()
                                         .horizontal()
-                                        .spacing(8.)
+                                        .spacing(4.)
                                         .cross_align(Alignment::Center)
                                         .font_size(14)
                                         .child(
@@ -215,6 +230,25 @@ impl Component for Message {
                                                     }),
                                             ),
                                         )
+                                        .maybe_child(role_icon.read().cloned().map(
+                                            |(icon, name)| {
+                                                StoatTooltip::new(
+                                                    label()
+                                                        .font_size(11.)
+                                                        .max_lines(1)
+                                                        .font_weight(500)
+                                                        .text(name),
+                                                )
+                                                .position(AttachedPosition::Top)
+                                                .child(
+                                                    file_image(&icon)
+                                                        .size(Size::px(16.))
+                                                        .image_cover(ImageCover::Center)
+                                                        .aspect_ratio(AspectRatio::Max)
+                                                        .corner_radius(8.)
+                                                )
+                                            },
+                                        ))
                                         .maybe_child(self.message.user.read().bot.is_some().then(
                                             || {
                                                 MaterialIcon::new(smart_toy())
@@ -227,7 +261,7 @@ impl Component for Message {
                                                 .horizontal()
                                                 .color(theme.md.outline.as_argb_u32())
                                                 .font_size(12)
-                                                .spacing(8.)
+                                                .spacing(4.)
                                                 .child(label().max_lines(1).text(pronouns))
                                                 .child(label().max_lines(1).text("·"))
                                         }))

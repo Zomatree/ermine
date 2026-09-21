@@ -2,7 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
+    AppChannel, Selection,
     components::{Dialog, checkbox::StoatCheckbox, use_modals},
     http,
 };
@@ -20,6 +20,8 @@ impl Component for LeaveServer {
             let server = self.server.clone();
             move |state| state.servers.get(&server).unwrap()
         });
+
+        let selection = radio.slice_mut(AppChannel::Selection, |state| &mut state.selection);
 
         let mut modals = use_modals();
 
@@ -44,10 +46,22 @@ impl Component for LeaveServer {
                 let server = self.server.clone();
 
                 move || {
+                    modals.write().pop_modal();
+
                     spawn({
                         let server = server.clone();
+                        let mut selection = selection.clone();
+
                         async move {
-                            modals.write().pop_modal();
+                            {
+                                let mut selection = selection.write();
+
+                                if let Selection::Server(id) = &*selection
+                                    && id == &server
+                                {
+                                    *selection = Selection::Home;
+                                }
+                            }
 
                             http()
                                 .delete_server(

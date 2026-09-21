@@ -1,4 +1,8 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::{
+    animation::{AnimNum, Ease, use_animation_transition},
+    prelude::*,
+    radio::use_radio,
+};
 use stoat_models::v0;
 
 use crate::{
@@ -87,8 +91,19 @@ impl Component for ServerListButton {
             }
         });
 
-        let selected =
-            use_memo(move || &*selection.read() == &Selection::Server(server.peek().id.clone()));
+        let indicator_height = if &*selection.read() == &Selection::Server(server.peek().id.clone()) {
+            32.
+        } else if hovering() {
+            16.
+        } else if *badge.read() == Some(NotificationBadge::Unread) {
+            8.
+        } else {
+            0.
+        };
+
+        let indicator_anim = use_animation_transition(indicator_height, move |before, after| {
+            AnimNum::new(before, after).time(100).ease(Ease::InOut)
+        });
 
         rect()
             .horizontal()
@@ -105,20 +120,19 @@ impl Component for ServerListButton {
                     }));
                 }
             })
-            .maybe_child(
-                (*selected.read() || *badge.read() == Some(NotificationBadge::Unread)).then(|| {
-                    rect()
-                        .width(Size::px(4.))
-                        .height(Size::px(if *selected.read() { 32. } else { 8. }))
-                        .layer(Layer::Relative(1))
-                        .position(Position::new_absolute().left(0.).top(if *selected.read() {
-                            12.
-                        } else {
-                            24.
-                        }))
-                        .corner_radius(CornerRadius::new(0., 4., 4., 0.))
-                        .background(theme.md.on_surface.as_argb_u32())
-                }),
+            .child(
+                rect()
+                    .center()
+                    .position(Position::new_absolute().left(0.))
+                    .height(Size::px(56.))
+                    .layer(Layer::Relative(1))
+                    .child(
+                        rect()
+                            .width(Size::px(4.))
+                            .height(Size::px(indicator_anim.read().value()))
+                            .corner_radius(CornerRadius::new(0., 4., 4., 0.))
+                            .background(theme.md.on_surface.as_argb_u32()),
+                    ),
             )
             .child(
                 StoatTooltip::new(label().max_lines(1).text(server.read().name.clone()))

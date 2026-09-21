@@ -295,7 +295,7 @@ impl Component for MyAccountButton {
                                 label()
                                     .text({
                                         let user = current_user.read();
-                                        
+
                                         user.display_name
                                             .clone()
                                             .unwrap_or_else(|| user.username.clone())

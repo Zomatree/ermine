@@ -6,7 +6,7 @@ use crate::components::markdown::parser::parse_elements;
 
 /// Represents different markdown elements for rendering.
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MarkdownElement {
     Heading {
         level: HeadingLevel,

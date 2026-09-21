@@ -416,10 +416,14 @@ pub fn insert_user(mut user: User, mut station: AppStation) {
 }
 
 pub fn insert_server(server: Server, mut station: AppStation) {
+    let id = server.id.clone();
+
     station
         .write_channel(AppChannel::Servers)
         .servers
-        .insert(server.id.clone(), server);
+        .insert(id.clone(), server);
+
+    station.write_channel(AppChannel::Members).members.entry(id).or_default();
 }
 
 pub fn insert_channel(channel: Channel, mut station: AppStation) {

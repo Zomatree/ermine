@@ -172,6 +172,21 @@ pub fn member_display_color(member: &v0::Member, server: &v0::Server) -> Option<
     parse_fill(color)
 }
 
+pub fn member_role_icon(member: &v0::Member, server: &v0::Server) -> Option<(v0::File, String)> {
+    let mut roles = member
+        .roles
+        .iter()
+        .filter_map(|id| server.roles.get(id))
+        .collect::<Vec<_>>();
+
+    roles.sort_by(|a, b| a.rank.cmp(&b.rank));
+
+    roles
+        .into_iter()
+        .filter_map(|role| role.icon.clone().map(|icon| (icon, role.name.clone())))
+        .next()
+}
+
 pub fn is_channel_muted(
     channel_id: &str,
     settings: Readable<Option<NotificationsSettings>>,

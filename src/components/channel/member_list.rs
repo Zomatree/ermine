@@ -1,13 +1,18 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use freya::{prelude::*, radio::{use_radio, use_radio_station}};
+use freya::{
+    prelude::*,
+    radio::{use_radio, use_radio_station},
+};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt, components::{
+    AppChannel, OptionalReadable, SizeExt,
+    components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
-    }, consume_material_theme, http, insert_user, map_optional_readable, member_display_color
+    },
+    consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
 };
 
 #[derive(Clone)]
@@ -287,7 +292,11 @@ impl Component for MemberList {
                             .padding((0., 14.))
                             .main_align(Alignment::End)
                             .maybe_child(icon.map(|icon| {
-                                file_image(&icon).width(Size::px(16.)).height(Size::px(16.))
+                                file_image(&icon)
+                                    .size(Size::px(16.))
+                                    .image_cover(ImageCover::Center)
+                                    .aspect_ratio(AspectRatio::Max)
+                                    .corner_radius(8.)
                             }))
                             .child(label().text(format!("{name} - {count}")).font_size(11.))
                             .into_element(),

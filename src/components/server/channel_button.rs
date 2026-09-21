@@ -8,14 +8,15 @@ use crate::{
     AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt,
     calculate_channel_permissions,
     components::{
-        ChannelContextMenu, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
             filled::{grid_3x3, person_add_alt_1, settings},
             outlined::headset_mic,
         },
+        use_modals,
     },
-    consume_material_theme, get_unread_badge, is_channel_muted, user_permissions_query,
+    consume_material_theme, get_unread_badge, http, is_channel_muted, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -25,9 +26,11 @@ pub struct ChannelButton {
 
 impl Component for ChannelButton {
     fn render(&self) -> impl IntoElement {
-        let mut config = use_consume::<State<Config>>();
-        let mut radio = use_radio(AppChannel::SelectedChannel);
         let theme = consume_material_theme();
+        let mut config = use_consume::<State<Config>>();
+        let mut modals = use_modals();
+
+        let mut radio = use_radio(AppChannel::SelectedChannel);
         let selected = radio.slice_current(|state| &state.selected_channel);
         let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
         let mutes = radio.slice(AppChannel::Settings("notifications"), |state| {
@@ -102,15 +105,18 @@ impl Component for ChannelButton {
         }
         .as_argb_u32();
 
+        let channel_id = self.channel.peek().id().to_string();
+
         rect()
             .on_pointer_over(move |_| {
                 hovering.set(true);
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
+                let channel_id = channel_id.clone();
                 move |_| {
                     ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
-                        channel_id: channel.read().id().to_string(),
+                        channel_id: channel_id.clone(),
                         current_permissions: permissions(),
                     }));
                 }
@@ -126,10 +132,9 @@ impl Component for ChannelButton {
                     })
                     .on_press({
                         let channel = channel.clone();
+                        let channel_id = channel_id.clone();
 
                         move |_| {
-                            let channel_id = channel.read().id().to_string();
-
                             radio
                                 .write_channel(AppChannel::SelectedChannel)
                                 .selected_channel = Some((channel_id.clone(), None));
@@ -140,7 +145,7 @@ impl Component for ChannelButton {
                             };
 
                             if let Some(server_id) = server_id {
-                                config.write().last_channels.insert(server_id, channel_id);
+                                config.write().last_channels.insert(server_id, channel_id.clone());
                             };
                         }
                     })
@@ -228,8 +233,28 @@ impl Component for ChannelButton {
                                                     MaterialIcon::new(person_add_alt_1())
                                                         .size(Size::px(16.))
                                                         .color(color)
-                                                        .on_press(|e: Event<PressEventData>| {
-                                                            e.stop_propagation();
+                                                        .on_press({
+                                                            let channel_id = channel_id.clone();
+
+                                                            move |e: Event<PressEventData>| {
+                                                                e.stop_propagation();
+
+                                                                let channel_id = channel_id.clone();
+
+                                                                spawn_forever(async move {
+                                                                    match http().create_invite(&channel_id).await {
+                                                                        Ok(
+                                                                            v0::Invite::Group { code, .. }
+                                                                            | v0::Invite::Server { code, .. },
+                                                                        ) => {
+                                                                            modals.write().push_modal(ModalValue::InviteInfo { code });
+                                                                        }
+                                                                        Err(error) => {
+                                                                            modals.write().push_modal(ModalValue::Error { error });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
                                                         }),
                                                 )
                                             }),

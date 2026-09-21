@@ -10,6 +10,7 @@ mod role_mention;
 mod spoiler;
 mod user_mention;
 mod codeblock;
+mod invite;
 
 pub use channel_mention::*;
 pub use emoji::*;
@@ -20,7 +21,11 @@ pub use role_mention::*;
 pub use spoiler::*;
 pub use user_mention::*;
 pub use codeblock::*;
+pub use invite::*;
 
 pub fn consume_server() -> Option<Readable<v0::Server>> {
     consume_context()
 }
+
+#[derive(Clone, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+pub struct MessageUrl(pub String);

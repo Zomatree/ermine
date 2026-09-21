@@ -49,87 +49,96 @@ impl<T, B> PartialEq for Reorder<T, B> {
 impl<T: Clone + PartialEq, B: Fn(&T) -> Element + 'static> Component for Reorder<T, B> {
     fn render(&self) -> impl IntoElement {
         let mut state = use_state(|| self.values.read().cloned());
+
+        use_side_effect({
+            let values = self.values.clone();
+            move || state.set(values.read().cloned())
+        });
+
         let mut selected = use_state(|| None);
         let mut hovered = use_state(|| None);
 
         let size = use_state(Size2D::default);
 
-        let mut container = rect();
-        *container.get_style() = self.style.clone();
-
-        container.layout(self.layout.clone()).children(
-            state
-                .read()
-                .cloned()
-                .into_iter()
-                .enumerate()
-                .map(|(i, value)| {
-                    rect()
-                        .child(
-                            DropZone::<T>::new(|_| {})
-                                .child(
-                                    DragZone::new(value.clone())
-                                        .child(
-                                            if hovered.read().as_ref().is_none_or(|(_, v)| {
-                                                v != &value || selected.read().as_ref() != Some(v)
-                                            }) {
+        rect()
+            .style(self.style.clone())
+            .layout(self.layout.clone())
+            .children(
+                state
+                    .read()
+                    .cloned()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, value)| {
+                        rect()
+                            .child(
+                                DropZone::<T>::new(|_| {})
+                                    .child(
+                                        DragZone::new(value.clone())
+                                            .child(
+                                                if hovered.read().as_ref().is_none_or(|(_, v)| {
+                                                    v != &value
+                                                        || selected.read().as_ref() != Some(v)
+                                                }) {
+                                                    rect()
+                                                        .interactive(selected.read().is_none())
+                                                        .child((self.builder)(&value))
+                                                        .into_element()
+                                                } else {
+                                                    rect()
+                                                        .width(Size::px(size.read().width))
+                                                        .height(Size::px(size.read().height))
+                                                        .into_element()
+                                                },
+                                            )
+                                            .drag_element(
                                                 rect()
-                                                    .interactive(selected.read().is_none())
-                                                    .child((self.builder)(&value))
-                                                    .into_element()
-                                            } else {
-                                                rect()
-                                                    .width(Size::px(size.read().width))
-                                                    .height(Size::px(size.read().height))
-                                                    .into_element()
-                                            },
-                                        )
-                                        .drag_element(
-                                            rect()
-                                                .on_sized({
-                                                    let value = value.clone();
+                                                    .on_sized({
+                                                        let value = value.clone();
 
-                                                    move |_| {
-                                                        let is_dragging = selected.read().is_some();
+                                                        move |_| {
+                                                            let is_dragging =
+                                                                selected.read().is_some();
 
-                                                        if !is_dragging {
-                                                            selected.set(Some(value.clone()));
-                                                            hovered.set(Some((i, value.clone())));
+                                                            if !is_dragging {
+                                                                selected.set(Some(value.clone()));
+                                                                hovered
+                                                                    .set(Some((i, value.clone())));
+                                                            }
                                                         }
-                                                    }
-                                                })
-                                                .child(DraggedElement {
-                                                    values: self.values.clone(),
-                                                    state,
-                                                    value,
-                                                    builder: self.builder.clone(),
-                                                    size,
-                                                    selected,
-                                                }),
-                                        )
-                                        .show_while_dragging(true)
-                                        .into_element(),
-                                )
-                                .on_drag_over(move |hovering: bool| {
-                                    if !hovering {
-                                        return;
-                                    };
+                                                    })
+                                                    .child(DraggedElement {
+                                                        values: self.values.clone(),
+                                                        state,
+                                                        value,
+                                                        builder: self.builder.clone(),
+                                                        size,
+                                                        selected,
+                                                    }),
+                                            )
+                                            .show_while_dragging(true)
+                                            .into_element(),
+                                    )
+                                    .on_drag_over(move |hovering: bool| {
+                                        if !hovering {
+                                            return;
+                                        };
 
-                                    let current = hovered.read().cloned();
-                                    let selected = selected.read().cloned();
+                                        let current = hovered.read().cloned();
+                                        let selected = selected.read().cloned();
 
-                                    if let Some(current) = current
-                                        && let Some(selected) = selected
-                                    {
-                                        state.write().remove(current.0);
-                                        state.write().insert(i, current.1.clone());
-                                        hovered.set(Some((i, selected)));
-                                    }
-                                }),
-                        )
-                        .into_element()
-                }),
-        )
+                                        if let Some(current) = current
+                                            && let Some(selected) = selected
+                                        {
+                                            state.write().remove(current.0);
+                                            state.write().insert(i, current.1.clone());
+                                            hovered.set(Some((i, selected)));
+                                        }
+                                    }),
+                            )
+                            .into_element()
+                    }),
+            )
     }
 }
 

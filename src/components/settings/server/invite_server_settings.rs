@@ -216,7 +216,7 @@ impl Component for InviteServerSettings {
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(content_copy())
-                                                                .size(Size::px(24.)),
+                                                                .size(Size::px(20.)),
                                                         ),
                                                 ),
                                         )
