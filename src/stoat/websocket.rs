@@ -49,7 +49,7 @@ pub async fn run(
     let http = http();
 
     let uri = format!(
-        "{}/?token={}&format=json&ready=users&ready=servers&ready=channels&ready=members&ready=channel_unreads&ready=emojis",
+        "{}/?token={}&format=json&ready=users&ready=servers&ready=channels&ready=members&ready=channel_unreads&ready=emojis&ready=voice_states",
         &http.api_config.ws,
         http.session
             .read()

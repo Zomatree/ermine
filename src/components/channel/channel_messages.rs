@@ -142,7 +142,7 @@ impl Component for ChannelMessages {
                     last_acked.set(Some(message_id.clone()));
 
                     ack_task.set(Some(spawn(async move {
-                        http().ack_channel(&channel_id, &message_id).await.unwrap();
+                        let _ = http().ack_channel(&channel_id, &message_id).await;
                     })));
                 }
             }

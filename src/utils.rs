@@ -519,10 +519,8 @@ pub fn use_changed<T: PartialEq + Clone + 'static>(
     let readable = value.into_readable();
     let mut previous = use_state(|| readable.read().clone());
 
-    use_side_effect(move || {
-        let after = readable.read();
-
-        let changed = &*previous.peek() != &*after;
+    use_side_effect_with_deps(&*readable.read(), move |after| {
+        let changed = &*previous.peek() != after;
 
         if changed {
             previous.set(after.clone());

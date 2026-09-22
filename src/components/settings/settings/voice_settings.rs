@@ -35,19 +35,19 @@ impl Component for VoiceSettings {
         use_changed(noise_suppression, {
             let audio = audio.clone();
             move |&enabled| {
-                audio.set_noise_suppression(enabled).unwrap();
+                audio.set_noise_suppression(enabled, true).unwrap();
             }
         });
         use_changed(echo_cancellation, {
             let audio = audio.clone();
             move |&enabled| {
-                audio.set_echo_cancellation(enabled).unwrap();
+                audio.set_echo_cancellation(enabled, true).unwrap();
             }
         });
         use_changed(automatic_gain_control, {
             let audio = audio.clone();
             move |&enabled| {
-                audio.set_auto_gain_control(enabled).unwrap();
+                audio.set_auto_gain_control(enabled, true).unwrap();
             }
         });
 

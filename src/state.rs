@@ -7,13 +7,17 @@ use jiff::Timestamp;
 use livekit::{PlatformAudio, Room};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet, VecDeque}, fmt::Debug, rc::Rc, sync::Arc, time::Duration
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::Debug,
+    rc::Rc,
+    sync::Arc,
+    time::Duration,
 };
 
 use stoat_models::v0::{
-    AppendMessage, Channel, Emoji, FieldsChannel, FieldsMember, FieldsMessage, FieldsRole,
-    FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMessage, Relationship,
-    RelationshipStatus, Server, User, UserSettings,
+    AppendMessage, Channel, ChannelVoiceState, Emoji, FieldsChannel, FieldsMember, FieldsMessage,
+    FieldsRole, FieldsServer, FieldsUser, Member, MemberCompositeKey, Message, PartialMessage,
+    Relationship, RelationshipStatus, Server, User, UserSettings,
 };
 use stoat_result::ErrorType;
 
@@ -306,6 +310,7 @@ pub struct AppState {
     pub typing: HashMap<String, HashSet<String>>,
     pub file_hover: bool,
     pub slowmodes: HashMap<String, Slowmode>,
+    pub voice_states: HashMap<String, ChannelVoiceState>,
 }
 
 impl AppState {
@@ -363,6 +368,7 @@ pub enum AppChannel {
     Typing,
     FileHover,
     Slowmodes,
+    VoiceStates,
 }
 
 impl RadioChannel<AppState> for AppChannel {}
@@ -405,7 +411,10 @@ pub fn set_current_user_id(user_id: String, mut station: AppStation) {
 }
 
 pub fn insert_user(mut user: User, mut station: AppStation) {
-    if let Some(user_id) = station.peek().user_id.as_ref() && &user.id == user_id && let Some(old) = station.peek().users.get(user_id) {
+    if let Some(user_id) = station.peek().user_id.as_ref()
+        && &user.id == user_id
+        && let Some(old) = station.peek().users.get(user_id)
+    {
         user.relations = old.relations.clone();
     }
 
@@ -423,7 +432,11 @@ pub fn insert_server(server: Server, mut station: AppStation) {
         .servers
         .insert(id.clone(), server);
 
-    station.write_channel(AppChannel::Members).members.entry(id).or_default();
+    station
+        .write_channel(AppChannel::Members)
+        .members
+        .entry(id)
+        .or_default();
 }
 
 pub fn insert_channel(channel: Channel, mut station: AppStation) {
@@ -659,6 +672,10 @@ pub fn delete_channel(channel_id: &str, mut station: AppStation) {
         .write_channel(AppChannel::ChannelStates)
         .channel_states
         .remove(channel_id);
+    station
+        .write_channel(AppChannel::VoiceStates)
+        .channel_states
+        .remove(channel_id);
 
     {
         let mut state = station.write_channel(AppChannel::SelectedChannel);
@@ -679,6 +696,35 @@ pub fn delete_channel(channel_id: &str, mut station: AppStation) {
             state.channel_settings_page = None;
         };
     }
+}
+
+pub fn insert_voice_state(voice_state: ChannelVoiceState, mut station: AppStation) {
+    station
+        .write_channel(AppChannel::VoiceStates)
+        .voice_states
+        .insert(voice_state.id.clone(), voice_state);
+}
+
+pub fn update_voice_state(
+    channel_id: String,
+    mut station: AppStation,
+    f: impl FnOnce(&mut ChannelVoiceState),
+) {
+    let mut state = station.write_channel(AppChannel::VoiceStates);
+
+    let voice_state = state
+        .voice_states
+        .entry(channel_id.clone())
+        .or_insert_with(|| ChannelVoiceState {
+            id: channel_id,
+            participants: Vec::new(),
+        });
+
+    f(voice_state);
+}
+
+pub fn delete_voice_state(channel_id: &str, mut station: AppStation) {
+    station.write_channel(AppChannel::VoiceStates).voice_states.remove(channel_id);
 }
 
 pub async fn update_state(
@@ -714,7 +760,7 @@ pub async fn update_state(
             user_settings,
             channel_unreads,
             policy_changes: _,
-            voice_states: _,
+            voice_states,
         } => {
             for user in users.into_iter().flatten() {
                 if user.relationship == RelationshipStatus::User {
@@ -751,9 +797,9 @@ pub async fn update_state(
                 update_settings(settings, station);
             }
 
-            // for voice_state in voice_states.into_iter().flatten() {
-            //     context.cache.insert_voice_state(voice_state);
-            // }
+            for voice_state in voice_states.into_iter().flatten() {
+                insert_voice_state(voice_state, station);
+            }
 
             for emoji in emojis.into_iter().flatten() {
                 insert_emoji(emoji, station);
@@ -1187,17 +1233,63 @@ pub async fn update_state(
             });
             insert_user(user, station);
         }
-        EventV1::UserVoiceStateUpdate { .. } => {
-            // TODO
+        EventV1::UserVoiceStateUpdate {
+            id,
+            channel_id,
+            data,
+        } => {
+            update_voice_state(channel_id, station, |voice_state| {
+                if let Some(state) = voice_state
+                    .participants
+                    .iter_mut()
+                    .find(|state| &state.id == &id)
+                {
+                    state.apply_options(data);
+                }
+            });
         }
-        EventV1::VoiceChannelJoin { .. } => {
-            // TODO
+        EventV1::VoiceChannelJoin { id, state } => {
+            update_voice_state(id, station, |voice_state| {
+                voice_state.participants.retain(|s| &s.id != &state.id);
+
+                voice_state.participants.push(state);
+            });
         }
-        EventV1::VoiceChannelLeave { .. } => {
-            // TODO
+        EventV1::VoiceChannelLeave { id, user } => {
+            let mut is_empty = false;
+
+            update_voice_state(id.clone(), station, |voice_state| {
+                voice_state.participants.retain(|s| &s.id != &user);
+
+                is_empty = voice_state.participants.is_empty()
+            });
+
+            if is_empty {
+                delete_voice_state(&id, station);
+            }
         }
-        EventV1::VoiceChannelMove { .. } => {
-            // TODO
+        EventV1::VoiceChannelMove {
+            user,
+            from,
+            to,
+            state,
+        } => {
+            let mut is_empty = false;
+
+            update_voice_state(from.clone(), station, |voice_state| {
+                voice_state.participants.retain(|s| &s.id != &user);
+                is_empty = voice_state.participants.is_empty()
+            });
+
+            if is_empty {
+                delete_voice_state(&from, station);
+            }
+
+            update_voice_state(to, station, |voice_state| {
+                voice_state.participants.retain(|s| &s.id != &user);
+
+                voice_state.participants.push(state);
+            });
         }
         EventV1::WebhookCreate(_) => {
             // TODO

@@ -69,6 +69,7 @@ impl Component for ChannelList {
 
                                     ChannelButton {
                                         channel: channel.into_readable(),
+                                        server: self.server.clone(),
                                     }
                                     .into_element()
                                 }),

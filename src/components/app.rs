@@ -68,6 +68,8 @@ impl Component for App {
 
             async move {
                 while let Some(event) = event_r.lock().await.recv().await {
+                    log::debug!("{event:?}");
+
                     match event {
                         Event::Stoat(event) => state::update_state(event, config, station).await,
                         Event::Local(event) => {

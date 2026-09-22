@@ -1,15 +1,23 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+};
 
-use freya::{prelude::*, radio::use_radio};
+use bytes::BytesMut;
+use freya::{elements::image::ImageHandle, prelude::*, radio::use_radio};
+use freya_engine::prelude::AlphaType;
+use futures::StreamExt;
 use livekit::{
     PlatformAudio, Room,
-    prelude::Participant,
-    track::{TrackKind, TrackSource},
+    prelude::{Participant, RemoteParticipant},
+    track::{RemoteTrack, RemoteVideoTrack, TrackKind, TrackSource},
+    webrtc::{prelude::VideoBuffer, video_stream::native::NativeVideoStream},
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off}, consume_material_theme
+    AppChannel, SizeExt,
+    components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off},
+    consume_material_theme,
 };
 
 pub struct RoomManager {
@@ -92,14 +100,44 @@ impl Component for RoomManager {
                                     channel: channel.clone(),
                                     server: server.clone(),
                                 })
-                                .children(remote_participants.read().values().map(|p| {
-                                    RoomUserCard {
-                                        participant: Participant::Remote(p.clone()),
-                                        channel: channel.clone(),
-                                        server: server.clone(),
-                                    }
-                                    .into_element()
-                                })),
+                                .children(
+                                    remote_participants
+                                        .read()
+                                        .values()
+                                        .map(|p| {
+                                            let mut cards = Vec::new();
+
+                                            cards.push(
+                                                RoomUserCard {
+                                                    participant: Participant::Remote(p.clone()),
+                                                    channel: channel.clone(),
+                                                    server: server.clone(),
+                                                }
+                                                .into_element(),
+                                            );
+
+                                            for track_pub in p.track_publications().values() {
+                                                if track_pub.is_subscribed()
+                                                    && track_pub.kind() == TrackKind::Video
+                                                    && let Some(RemoteTrack::Video(track)) =
+                                                        track_pub.track()
+                                                {
+                                                    cards.push(
+                                                        RoomVideoCard {
+                                                            participant: p.clone(),
+                                                            track,
+                                                            channel: channel.clone(),
+                                                            server: server.clone(),
+                                                        }
+                                                        .into_element(),
+                                                    );
+                                                }
+                                            }
+
+                                            cards
+                                        })
+                                        .flatten(),
+                                ),
                         ),
                     ),
             )
@@ -221,5 +259,97 @@ impl Component for RoomUserCard {
 
     fn render_key(&self) -> DiffKey {
         (&self.participant.identity().0).into()
+    }
+}
+
+pub struct RoomVideoCard {
+    pub participant: RemoteParticipant,
+    pub track: RemoteVideoTrack,
+    pub channel: Readable<v0::Channel>,
+    pub server: Option<Readable<v0::Server>>,
+}
+
+impl PartialEq for RoomVideoCard {
+    fn eq(&self, other: &Self) -> bool {
+        self.participant.identity() == other.participant.identity()
+            && self.track.sid() == other.track.sid()
+    }
+}
+
+impl Component for RoomVideoCard {
+    fn render(&self) -> impl IntoElement {
+        let mut buffer = use_state(BytesMut::new);
+        let mut handle = use_state(|| None);
+
+        use_hook(|| {
+            let mut stream = NativeVideoStream::new(self.track.rtc_track());
+            spawn(async move {
+                while let Some(frame) = stream.next().await {
+                    // let now = SystemTime::now();
+
+                    // if now.duration_since(last_run).unwrap().as_secs_f64() > 1. / 15. {
+                    //     last_run = now;
+                    // } else {
+                    //     continue;
+                    // }
+
+                    let buf = frame.buffer.as_i420().unwrap();
+                    let (stride_y, stride_u, stride_v) = buf.strides();
+
+                    let (y, u, v) = buf.data();
+
+                    let mut rgba_buf = buffer.write();
+
+                    let y_size = buf.width() * buf.height();
+
+                    rgba_buf.resize((y_size * 4) as usize, 0);
+                    // livekit::webrtc::native::yuv_helper::i420_to_abgr(
+                    //     y,
+                    //     stride_y,
+                    //     u,
+                    //     stride_u,
+                    //     v,
+                    //     stride_v,
+                    //     &mut rgba_buf,
+                    //     buf.width() * 4,
+                    //     buf.width() as i32,
+                    //     buf.height() as i32,
+                    // );
+
+                    yuv::yuv420_to_rgba(
+                        &yuv::YuvPlanarImage {
+                            y_plane: y,
+                            y_stride: stride_y,
+                            u_plane: u,
+                            u_stride: stride_u,
+                            v_plane: v,
+                            v_stride: stride_v,
+                            width: buf.width(),
+                            height: buf.height(),
+                        },
+                        &mut rgba_buf,
+                        buf.width() * 4,
+                        yuv::YuvRange::Limited,
+                        yuv::YuvStandardMatrix::Bt601,
+                    )
+                    .unwrap();
+
+                    let bytes = Bytes::copy_from_slice(&rgba_buf);
+                    let h =
+                        ImageHandle::from_rgba(buf.width(), buf.height(), bytes, AlphaType::Opaque);
+                    handle.set(h);
+                }
+            });
+        });
+
+        rect()
+            .corner_radius(16.)
+            .padding(8.)
+            .background(0x22000000)
+            .maybe_child(handle.read().cloned().map(|handle| {
+                image(handle)
+                    .aspect_ratio(AspectRatio::Fit)
+                    .corner_radius(8.)
+            }))
     }
 }

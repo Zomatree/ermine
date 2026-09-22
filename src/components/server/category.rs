@@ -91,6 +91,7 @@ impl Component for Category {
                                     .key(channel.peek().id())
                                     .child(ChannelButton {
                                         channel: channel.clone(),
+                                        server: self.server.clone(),
                                     })
                                     .into_element()
                             }))
@@ -106,6 +107,7 @@ impl Component for Category {
                             {
                                 Some(rect().key(channel.peek().id()).child(ChannelButton {
                                     channel: channel.clone(),
+                                    server: self.server.clone(),
                                 }))
                             } else {
                                 None

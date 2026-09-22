@@ -11,8 +11,7 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
-    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions,
-    components::{
+    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions, components::{
         AttachmentController, EmojiGifPicker, PickerSelection, ReplyController, StoatButton,
         StoatButtonLayoutThemePartialExt,
         material::{
@@ -21,8 +20,7 @@ use crate::{
             round::insert_emoticon,
         },
         use_floating,
-    },
-    consume_material_theme, get_unicode_emoji_set, http, use_clipboard, user_permissions_query,
+    }, consume_material_theme, get_unicode_emoji_set, http, use_changed, use_clipboard, user_permissions_query
 };
 
 static SED_REGEX: LazyLock<Regex> =
@@ -75,7 +73,7 @@ impl Component for Textbox {
         let (mut movement_timeout, cursor_color) =
             use_cursor_blink(focus().is_focused(), 0xFFFFFFFF.into());
 
-        use_side_effect_with_deps(&editable.editor().read().to_string(), {
+        use_changed(editable.editor().read().to_string(), {
             let id = self.channel.read().id().to_string();
             move |content| {
                 movement_timeout.reset();
