@@ -63,8 +63,12 @@ fn main() {
     generate_material_icons_style("outlined");
     generate_material_icons_style("round");
 
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        println!("cargo::rustc-link-arg=-Wl,--allow-multiple-definition");
-    };
+    #[cfg(target_os = "linux")]
+    println!("cargo::rustc-link-arg=-Wl,--allow-multiple-definition");
+
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    println!("cargo::rustc-link-arg=-fuse-ld=lld");
+
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    println!("cargo::rustc-link-arg=-ObjC");
 }

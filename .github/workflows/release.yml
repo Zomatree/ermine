@@ -127,6 +127,9 @@ jobs:
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           fi
+      - name: "Set RUSTFLAGS For Windows"
+        if: "runner.os == 'Windows'"
+        run: "\"RUSTFLAGS=$env:RUSTFLAGS -C target-feature=+crt-static\" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8"
       - name: Install dist
         run: ${{ matrix.install_dist.run }}
       # Get the dist-manifest

@@ -1,0 +1,4 @@
+- name: Set RUSTFLAGS For Windows
+  if: runner.os == 'Windows'
+  run: |
+    "RUSTFLAGS=$env:RUSTFLAGS -C target-feature=+crt-static" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
