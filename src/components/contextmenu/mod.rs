@@ -76,3 +76,18 @@ impl Component for ContextMenuButton {
             )
     }
 }
+
+#[derive(PartialEq)]
+pub struct ContextMenuDivider;
+
+impl Component for ContextMenuDivider {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        rect()
+            .width(Size::FillMinimum)
+            .height(Size::px(1.))
+            .background(theme.md.outline_variant.as_argb_u32())
+            .margin((4., 0.))
+    }
+}

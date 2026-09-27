@@ -26,13 +26,7 @@ impl Component for HomeButton {
             user.read()
                 .relations
                 .iter()
-                .filter(|rel| {
-                    [
-                        v0::RelationshipStatus::Incoming,
-                        v0::RelationshipStatus::Outgoing,
-                    ]
-                    .contains(&rel.status)
-                })
+                .filter(|rel| rel.status == v0::RelationshipStatus::Incoming)
                 .count()
         });
 

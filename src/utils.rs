@@ -11,6 +11,8 @@ use freya::{
     radio::{Radio, Readable},
 };
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
+use jiff::Unit;
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
 
@@ -506,10 +508,27 @@ pub fn format_autumn_url(file: &v0::File) -> Url {
 }
 
 pub fn format_duration(duration: jiff::Span) -> String {
-    format!(
-        "{:#}",
-        duration.nanoseconds(0).microseconds(0).milliseconds(0)
-    )
+    let hours = duration.total(Unit::Hour).unwrap_or(0.).floor() as u64;
+
+    if hours > 0 {
+        if hours == 1 {
+            "an hour".to_string()
+        } else {
+            format!("{hours} hours")
+        }
+    } else {
+        let mins = duration.total(Unit::Minute).unwrap_or(0.).round() as u64;
+
+        if mins > 0 {
+            if mins == 1 {
+                "a minute".to_string()
+            } else {
+                format!("{mins} minutes")
+            }
+        } else {
+            "a few seconds".to_string()
+        }
+    }
 }
 
 pub fn use_changed<T: PartialEq + Clone + 'static>(
@@ -527,6 +546,25 @@ pub fn use_changed<T: PartialEq + Clone + 'static>(
             callback(&after)
         }
     });
+}
+
+pub fn get_member_rank(member: &v0::Member, server: &v0::Server) -> i64 {
+    if &member.id.user == &server.owner {
+        i64::MIN
+    } else {
+        member
+            .roles
+            .iter()
+            .filter_map(|id| server.roles.get(id))
+            .sorted_by(|a, b| a.rank.cmp(&b.rank))
+            .map(|r| r.rank)
+            .next()
+            .unwrap_or(i64::MAX)
+    }
+}
+
+pub fn is_inferior(member: &v0::Member, target: &v0::Member, server: &v0::Server) -> bool {
+    get_member_rank(member, server) < get_member_rank(target, server)
 }
 
 // pub fn map_optional_readable<T, U>(

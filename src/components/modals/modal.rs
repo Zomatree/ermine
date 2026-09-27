@@ -12,13 +12,14 @@ use stoat_models::v0;
 use crate::{
     Error,
     components::{
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, modals::{
-            AddFriend, ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer,
-            DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi,
-            EditOwnServerIdentity, EditRoles, ErrorModal, ImageViewer, InviteBot, InviteInfo,
-            JoinServer, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
-            RenameCategory, ResetBotToken, ServerInfo,
-        }
+        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        modals::{
+            AddFriend, BanMember, ChannelDescription, CreateBot, CreateJoinServer, CreateRole,
+            CreateServer, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage,
+            EditApi, EditOwnServerIdentity, EditRoles, ErrorModal, ImageViewer, InviteBot,
+            InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA,
+            OpenLink, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember, RemoveTimeoutMember, EditServerIdentity
+        },
     },
     consume_material_theme,
 };
@@ -99,6 +100,26 @@ pub enum ModalValue {
         server: String,
     },
     AddFriend,
+    KickMember {
+        user: String,
+        server: String,
+    },
+    BanMember {
+        user: String,
+        server: String,
+    },
+    TimeoutMember {
+        user: String,
+        server: String,
+    },
+    RemoveTimeoutMember {
+        user: String,
+        server: String,
+    },
+    EditServerIdentity {
+        user: String,
+        server: String,
+    },
     Error {
         error: Error,
     },
@@ -293,6 +314,21 @@ impl Component for Modal {
                                         EditRoles { user, server }.into_element()
                                     }
                                     ModalValue::AddFriend => AddFriend {}.into_element(),
+                                    ModalValue::KickMember { user, server } => {
+                                        KickMember { user, server }.into_element()
+                                    }
+                                    ModalValue::BanMember { user, server } => {
+                                        BanMember { user, server }.into_element()
+                                    }
+                                    ModalValue::TimeoutMember { user, server } => {
+                                        TimeoutMember { user, server }.into_element()
+                                    }
+                                    ModalValue::RemoveTimeoutMember { user, server } => {
+                                        RemoveTimeoutMember { user, server }.into_element()
+                                    }
+                                    ModalValue::EditServerIdentity { user, server } => {
+                                        EditServerIdentity { user, server }.into_element()
+                                    }
                                 }),
                         ),
                 ),
@@ -365,7 +401,12 @@ impl Dialog {
         self
     }
 
-    pub fn action_with_state(mut self, title: &'static str, enabled: bool, callback: impl Into<DialogAction>) -> Self {
+    pub fn action_with_state(
+        mut self,
+        title: &'static str,
+        enabled: bool,
+        callback: impl Into<DialogAction>,
+    ) -> Self {
         self.actions.push((title, enabled, Some(callback.into())));
 
         self
@@ -420,33 +461,34 @@ impl Component for Dialog {
                     .width(Size::Fill)
                     .spacing(8.)
                     .main_align(Alignment::End)
-                    .children(self.actions.iter().cloned().map(|(title, enabled, callback)| {
-                        StoatButton::new()
-                            .corner_radius(20.)
-                            .enabled(enabled)
-                            .color(theme.md.primary.as_argb_u32())
-                            .on_press(move |_| {
-                                if let Some(callback) = &callback {
-                                    if callback.call() {
-                                        controller.write().pop_modal();
-                                    }
-                                } else {
-                                    controller.write().pop_modal();
-                                }
-                            })
-                            .child(
-                                rect()
-                                    .padding((0., 16.))
-                                    .height(Size::px(40.))
-                                    .center()
+                    .children(
+                        self.actions
+                            .iter()
+                            .cloned()
+                            .map(|(title, enabled, callback)| {
+                                StoatButton::new()
+                                    .corner_radius(20.)
+                                    .enabled(enabled)
+                                    .color(theme.md.primary.as_argb_u32())
+                                    .on_press(move |_| {
+                                        if let Some(callback) = &callback {
+                                            if callback.call() {
+                                                controller.write().pop_modal();
+                                            }
+                                        } else {
+                                            controller.write().pop_modal();
+                                        }
+                                    })
                                     .child(
-                                        label()
-                                            .font_size(14.)
-                                            .text(title),
-                                    ),
-                            )
-                            .into_element()
-                    })),
+                                        rect()
+                                            .padding((0., 16.))
+                                            .height(Size::px(40.))
+                                            .center()
+                                            .child(label().font_size(14.).text(title)),
+                                    )
+                                    .into_element()
+                            }),
+                    ),
             )
     }
 }

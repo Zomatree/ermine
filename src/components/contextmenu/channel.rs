@@ -5,9 +5,10 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use crate::{
     AppChannel, ChannelSettingsPage,
     components::{
-        ContextMenuButton, ModalValue,
-        material::outlined::{badge, delete, logout, person_add, settings, share},
-        use_modals,
+        ContextMenuButton, ContextMenuDivider, ModalValue, material::outlined::{
+            badge, delete, do_not_disturb_on, edit_notifications, logout, person_add, settings,
+            share,
+        }, use_modals
     },
     http,
 };
@@ -34,33 +35,107 @@ impl Component for ChannelContextMenu {
 
         let mut modals = use_modals();
 
-        let mut menu = rect().content(Content::Fit).maybe_child(
-            self.current_permissions
-                .has_channel_permission(ChannelPermission::InviteOthers)
-                .then(|| {
-                    ContextMenuButton::new(person_add(), "Create Invite").on_press({
-                        let channel_id = self.channel_id.clone();
+        let mut menu = rect().content(Content::Fit);
+
+        if matches!(
+            &*channel.read(),
+            v0::Channel::Group { .. } | v0::Channel::TextChannel { .. }
+        ) {
+            menu = menu.maybe(
+                self.current_permissions
+                    .has_channel_permission(ChannelPermission::InviteOthers),
+                    |this| {
+                        this.child(ContextMenuButton::new(person_add(), "Create Invite").on_press({
+                            let channel_id = self.channel_id.clone();
+
+                            move |_| {
+                                let channel_id = channel_id.clone();
+
+                                spawn_forever(async move {
+                                    match http().create_invite(&channel_id).await {
+                                        Ok(
+                                            v0::Invite::Group { code, .. }
+                                            | v0::Invite::Server { code, .. },
+                                        ) => {
+                                            modals
+                                                .write()
+                                                .push_modal(ModalValue::InviteInfo { code });
+                                        }
+                                        Err(error) => {
+                                            modals.write().push_modal(ModalValue::Error { error });
+                                        }
+                                    }
+                                });
+                            }
+                        }))
+                        .child(ContextMenuDivider)
+                    }
+            )
+        };
+
+        menu = menu
+            .child(ContextMenuButton::new(do_not_disturb_on(), "Mute Channel"))
+            .child(ContextMenuButton::new(
+                edit_notifications(),
+                "Notifications",
+            ))
+            .child(ContextMenuDivider);
+
+        if matches!(
+            &*channel.read(),
+            v0::Channel::Group { .. } | v0::Channel::TextChannel { .. }
+        ) {
+            menu = menu.maybe_child(
+                self.current_permissions
+                    .has_channel_permission(ChannelPermission::ManageChannel)
+                    .then(|| {
+                        ContextMenuButton::new(settings(), "Open Channel Settings").on_press({
+                            let channel_id = self.channel_id.clone();
+
+                            move |_| {
+                                *channel_settings.write() =
+                                    Some((channel_id.clone(), ChannelSettingsPage::default()));
+                            }
+                        })
+                    }),
+            );
+        };
+
+        menu = match &*channel.read() {
+            v0::Channel::Group { .. } => menu.child(
+                ContextMenuButton::new(logout(), "Leave Group")
+                    .danger()
+                    .on_press({
+                        let id = self.channel_id.clone();
 
                         move |_| {
-                            let channel_id = channel_id.clone();
-
-                            spawn_forever(async move {
-                                match http().create_invite(&channel_id).await {
-                                    Ok(
-                                        v0::Invite::Group { code, .. }
-                                        | v0::Invite::Server { code, .. },
-                                    ) => {
-                                        modals.write().push_modal(ModalValue::InviteInfo { code });
-                                    }
-                                    Err(error) => {
-                                        modals.write().push_modal(ModalValue::Error { error });
-                                    }
-                                }
+                            modals.write().push_modal(ModalValue::LeaveGroup {
+                                channel: id.clone(),
                             });
                         }
-                    })
-                }),
-        );
+                    }),
+            ),
+            v0::Channel::TextChannel { .. } => menu.maybe_child(
+                self.current_permissions
+                    .has_channel_permission(ChannelPermission::ManageChannel)
+                    .then(|| {
+                        ContextMenuButton::new(delete(), "Delete Channel")
+                            .danger()
+                            .on_press({
+                                let id = self.channel_id.clone();
+
+                                move |_| {
+                                    modals.write().push_modal(ModalValue::DeleteChannel {
+                                        channel: id.clone(),
+                                    });
+                                }
+                            })
+                    }),
+            ),
+            _ => menu,
+        };
+
+        menu = menu.child(ContextMenuDivider);
 
         menu = match &*channel.read() {
             v0::Channel::DirectMessage { recipients, .. } => {
@@ -98,56 +173,8 @@ impl Component for ChannelContextMenu {
                             Clipboard::set(id.clone()).unwrap();
                         }
                     }),
-                )
-                .maybe_child(
-                    self.current_permissions
-                        .has_channel_permission(ChannelPermission::ManageChannel)
-                        .then(|| {
-                            ContextMenuButton::new(settings(), "Open Channel Settings").on_press({
-                                let channel_id = self.channel_id.clone();
-
-                                move |_| {
-                                    *channel_settings.write() =
-                                        Some((channel_id.clone(), ChannelSettingsPage::default()));
-                                }
-                            })
-                        }),
                 ),
             _ => unreachable!(),
-        };
-
-        let menu = match &*channel.read() {
-            v0::Channel::Group { .. } => menu.child(
-                ContextMenuButton::new(logout(), "Leave Group")
-                    .danger()
-                    .on_press({
-                        let id = self.channel_id.clone();
-
-                        move |_| {
-                            modals.write().push_modal(ModalValue::LeaveGroup {
-                                channel: id.clone(),
-                            });
-                        }
-                    }),
-            ),
-            v0::Channel::TextChannel { .. } => menu.maybe_child(
-                self.current_permissions
-                    .has_channel_permission(ChannelPermission::ManageChannel)
-                    .then(|| {
-                        ContextMenuButton::new(delete(), "Delete Channel")
-                            .danger()
-                            .on_press({
-                                let id = self.channel_id.clone();
-
-                                move |_| {
-                                    modals.write().push_modal(ModalValue::DeleteChannel {
-                                        channel: id.clone(),
-                                    });
-                                }
-                            })
-                    }),
-            ),
-            _ => menu,
         };
 
         menu

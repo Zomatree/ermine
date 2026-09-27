@@ -217,10 +217,13 @@ impl Component for Channel {
                                                                     .id,
                                                             )
                                                             .unwrap();
+                                                        let mut options = RoomOptions::default();
+                                                        options.auto_subscribe = false;
+
                                                         let (room, _) = Room::connect(
                                                             &resp.url,
                                                             &resp.token,
-                                                            RoomOptions::default(),
+                                                            options,
                                                         )
                                                         .await
                                                         .unwrap();

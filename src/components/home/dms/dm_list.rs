@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
@@ -11,7 +13,6 @@ use crate::{
         },
     },
     consume_material_theme, http,
-    theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -25,7 +26,18 @@ impl Component for DMList {
         let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
             &mut state.selected_channel
         });
-        let theme = consume_material_theme();
+
+        let user = radio.slice(AppChannel::Users, |state| {
+            state.users.get(state.user_id.as_ref().unwrap()).unwrap()
+        });
+
+        let friend_request_count = use_side_effect_value(move || {
+            user.read()
+                .relations
+                .iter()
+                .filter(|rel| rel.status == v0::RelationshipStatus::Incoming)
+                .count()
+        });
 
         let saved_messages = use_memo({
             let radio = radio.clone();
@@ -104,20 +116,17 @@ impl Component for DMList {
             .padding((0., 0., 0., 8.))
             .child(
                 rect()
-                    // .margin((8., 8., 0., 8.))
                     .padding((24., 16.0))
                     .font_size(16)
                     .child("Conversations"),
             )
             .child(
                 rect()
-                    // .padding((0., 8.))
                     .spacing(5.)
                     .child(
-                        dmlist_nav_button(
+                        DMListNavButton::new(
                             home(),
                             "Home",
-                            &theme,
                             &*self.selection.read() == &HomeSelection::Welcome
                                 && dm_channel.read().is_none(),
                         )
@@ -132,13 +141,15 @@ impl Component for DMList {
                         }),
                     )
                     .child(
-                        dmlist_nav_button(
+                        DMListNavButton::new(
                             group(),
                             "Friends",
-                            &theme,
                             &*self.selection.read() == &HomeSelection::Friends
                                 && dm_channel.read().is_none(),
                         )
+                        .maybe(friend_request_count() > 0, |this| {
+                            this.secondary(format!("{} requests", friend_request_count()))
+                        })
                         .on_press({
                             let mut selection = self.selection.clone();
                             let mut dm_channel = dm_channel.clone();
@@ -150,10 +161,9 @@ impl Component for DMList {
                         }),
                     )
                     .child(
-                        dmlist_nav_button(
+                        DMListNavButton::new(
                             sticky_note_2(),
                             "Saved Notes",
-                            &theme,
                             saved_messages.read().as_ref().is_some_and(|c| {
                                 dm_channel
                                     .read()
@@ -203,7 +213,6 @@ impl Component for DMList {
                     )
                     .child(
                         VirtualScrollView::new({
-                            let selection = self.selection.clone();
                             move |item, _| {
                                 let channel = channels.read()[item.index].clone();
 
@@ -221,27 +230,75 @@ impl Component for DMList {
     }
 }
 
-pub fn dmlist_nav_button(
+#[derive(PartialEq)]
+struct DMListNavButton {
     icon: Bytes,
-    title: &'static str,
-    theme: &Theme,
+    title: Cow<'static, str>,
+
     selected: bool,
-) -> StoatButton {
-    StoatButton::new().corner_radius(42.).child(
-        rect()
-            .horizontal()
-            .padding((0., 8., 0., 8.))
-            .spacing(8.)
-            .height(Size::px(42.))
-            .cross_align(Alignment::Center)
-            .font_size(15)
-            .color(theme.md.outline.as_argb_u32())
-            .maybe(selected, |btn| {
-                btn.background(theme.md.primary_container.as_argb_u32())
-                    .color(theme.md.on_primary_container.as_argb_u32())
+
+    secondary: Option<Cow<'static, str>>,
+
+    on_press: Option<EventHandler<Event<PressEventData>>>,
+}
+
+impl DMListNavButton {
+    pub fn new(icon: Bytes, title: impl Into<Cow<'static, str>>, selected: bool) -> Self {
+        Self {
+            icon,
+            title: title.into(),
+            selected,
+            secondary: None,
+            on_press: None,
+        }
+    }
+
+    pub fn secondary(mut self, text: impl Into<Cow<'static, str>>) -> Self {
+        self.secondary = Some(text.into());
+        self
+    }
+
+    pub fn on_press(mut self, on_press: impl Into<EventHandler<Event<PressEventData>>>) -> Self {
+        self.on_press = Some(on_press.into());
+        self
+    }
+}
+
+impl Component for DMListNavButton {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        StoatButton::new()
+            .corner_radius(42.)
+            .map(self.on_press.clone(), |this, on_press| {
+                this.on_press(on_press)
             })
-            .width(Size::Fill)
-            .child(MaterialIcon::new(icon).size(Size::px(24.)))
-            .child(title),
-    )
+            .child(
+                rect()
+                    .horizontal()
+                    .padding((0., 8.))
+                    .spacing(8.)
+                    .height(Size::px(42.))
+                    .cross_align(Alignment::Center)
+                    .content(Content::Flex)
+                    .font_size(15)
+                    .color(theme.md.outline.as_argb_u32())
+                    .maybe(self.selected, |btn| {
+                        btn.background(theme.md.primary_container.as_argb_u32())
+                            .color(theme.md.on_primary_container.as_argb_u32())
+                    })
+                    .width(Size::Fill)
+                    .child(MaterialIcon::new(self.icon.clone()).size(Size::px(24.)))
+                    .child(label().width(Size::flex(1.)).text(self.title.clone()))
+                    .maybe_child(self.secondary.clone().map(|text| {
+                        rect()
+                            .padding((4., 8.))
+
+                            .color(theme.md.on_error.as_argb_u32())
+                            .background(theme.md.error.as_argb_u32())
+                            .corner_radius(12.)
+                            .child(label().font_size(11.).font_weight(500).text(text))
+                    })),
+            )
+    }
 }

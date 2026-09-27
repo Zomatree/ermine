@@ -285,14 +285,6 @@ impl Component for RoomVideoCard {
             let mut stream = NativeVideoStream::new(self.track.rtc_track());
             spawn(async move {
                 while let Some(frame) = stream.next().await {
-                    // let now = SystemTime::now();
-
-                    // if now.duration_since(last_run).unwrap().as_secs_f64() > 1. / 15. {
-                    //     last_run = now;
-                    // } else {
-                    //     continue;
-                    // }
-
                     let buf = frame.buffer.as_i420().unwrap();
                     let (stride_y, stride_u, stride_v) = buf.strides();
 
@@ -303,18 +295,21 @@ impl Component for RoomVideoCard {
                     let y_size = buf.width() * buf.height();
 
                     rgba_buf.resize((y_size * 4) as usize, 0);
-                    // livekit::webrtc::native::yuv_helper::i420_to_abgr(
-                    //     y,
-                    //     stride_y,
-                    //     u,
-                    //     stride_u,
-                    //     v,
-                    //     stride_v,
-                    //     &mut rgba_buf,
-                    //     buf.width() * 4,
-                    //     buf.width() as i32,
-                    //     buf.height() as i32,
-                    // );
+
+                    /*
+                    livekit::webrtc::native::yuv_helper::i420_to_abgr(
+                        y,
+                        stride_y,
+                        u,
+                        stride_u,
+                        v,
+                        stride_v,
+                        &mut rgba_buf,
+                        buf.width() * 4,
+                        buf.width() as i32,
+                        buf.height() as i32,
+                    );
+                    */
 
                     yuv::yuv420_to_rgba(
                         &yuv::YuvPlanarImage {

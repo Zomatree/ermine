@@ -48,7 +48,7 @@ impl Component for Invite {
         rect().width(Size::Fill).padding((2., 0.)).child(
             rect()
                 .height(Size::px(64.))
-                .width(Size::px(320.))
+                .max_width(Size::px(320.))
                 .horizontal()
                 .corner_radius(12.)
                 .padding(8.)

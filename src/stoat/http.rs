@@ -972,6 +972,18 @@ impl HttpClient {
             .response()
             .await
     }
+
+    pub async fn block_user(&self, user_id: &str) -> Result<User> {
+        self.request(Method::PUT, format!("/users/{user_id}/block"))
+            .response()
+            .await
+    }
+
+    pub async fn unblock_user(&self, user_id: &str) -> Result<User> {
+        self.request(Method::DELETE, format!("/users/{user_id}/block"))
+            .response()
+            .await
+    }
 }
 
 pub struct HttpRequest {

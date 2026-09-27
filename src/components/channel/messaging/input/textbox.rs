@@ -20,7 +20,7 @@ use crate::{
             round::insert_emoticon,
         },
         use_floating,
-    }, consume_material_theme, get_unicode_emoji_set, http, use_changed, use_clipboard, user_permissions_query
+    }, consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed, use_clipboard, user_permissions_query
 };
 
 static SED_REGEX: LazyLock<Regex> =
@@ -56,6 +56,7 @@ impl Component for Textbox {
         });
         let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
         let slowmodes = radio.slice(AppChannel::Slowmodes, |state| &state.slowmodes);
+        let members = radio.slice(AppChannel::Members, |state| &state.members);
 
         let theme = consume_material_theme();
         let holder = use_state(ParagraphHolder::default);
@@ -116,11 +117,15 @@ impl Component for Textbox {
 
             move || {
                 let radio = radio.clone();
-                let channel = channel.clone();
+                let channel = channel.read().clone();
+
+                if get_channel_server(&channel).is_some() {
+                    members.read();
+                }
 
                 spawn(async move {
                     let mut query =
-                        user_permissions_query(radio.clone()).channel(channel.read().clone());
+                        user_permissions_query(radio.clone()).channel(channel);
 
                     let value = calculate_channel_permissions(&mut query).await;
                     permissions.clone().set(value);

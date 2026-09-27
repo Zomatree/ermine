@@ -5,13 +5,14 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
+    AppChannel, SizeExt, calculate_server_permissions,
     components::{
         Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip,
-        SystemMessage, UserCard, UserContextMenu, file_image, material::filled::smart_toy,
+        SystemMessage, UserCard, UserContextMenu, file_image,
+        material::{filled::smart_toy, outlined::timer_off},
         use_floating,
     },
-    consume_material_theme, member_display_color, member_role_icon,
+    consume_material_theme, member_display_color, member_role_icon, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -178,18 +179,34 @@ impl Component for Message {
                                         .on_secondary_down({
                                             let user = self.message.user.clone();
                                             let server = server.clone();
+                                            let radio = radio.clone();
 
                                             move |e: Event<PressEventData>| {
                                                 e.stop_propagation();
-                                                ContextMenu::open_from_down(
-                                                    Menu::new().child(UserContextMenu {
-                                                        user_id: user.read().id.clone(),
-                                                        server_id: server
-                                                            .read()
-                                                            .as_ref()
-                                                            .map(|s| s.id.clone()),
-                                                    }),
-                                                );
+
+                                                let user = user.read().clone();
+                                                let server = server.read().clone();
+                                                let radio = radio.clone();
+
+                                                spawn(async move {
+                                                    let mut query = user_permissions_query(radio)
+                                                        .user(user.clone());
+
+                                                    if let Some(server) = server.clone() {
+                                                        query = query.server(server);
+                                                    };
+
+                                                    let permissions =
+                                                        calculate_server_permissions(&mut query)
+                                                            .await;
+                                                    ContextMenu::open(Menu::new().child(
+                                                        UserContextMenu {
+                                                            user_id: user.id.clone(),
+                                                            server_id: server.map(|s| s.id),
+                                                            permissions,
+                                                        },
+                                                    ));
+                                                });
                                             }
                                         })
                                         .child(Avatar::new(
@@ -245,10 +262,40 @@ impl Component for Message {
                                                         .size(Size::px(16.))
                                                         .image_cover(ImageCover::Center)
                                                         .aspect_ratio(AspectRatio::Max)
-                                                        .corner_radius(8.)
+                                                        .corner_radius(8.),
                                                 )
                                             },
                                         ))
+                                        .maybe_child(
+                                            self.message
+                                                .member
+                                                .as_ref()
+                                                .and_then(|member| {
+                                                    member
+                                                        .read()
+                                                        .timeout
+                                                        .filter(|ts| ts > &iso8601_timestamp::Timestamp::now_utc())
+                                                })
+                                                .map(|ts| {
+                                                    let datetime = Timestamp::try_from(SystemTime::from(ts))
+                                                        .unwrap()
+                                                        .to_zoned(TimeZone::system());
+
+                                                    StoatTooltip::new(
+                                                        label()
+                                                            .font_size(11.)
+                                                            .max_lines(1)
+                                                            .font_weight(500)
+                                                            .text(format!("Timed out until {}", datetime.strftime("%d/%m/%Y, %H:%M:%S"))),
+                                                    )
+                                                    .position(AttachedPosition::Top)
+                                                    .child(
+                                                        MaterialIcon::new(timer_off())
+                                                            .color(theme.md.error.as_argb_u32())
+                                                            .size(Size::px(16.))
+                                                    )
+                                                }),
+                                        )
                                         .maybe_child(self.message.user.read().bot.is_some().then(
                                             || {
                                                 MaterialIcon::new(smart_toy())

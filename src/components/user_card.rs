@@ -77,6 +77,7 @@ impl Component for UserCard {
                         )
                         .child(ProfileButtons {
                             user: self.user.clone(),
+                            member: self.member.clone(),
                             close: Rc::new(move || floating.clone().set(None)),
                         })
                         .maybe_child({

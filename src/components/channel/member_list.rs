@@ -7,12 +7,10 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt,
-    components::{
+    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions, components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
-    },
-    consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
+    }, consume_material_theme, http, insert_user, map_optional_readable, member_display_color, user_permissions_query
 };
 
 #[derive(Clone)]
@@ -329,6 +327,8 @@ impl Component for MemberListMember {
         let theme = consume_material_theme();
         let floating = use_floating();
 
+        let radio = use_radio(AppChannel::Users);
+
         let role_color = use_memo({
             let server = self.server.clone();
             let member = self.member.clone();
@@ -392,14 +392,25 @@ impl Component for MemberListMember {
                             .on_secondary_down({
                                 let user = self.user.clone();
                                 let server = self.server.clone();
+                                let radio = radio.clone();
 
                                 move |_| {
-                                    ContextMenu::open_from_down(Menu::new().child(
-                                        UserContextMenu {
-                                            user_id: user.read().id.clone(),
-                                            server_id: Some(server.read().id.clone()),
-                                        },
-                                    ));
+                                    let user = user.read().clone();
+                                    let server = server.read().clone();
+                                    let radio = radio.clone();
+
+                                    spawn(async move {
+                                        let mut query = user_permissions_query(radio).user(user.clone()).server(server.clone());
+                                        let permissions = calculate_server_permissions(&mut query).await;
+
+                                        ContextMenu::open(Menu::new().child(
+                                            UserContextMenu {
+                                                user_id: user.id.clone(),
+                                                server_id: Some(server.id.clone()),
+                                                permissions,
+                                            },
+                                        ));
+                                    });
                                 }
                             })
                             .child(

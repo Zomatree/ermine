@@ -1,14 +1,20 @@
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Mutex, mpsc},
+    time::Duration,
+};
 
 use freya::{prelude::*, radio::use_radio};
+use futures::channel::oneshot;
 use livekit::{
-    PlatformAudio, Room, RtcAudioSource,
-    options::TrackPublishOptions,
+    PlatformAudio, Room, RoomEvent, RtcAudioSource,
+    options::{TrackPublishOptions, VideoEncoding},
     prelude::LocalParticipant,
     track::{LocalAudioTrack, LocalTrack, LocalVideoTrack, TrackKind, TrackSource},
     webrtc::{
         desktop_capturer::{DesktopCaptureSourceType, DesktopCapturer, DesktopCapturerOptions},
-        prelude::RtcVideoSource,
+        prelude::{
+            I420Buffer, RtcVideoSource, VideoBuffer, VideoFrame, VideoResolution, VideoRotation,
+        },
         video_source::native::NativeVideoSource,
     },
 };
@@ -40,6 +46,11 @@ impl PartialEq for RoomControls {
     }
 }
 
+#[derive(Debug, Clone)]
+enum CaptureEvent {
+    Terminate,
+}
+
 impl Component for RoomControls {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
@@ -48,21 +59,63 @@ impl Component for RoomControls {
         let is_muted = use_memo({
             let local_participant = self.local_participant.clone();
             move || {
-                local_participant
+                !local_participant
                     .read()
                     .track_publications()
                     .values()
-                    .all(|track| {
+                    .any(|track| {
                         track.kind() == TrackKind::Audio
-                            && track.is_muted()
+                            && !track.is_muted()
                             && track.source() != TrackSource::ScreenshareAudio
                     })
             }
         });
 
-        let is_deafend = use_memo(|| false);
+        let mut is_deafend = use_state(|| false);
         let is_camera = use_memo(|| false);
-        let is_screenshare = use_memo(|| false);
+        let mut is_screenshare = use_state(|| None::<mpsc::Sender<CaptureEvent>>);
+
+        use_hook(|| {
+            {
+                let is_deafend = is_deafend();
+
+                for participant in self.room.remote_participants().values() {
+                    for track in participant.track_publications().values() {
+                        if track.kind() == TrackKind::Audio {
+                            track.set_subscribed(track.kind() == TrackKind::Video || !is_deafend);
+                        }
+                    }
+                }
+            }
+
+            let mut events = self.room.subscribe();
+
+            spawn(async move {
+                while let Some(event) = events.recv().await {
+                    match event {
+                        RoomEvent::Connected {
+                            participants_with_tracks,
+                        } => {
+                            let is_deafend = is_deafend();
+
+                            for (_, tracks) in participants_with_tracks {
+                                for track in tracks {
+                                    track.set_subscribed(
+                                        track.kind() == TrackKind::Video || !is_deafend,
+                                    );
+                                }
+                            }
+                        }
+                        RoomEvent::TrackPublished { publication, .. } => {
+                            publication.set_subscribed(
+                                (publication.kind() == TrackKind::Video) || !is_deafend(),
+                            );
+                        }
+                        _ => {}
+                    };
+                }
+            });
+        });
 
         let room_state = radio.slice_mut_current(|state| &mut state.current_room);
 
@@ -143,32 +196,51 @@ impl Component for RoomControls {
                             )
                     }),
             )
-            .child(StoatButton::new().corner_radius(20.).child({
-                let is_deafend = is_deafend();
+            .child(
+                StoatButton::new()
+                    .corner_radius(20.)
+                    .on_press({
+                        let room = self.room.clone();
 
-                rect()
-                    .background(if is_deafend {
-                        theme.md.secondary_container.as_argb_u32()
-                    } else {
-                        theme.md.primary.as_argb_u32()
+                        move |_| {
+                            let is_deafend = is_deafend.toggled();
+
+                            for participant in room.remote_participants().values() {
+                                for track in participant.track_publications().values() {
+                                    if track.kind() == TrackKind::Audio {
+                                        track.set_subscribed(!is_deafend);
+                                    }
+                                }
+                            }
+                        }
                     })
-                    .color(if is_deafend {
-                        theme.md.on_secondary_container.as_argb_u32()
-                    } else {
-                        theme.md.on_primary.as_argb_u32()
-                    })
-                    .width(Size::px(40.))
-                    .height(Size::px(40.))
-                    .center()
-                    .child(
-                        MaterialIcon::new(if is_deafend {
-                            headset_off()
-                        } else {
-                            headphones()
-                        })
-                        .size(Size::px(24.)),
-                    )
-            }))
+                    .child({
+                        let is_deafend = is_deafend();
+
+                        rect()
+                            .background(if is_deafend {
+                                theme.md.secondary_container.as_argb_u32()
+                            } else {
+                                theme.md.primary.as_argb_u32()
+                            })
+                            .color(if is_deafend {
+                                theme.md.on_secondary_container.as_argb_u32()
+                            } else {
+                                theme.md.on_primary.as_argb_u32()
+                            })
+                            .width(Size::px(40.))
+                            .height(Size::px(40.))
+                            .center()
+                            .child(
+                                MaterialIcon::new(if is_deafend {
+                                    headset_off()
+                                } else {
+                                    headphones()
+                                })
+                                .size(Size::px(24.)),
+                            )
+                    }),
+            )
             .child(StoatButton::new().corner_radius(20.).child({
                 let is_camera = is_camera();
 
@@ -198,30 +270,175 @@ impl Component for RoomControls {
             .child(
                 StoatButton::new()
                     .corner_radius(20.)
-                    // .on_press({
-                    //     let room = self.room.clone();
-                    //     let audio = self.audio.clone();
-                    //     move |_| {
-                    //         let mut options =
-                    //             DesktopCapturerOptions::new(DesktopCaptureSourceType::Window);
-                    //         #[cfg(target_os = "macos")]
-                    //         {
-                    //             options.set_sck_system_picker(true);
-                    //         };
+                    .on_press({
+                        let room = self.room.clone();
 
-                    //         let mut capturer = DesktopCapturer::new(options).unwrap();
-                    //         capturer.start_capture(capturer.get_source_list().first().cloned(), move |r| { println!("{:?}", r.unwrap().data().len()) });
-                    //         for source in capturer.get_source_list() {
-                    //             println!("{:?} {:?}", source.id(), source.title())
-                    //         }
-                    //         capturer.capture_frame();
-                    //         // NativeVideoSource::new(resolution, is_screencast)
-                    //         // LocalVideoTrack::create_video_track(name, source)
-                    //         // room.local_participant().publish_track(LocalTrack::Video(()), options)
-                    //     }
-                    // })
+                        move |_| {
+                            if let Some(tx) = is_screenshare.take() {
+                                tx.send(CaptureEvent::Terminate).unwrap();
+                                return;
+                            };
+
+                            let (tx, rx) = mpsc::channel();
+                            is_screenshare.set(Some(tx));
+
+                            #[cfg(any(target_os = "macos", target_os = "linux"))]
+                            let source_type = DesktopCaptureSourceType::Generic;
+                            #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+                            let source_type = DesktopCaptureSourceType::Window;
+
+                            let mut capture_options =
+                                DesktopCapturerOptions::new(source_type);
+
+                            capture_options.set_include_cursor(true);
+                            #[cfg(target_os = "macos")]
+                            {
+                                capture_options.set_sck_system_picker(true);
+                            };
+                            let mut capturer = DesktopCapturer::new(capture_options).unwrap();
+
+                            let (res_tx, res_rx) = oneshot::channel();
+                            let mut res_tx = Some(res_tx);
+                            let source = Arc::new(Mutex::new(None::<NativeVideoSource>));
+
+                            capturer.start_capture(capturer.get_source_list().first().cloned(), {
+                                let source = source.clone();
+
+                                let mut frame_buffer = VideoFrame {
+                                    rotation: VideoRotation::VideoRotation0,
+                                    timestamp_us: 0,
+                                    frame_metadata: None,
+                                    buffer: I420Buffer::new(1, 1),
+                                };
+
+                                move |r| match r {
+                                    Ok(frame) => {
+                                        if let Some(res_tx) = res_tx.take() {
+                                            res_tx
+                                                .send(VideoResolution {
+                                                    width: frame.width() as u32,
+                                                    height: frame.height() as u32,
+                                                })
+                                                .unwrap();
+                                        };
+
+                                        let width = frame.width();
+                                        let height = frame.height();
+                                        let stride = frame.stride();
+                                        let data = frame.data();
+
+                                        let buffer_width = frame_buffer.buffer.width() as i32;
+                                        let buffer_height = frame_buffer.buffer.height() as i32;
+                                        if buffer_width != width || buffer_height != height {
+                                            frame_buffer.buffer =
+                                                I420Buffer::new(width as u32, height as u32);
+                                        }
+
+                                        let (y_stride, u_stride, v_stride) =
+                                            frame_buffer.buffer.strides();
+                                        let (y_plane, u_plane, v_plane) =
+                                            frame_buffer.buffer.data_mut();
+
+                                        yuv::bgra_to_yuv420(
+                                            &mut yuv::YuvPlanarImageMut {
+                                                y_plane: yuv::BufferStoreMut::Borrowed(y_plane),
+                                                y_stride,
+                                                u_plane: yuv::BufferStoreMut::Borrowed(u_plane),
+                                                u_stride,
+                                                v_plane: yuv::BufferStoreMut::Borrowed(v_plane),
+                                                v_stride,
+                                                width: width as u32,
+                                                height: height as u32,
+                                            },
+                                            data,
+                                            stride,
+                                            yuv::YuvRange::Limited,
+                                            yuv::YuvStandardMatrix::Bt601,
+                                            yuv::YuvConversionMode::Fast,
+                                        )
+                                        .unwrap();
+
+                                        if let Some(source) = &*source.lock().unwrap() {
+                                            source.capture_frame(&frame_buffer);
+                                        }
+                                    }
+                                    Err(_) => {},
+                                }
+                            });
+
+                            let track_id = Arc::new(Mutex::new(None));
+
+                            spawn_forever({
+                                let track_id = track_id.clone();
+                                let room = room.clone();
+
+                                async move {
+                                    thread(move || {
+                                        loop {
+                                            match rx.recv_timeout(Duration::from_millis(32)) {
+                                                Ok(CaptureEvent::Terminate) => {
+                                                    log::info!(
+                                                        "Capture thread received terminate message"
+                                                    );
+                                                    break;
+                                                }
+                                                Err(mpsc::RecvTimeoutError::Timeout) => {
+                                                    capturer.capture_frame();
+                                                }
+                                                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                                            }
+                                        }
+                                    })
+                                    .await;
+
+                                    if let Some(track_id) = track_id.lock().unwrap().take() {
+                                        room.local_participant()
+                                            .unpublish_track(&track_id)
+                                            .await
+                                            .unwrap();
+                                    };
+                                }
+                            });
+
+                            spawn_forever({
+                                let room = room.clone();
+
+                                async move {
+                                    if let Ok(res) = res_rx.await {
+                                        let width1 = res.width as f32;
+                                        let height1 = res.height as f32;
+                                        let scale = (1080. / width1 as f32).min(720. / height1 as f32).min(1.);
+
+                                        let width = (width1 * scale) as u32;
+                                        let height = (height1 * scale) as u32;
+
+                                        let native_source = NativeVideoSource::new(VideoResolution { width, height }, true);
+
+                                        let track = LocalVideoTrack::create_video_track(
+                                            "screenshare",
+                                            RtcVideoSource::Native(native_source.clone()),
+                                        );
+                                        let mut options = TrackPublishOptions::default();
+                                        options.video_encoding = Some(VideoEncoding {
+                                            max_bitrate: 1_700_000,
+                                            max_framerate: 30.,
+                                        });
+                                        options.source = TrackSource::Screenshare;
+                                        let publication = room
+                                            .local_participant()
+                                            .publish_track(LocalTrack::Video(track), options)
+                                            .await
+                                            .unwrap();
+
+                                        *track_id.lock().unwrap() = Some(publication.sid());
+                                        *source.lock().unwrap() = Some(native_source.clone());
+                                    };
+                                }
+                            });
+                        }
+                    })
                     .child({
-                        let is_screenshare = is_screenshare();
+                        let is_screenshare = is_screenshare.read().is_some();
 
                         rect()
                             .background(if !is_screenshare {

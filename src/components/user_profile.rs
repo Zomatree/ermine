@@ -5,7 +5,7 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
+    AppChannel, SizeExt, calculate_server_permissions,
     components::{
         Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
@@ -15,6 +15,7 @@ use crate::{
     },
     consume_material_theme, format_autumn_url, http, parse_fill,
     theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -83,6 +84,7 @@ impl Component for UserProfile {
                                     })
                                     .child(ProfileButtons {
                                         user: self.user.clone(),
+                                        member: self.member.clone(),
                                         close: Rc::new(close_profile),
                                     })
                                     .child({
@@ -276,12 +278,13 @@ impl Component for ProfileBanner {
 
 pub struct ProfileButtons {
     pub user: Readable<v0::User>,
+    pub member: Option<Readable<v0::Member>>,
     pub close: Rc<dyn Fn()>,
 }
 
 impl PartialEq for ProfileButtons {
     fn eq(&self, other: &Self) -> bool {
-        self.user == other.user
+        self.user == other.user && self.member == other.member
     }
 }
 
@@ -437,12 +440,33 @@ impl Component for ProfileButtons {
             .child(
                 StoatButton::new()
                     .on_press({
-                        let id = user.id.clone();
+                        let user = user.clone();
+                        let member = self.member.clone();
+                        let radio = radio.clone();
+
                         move |_| {
-                            ContextMenu::open(Menu::new().child(UserContextMenu {
-                                user_id: id.clone(),
-                                server_id: None,
-                            }));
+                            let user = user.clone();
+                            let member = member.as_ref().map(|member| member.read().clone());
+                            let radio = radio.clone();
+
+                            spawn(async move {
+                                let mut query = user_permissions_query(radio)
+                                    .user(user.clone());
+
+                                let server_id = if let Some(member) = member {
+                                    query = query.member(member.clone());
+                                    Some(member.id.server)
+                                } else {
+                                    None
+                                };
+
+                                let permissions = calculate_server_permissions(&mut query).await;
+                                ContextMenu::open(Menu::new().child(UserContextMenu {
+                                    user_id: user.id,
+                                    server_id,
+                                    permissions,
+                                }));
+                            });
                         }
                     })
                     .corner_radius(40.)
