@@ -21,6 +21,7 @@ impl Component for MessageGroup {
                     rect().padding((2., 0.)).child(Message {
                         channel: self.channel.clone(),
                         message: first,
+                        plain: false,
                     }),
                 ),
             )

@@ -191,24 +191,24 @@ impl Component for MessageContextMenu {
                         ContextMenuButton::new(delete(), "Delete Message")
                             .danger()
                             .on_press({
-                                let message_id = self.message.message.id.clone();
+                                let message = self.message.clone();
                                 let channel_id = self.message.message.channel.clone();
 
                                 move |_| {
-                                    let message_id = message_id.clone();
+                                    let message = message.clone();
                                     let channel_id = channel_id.clone();
 
                                     if shift() {
                                         spawn_forever(async move {
                                             http()
-                                                .delete_message(&channel_id, &message_id)
+                                                .delete_message(&channel_id, &message.message.id)
                                                 .await
                                                 .unwrap();
                                         });
                                     } else {
                                         modals.write().push_modal(ModalValue::DeleteMessage {
                                             channel: channel_id.clone(),
-                                            message: message_id.clone(),
+                                            message,
                                         });
                                     }
                                 }

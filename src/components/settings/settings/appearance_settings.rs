@@ -214,6 +214,7 @@ impl Component for AppearanceSettings {
                             user: user.clone(),
                             member: None,
                         },
+                        plain: true,
                     })
                     .child(Message {
                         channel: channel.clone(),
@@ -243,6 +244,7 @@ impl Component for AppearanceSettings {
                             user: user.clone(),
                             member: None,
                         },
+                        plain: true,
                     })
             })
             .child(label().text("Message Group Spacing").font_size(12.))
@@ -267,7 +269,7 @@ impl Component for AppearanceSettings {
                         .scroll_enabled(false)
                         .value(((*message_group_spacing.read() as f64) / 16.) * 100.)
                         .step(100. / 16.)
-                        .cursor_icon(CursorIcon::Pointer)
+                        .cursor(CursorIcon::Pointer)
                         .border_fill(Color::TRANSPARENT)
                         .background(theme.md.surface_container_highest.as_argb_u32())
                         .thumb_background(theme.md.primary.as_argb_u32())

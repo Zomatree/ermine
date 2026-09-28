@@ -12,14 +12,9 @@ use stoat_models::v0;
 use crate::{
     Error,
     components::{
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-        modals::{
-            AddFriend, BanMember, ChannelDescription, CreateBot, CreateJoinServer, CreateRole,
-            CreateServer, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage,
-            EditApi, EditOwnServerIdentity, EditRoles, ErrorModal, ImageViewer, InviteBot,
-            InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA,
-            OpenLink, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember, RemoveTimeoutMember, EditServerIdentity
-        },
+        MessageModel, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, modals::{
+            AddFriend, BanMember, ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi, EditOwnServerIdentity, EditRoles, EditServerIdentity, ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember
+        }
     },
     consume_material_theme,
 };
@@ -40,7 +35,7 @@ pub enum ModalValue {
     },
     DeleteMessage {
         channel: String,
-        message: String,
+        message: MessageModel,
     },
     DeleteInvite {
         invite: String,
@@ -419,8 +414,8 @@ impl Component for Dialog {
         let mut controller = use_modals();
 
         rect()
-            .min_width(Size::px(232.))
-            .max_width(Size::px(512.))
+            .min_width(Size::px(280.))
+            .max_width(Size::px(560.))
             .corner_radius(28.)
             .background(theme.md.surface_container_high.as_argb_u32())
             .padding(24.)

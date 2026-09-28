@@ -3,12 +3,14 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, ChannelSettingsPage,
+    AppChannel, ChannelSettingsPage, MuteState,
     components::{
-        ContextMenuButton, ContextMenuDivider, ModalValue, material::outlined::{
-            badge, delete, do_not_disturb_on, edit_notifications, logout, person_add, settings,
-            share,
-        }, use_modals
+        ContextMenuButton, ContextMenuDivider, ModalValue,
+        material::outlined::{
+            badge, delete, do_not_disturb_off, do_not_disturb_on, edit_notifications, logout,
+            person_add, settings, share,
+        },
+        use_modals,
     },
     http,
 };
@@ -33,6 +35,10 @@ impl Component for ChannelContextMenu {
             &mut state.channel_settings_page
         });
 
+        let mut notifications = radio.slice_mut(AppChannel::Settings("notifications"), |state| {
+            state.settings.notifications.get_or_insert_default()
+        });
+
         let mut modals = use_modals();
 
         let mut menu = rect().content(Content::Fit);
@@ -44,8 +50,9 @@ impl Component for ChannelContextMenu {
             menu = menu.maybe(
                 self.current_permissions
                     .has_channel_permission(ChannelPermission::InviteOthers),
-                    |this| {
-                        this.child(ContextMenuButton::new(person_add(), "Create Invite").on_press({
+                |this| {
+                    this.child(
+                        ContextMenuButton::new(person_add(), "Create Invite").on_press({
                             let channel_id = self.channel_id.clone();
 
                             move |_| {
@@ -67,14 +74,45 @@ impl Component for ChannelContextMenu {
                                     }
                                 });
                             }
-                        }))
-                        .child(ContextMenuDivider)
-                    }
+                        }),
+                    )
+                    .child(ContextMenuDivider)
+                },
             )
         };
 
         menu = menu
-            .child(ContextMenuButton::new(do_not_disturb_on(), "Mute Channel"))
+            .child({
+                let is_muted = notifications
+                    .read()
+                    .channel_mutes
+                    .contains_key(&self.channel_id);
+                ContextMenuButton::new(
+                    if is_muted {
+                        do_not_disturb_off()
+                    } else {
+                        do_not_disturb_on()
+                    },
+                    if is_muted {
+                        "Unmute Channel"
+                    } else {
+                        "Mute Channel"
+                    },
+                )
+                .on_press({
+                    let channel_id = self.channel_id.clone();
+                    move |_| {
+                        if is_muted {
+                            notifications.write().channel_mutes.remove(&channel_id);
+                        } else {
+                            notifications
+                                .write()
+                                .channel_mutes
+                                .insert(channel_id.clone(), MuteState { until: None });
+                        };
+                    }
+                })
+            })
             .child(ContextMenuButton::new(
                 edit_notifications(),
                 "Notifications",

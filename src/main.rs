@@ -123,7 +123,7 @@ fn main() {
         .with_plugin(WebViewPlugin::new());
 
     #[cfg(feature = "performance")]
-    let config = config.with_plugin(freya_performance_plugin::PerformanceOverlayPlugin::default());
+    let config = config.with_plugin(freya_metrics_plugin::MetricsPlugin::default());
 
     launch(config);
 }

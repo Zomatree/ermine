@@ -309,7 +309,7 @@ impl Component for Channel {
                                     .placeholder("Search messages...")
                                     .placeholder_color(theme.md.outline.as_argb_u32())
                                     .border_fill(Color::TRANSPARENT)
-                                    .inner_margin((10., 16.))
+                                    .padding((10., 16.))
                                     .corner_radius(40.)
                                     .width(Size::Fill)
                                     .background(theme.md.surface_container_high.as_argb_u32())

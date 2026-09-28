@@ -131,7 +131,7 @@ impl Component for SingleLineEntry {
                     .font_size(16.)
                     .child(
                         Input::new(self.value.clone())
-                            .inner_margin((22., 14., 6., 0.))
+                            .padding((22., 14., 6., 0.))
                             .a11y_id(a11y_id)
                             .color(theme.md.on_surface.as_argb_u32())
                             .placeholder_color(placeholder_color)

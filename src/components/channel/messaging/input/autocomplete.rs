@@ -310,6 +310,7 @@ impl Component for Autocomplete {
 
         if (self.visible)() {
             rect()
+                .on_wheel(|e: Event<WheelEventData>| e.stop_propagation())
                 .a11y_id(a11y_id)
                 .height(Size::px((filtered.read().len() * 32 + 16).min(176) as f32))
                 .padding((8., 0.))

@@ -116,8 +116,7 @@ impl Component for DMButton {
                                 ),
                             )
                             .maybe_child(unread_badge.read().filter(|_| !selected).map(|badge| {
-                                rect().padding((0., 8.)).child(
-                                match badge {
+                                rect().padding((0., 8.)).child(match badge {
                                     NotificationBadge::Mentions(count) => rect()
                                         .corner_radius(14.)
                                         .size(Size::px(14.))
@@ -316,7 +315,13 @@ impl Component for DMGroupButton {
             .child(GroupDMIcon::new(self.channel.clone()))
             .child(
                 rect()
-                    .child(label().text(name).font_size(15))
+                    .child(
+                        label()
+                            .text(name)
+                            .max_lines(1)
+                            .text_overflow(TextOverflow::Clip)
+                            .font_size(15),
+                    )
                     .child(label().text(format!("{users} Members")).font_size(11)),
             )
     }

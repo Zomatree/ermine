@@ -19,6 +19,7 @@ use crate::{
 pub struct Message {
     pub channel: Readable<v0::Channel>,
     pub message: MessageModel,
+    pub plain: bool,
 }
 
 impl Component for Message {
@@ -231,6 +232,7 @@ impl Component for Message {
                                                 label()
                                                     .max_lines(1)
                                                     .text(display_name.read().clone())
+                                                    .font_weight(500)
                                                     .map(
                                                         role_color.read().clone(),
                                                         |mut this, color| {
@@ -389,6 +391,7 @@ impl Component for Message {
                                 .child(MessageContent {
                                     channel: self.channel.clone(),
                                     message: self.message.clone(),
+                                    plain: self.plain,
                                 }),
                         ),
                 )

@@ -15,25 +15,40 @@ eula = false
 
 [features]
 hotreload = ["freya/hotreload"]
-performance = ["freya-performance-plugin"]
+performance = ["freya-metrics-plugin"]
 devtools = ["freya/devtools", "freya-devtools"]
 
 [patch.crates-io]
 serde_qs = { git = "https://github.com/Zomatree/serde_qs.git", rev = "b7497ee180401babefdf4701f5074710edc1a27b" }
 
 [dependencies]
-freya = { version = "0.5.0-rc.6", features = [
+freya = { version = "0.5.0-rc.7", features = [
     "radio",
     "remote-asset",
     "webview",
     "markdown",
     "zoom-shortcuts"
 ] }
-freya-engine = { version = "0.5.0-rc.6" }
-freya-core = { version = "0.5.0-rc.6" }
-freya-components = { version = "0.5.0-rc.6", features = ["remote-asset", "gif"] }
-freya-devtools = { version = "0.5.0-rc.6", optional = true }
-freya-performance-plugin = { version = "0.5.0-rc.6", optional = true }
+freya-engine = { version = "0.5.0-rc.7" }
+freya-core = { version = "0.5.0-rc.7" }
+freya-components = { version = "0.5.0-rc.7", features = ["remote-asset", "gif"] }
+freya-devtools = { version = "0.5.0-rc.7", optional = true }
+freya-metrics-plugin =  { version = "0.5.0-rc.7", optional = true }
+
+# freya = { git = "https://github.com/marc2332/freya.git", features = [
+#     "radio",
+#     "remote-asset",
+#     "webview",
+#     "markdown",
+#     "zoom-shortcuts"
+# ] }
+# freya-engine = { git = "https://github.com/marc2332/freya.git" }
+# freya-core = { git = "https://github.com/marc2332/freya.git" }
+# freya-components = { git = "https://github.com/marc2332/freya.git", features = ["remote-asset", "gif"] }
+# freya-devtools = { git = "https://github.com/marc2332/freya.git", optional = true }
+# freya-metrics-plugin =  { git = "https://github.com/marc2332/freya.git", optional = true }
+# freya-performance-plugin = { version = "0.5.0-rc.7", optional = true }
+
 # freya = { path = "../freya/crates/freya", features = [
 #     "radio",
 #     "remote-asset",

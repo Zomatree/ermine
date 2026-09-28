@@ -12,8 +12,8 @@ use tokio::{
 };
 
 use crate::{
-    AppChannel, ConnectionState, components, consume_material_theme, http, state, update_settings,
-    use_config,
+    AppChannel, ConnectionState, SettingsState, components, consume_material_theme, http, state,
+    use_changed_with_previous, use_config,
     websocket::{self, Event, LocalEvent},
 };
 
@@ -101,31 +101,81 @@ impl Component for App {
                     })
                     .await
                 {
-                    update_settings(settings, station);
+                    let mut state = radio.write_silently();
+
+                    for (key, (_ts, payload)) in settings.into_iter() {
+                        match key.as_str() {
+                            "ordering" => {
+                                if let Ok(value) = serde_json::from_str(&payload) {
+                                    state.settings.ordering = Some(value)
+                                }
+                            }
+                            "notifications" => {
+                                if let Ok(value) =
+                                    Ok::<_, ()>(serde_json::from_str(&payload).unwrap())
+                                {
+                                    state.settings.notifications = Some(value)
+                                }
+                            }
+                            "ermine" => {
+                                if let Ok(value) =
+                                    Ok::<_, ()>(serde_json::from_str(&payload).unwrap())
+                                {
+                                    state.settings.ermine = Some(value)
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
                 }
 
                 radio.write().ready.settings = true;
             }
         });
 
-        let ermine_settings = radio.slice(AppChannel::Settings("ermine"), |state| {
-            &state.settings.ermine
-        });
-
+        let settings = radio.slice(AppChannel::Settings(""), |state| &state.settings);
         let mut update_settings_task = use_state(|| None::<TaskHandle>);
 
-        use_side_effect_with_deps(&ermine_settings.read().cloned(), move |settings| {
-            update_settings_task.take().map(|task| task.cancel());
-
-            if let Some(settings) = settings.clone() {
-                update_settings_task.set(Some(spawn(async move {
-                    sleep(Duration::from_secs(5)).await;
-
-                    let mut map = HashMap::new();
-                    map.insert("ermine".to_string(), to_value(settings).unwrap());
-                    http().set_settings(&map).await.unwrap();
-                })));
+        use_changed_with_previous::<SettingsState>(settings, move |before, settings| {
+            let cancel = {
+                let task = update_settings_task.peek();
+                task.as_ref().map(|t| t.cancel());
+                task.is_none()
             };
+
+            let settings = settings.clone();
+
+            update_settings_task.set(Some(spawn(async move {
+                if cancel {
+                    return;
+                };
+
+                sleep(Duration::from_secs(5)).await;
+
+                let mut map = HashMap::new();
+
+                if &before.ordering != &settings.ordering
+                    && let Some(ordering) = &settings.ordering
+                {
+                    map.insert("ordering".to_string(), to_value(ordering).unwrap());
+                }
+
+                if &before.notifications != &settings.notifications
+                    && let Some(notifications) = &settings.notifications
+                {
+                    map.insert(
+                        "notifications".to_string(),
+                        to_value(notifications).unwrap(),
+                    );
+                }
+
+                if &before.ermine != &settings.ermine
+                    && let Some(ermine) = &settings.ermine
+                {
+                    map.insert("ermine".to_string(), to_value(ermine).unwrap());
+                }
+                http().set_settings(&map).await.unwrap();
+            })));
         });
 
         if radio.read().ready.is_ready() {

@@ -12,10 +12,10 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, ChannelState, EditingMessage,
+    AppChannel, ChannelState, EditingMessage, SizeExt,
     components::{
-        ChannelSlowmode, ChannelTyping, Deferred, Message, MessageActions, MessageList,
-        ReplyController, TrailingMessage,
+        ChannelSlowmode, ChannelTyping, Deferred, MaterialIcon, Message, MessageActions,
+        MessageList, ReplyController, TrailingMessage, material::outlined::clear,
     },
     consume_material_theme, http, map_readable,
     types::Tag,
@@ -1207,6 +1207,7 @@ impl Component for ChannelMessages {
                         } else if block_count != 0 {
                             groups.push(ListEntry::Blocked(block_count));
                             block_count = 0;
+                            groups.push(ListEntry::Messages(vec![model]));
                         } else if join_last
                             && let ListEntry::Messages(messages) = groups.last_mut().unwrap()
                         {
@@ -1220,6 +1221,7 @@ impl Component for ChannelMessages {
                         } else if block_count != 0 {
                             groups.push(ListEntry::Blocked(block_count));
                             block_count = 0;
+                            groups.push(ListEntry::Messages(vec![model]));
                         } else {
                             groups.push(ListEntry::Messages(vec![model]));
                         };
@@ -1255,6 +1257,7 @@ impl Component for ChannelMessages {
                                     .child(Message {
                                         channel: channel.clone(),
                                         message: first.clone(),
+                                        plain: false,
                                     })
                                     .into_element(),
                             ];
@@ -1274,11 +1277,20 @@ impl Component for ChannelMessages {
                             elements
                         }
                         ListEntry::Blocked(count) => {
-                            vec![
-                                label()
-                                    .text(format!("{count} blocked messages"))
-                                    .into_element(),
-                            ]
+                            let el = rect()
+                                .margin((8., 0., 0., 0.))
+                                .padding((4., 64.))
+                                .horizontal()
+                                .cross_align(Alignment::Center)
+                                .spacing(8.)
+                                .color(theme.md.outline.as_argb_u32())
+                                .child(MaterialIcon::new(clear()).size(Size::px(16.)))
+                                .child(label().font_size(13.).text(format!(
+                                    "{count} blocked message{}",
+                                    if count == 1 { "" } else { "s" }
+                                )));
+
+                            vec![el.into_element()]
                         }
                         ListEntry::Date(date) => {
                             let el = rect()

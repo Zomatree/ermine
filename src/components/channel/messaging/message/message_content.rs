@@ -13,6 +13,7 @@ use crate::{
 pub struct MessageContent {
     pub channel: Readable<v0::Channel>,
     pub message: MessageModel,
+    pub plain: bool,
 }
 
 impl Component for MessageContent {
@@ -46,11 +47,11 @@ impl Component for MessageContent {
                 editing_message
                     .read()
                     .cloned()
-                    .filter(|msg| &msg.id == &self.message.message.id)
+                    .filter(|msg| !self.plain && &msg.id == &self.message.message.id)
                     .map(|msg| {
                         MessageEdit {
                             channel: self.channel.clone(),
-                            id: msg.id,
+                            message: self.message.clone(),
                             content: msg.content,
                         }
                         .into_element()

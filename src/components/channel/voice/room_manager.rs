@@ -1,6 +1,4 @@
-use std::{
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use bytes::BytesMut;
 use freya::{elements::image::ImageHandle, prelude::*, radio::use_radio};
@@ -9,7 +7,7 @@ use futures::StreamExt;
 use livekit::{
     PlatformAudio, Room,
     prelude::{Participant, RemoteParticipant},
-    track::{RemoteTrack, RemoteVideoTrack, TrackKind, TrackSource},
+    track::{LocalTrack, RemoteTrack, RemoteVideoTrack, TrackKind, TrackSource, VideoTrack},
     webrtc::{prelude::VideoBuffer, video_stream::native::NativeVideoStream},
 };
 use stoat_models::v0;
@@ -101,6 +99,24 @@ impl Component for RoomManager {
                                     server: server.clone(),
                                 })
                                 .children(
+                                    local_participant
+                                        .read()
+                                        .track_publications()
+                                        .values()
+                                        .filter(|track_pub| track_pub.kind() == TrackKind::Video)
+                                        .filter_map(|track_pub| track_pub.track())
+                                        .map(|track| {
+                                            let LocalTrack::Video(track) = track else { unreachable!() };
+
+                                            RoomVideoCard {
+                                                participant: Participant::Local(local_participant.read().cloned()),
+                                                track: VideoTrack::Local(track),
+                                                channel: channel.clone(),
+                                                server: server.clone(),
+                                            }
+                                        }),
+                                )
+                                .children(
                                     remote_participants
                                         .read()
                                         .values()
@@ -124,8 +140,10 @@ impl Component for RoomManager {
                                                 {
                                                     cards.push(
                                                         RoomVideoCard {
-                                                            participant: p.clone(),
-                                                            track,
+                                                            participant: Participant::Remote(
+                                                                p.clone(),
+                                                            ),
+                                                            track: VideoTrack::Remote(track),
                                                             channel: channel.clone(),
                                                             server: server.clone(),
                                                         }
@@ -208,9 +226,9 @@ impl Component for RoomUserCard {
         let user =
             user.unwrap_or_else(|| serde_json::from_str(&self.participant.metadata()).unwrap());
 
-        let is_muted = self.participant.track_publications().values().all(|track| {
+        let is_muted = !self.participant.track_publications().values().any(|track| {
             track.kind() == TrackKind::Audio
-                && track.is_muted()
+                && !track.is_muted()
                 && track.source() != TrackSource::ScreenshareAudio
         });
 
@@ -263,8 +281,8 @@ impl Component for RoomUserCard {
 }
 
 pub struct RoomVideoCard {
-    pub participant: RemoteParticipant,
-    pub track: RemoteVideoTrack,
+    pub participant: Participant,
+    pub track: VideoTrack,
     pub channel: Readable<v0::Channel>,
     pub server: Option<Readable<v0::Server>>,
 }
@@ -341,9 +359,12 @@ impl Component for RoomVideoCard {
             .corner_radius(16.)
             .padding(8.)
             .background(0x22000000)
+            .width(Size::px(384.))
+            .height(Size::px(216.))
+            .center()
             .maybe_child(handle.read().cloned().map(|handle| {
                 image(handle)
-                    .aspect_ratio(AspectRatio::Fit)
+                    // .aspect_ratio(AspectRatio::Fit)
                     .corner_radius(8.)
             }))
     }

@@ -264,7 +264,7 @@ impl Component for MessageActions {
                                 .has_channel_permission(ChannelPermission::ManageMessages))
                         .then(|| {
                             message_actions_button(delete(), &theme).on_press({
-                                let message = self.message.message.id.clone();
+                                let message = self.message.clone();
                                 let channel = self.message.message.channel.clone();
 
                                 move |_| {
@@ -274,7 +274,7 @@ impl Component for MessageActions {
                                     if shift() {
                                         spawn(async move {
                                             http()
-                                                .delete_message(&channel, &message)
+                                                .delete_message(&channel, &message.message.id)
                                                 .await
                                                 .unwrap();
                                         });

@@ -107,6 +107,7 @@ impl Component for TrailingMessage {
             .child(MessageContent {
                 channel: self.channel.clone(),
                 message: self.message.clone(),
+                plain: false,
             })
     }
 }

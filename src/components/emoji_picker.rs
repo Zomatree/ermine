@@ -140,7 +140,7 @@ impl Component for EmojiPicker {
                             .focus_background(Color::TRANSPARENT)
                             .focus_border_fill(theme.md.primary.as_argb_u32())
                             .corner_radius(4.)
-                            .inner_margin(16.)
+                            .padding(16.)
                     )
             )
             .child(

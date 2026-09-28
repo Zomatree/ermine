@@ -149,6 +149,7 @@ impl Component for MessageSearch {
                                     Message {
                                         channel: self.channel.clone(),
                                         message,
+                                        plain: true,
                                     }
                                     .into_element()
                                 }),

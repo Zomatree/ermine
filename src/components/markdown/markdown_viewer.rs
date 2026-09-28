@@ -316,16 +316,15 @@ impl Component for MarkdownViewer {
                     )
                 }
                 MarkdownElement::Table { headers, rows } => {
-                    let mut head = TableHead::new();
                     let mut header_row = TableRow::new();
                     let column_count = headers.len();
 
                     for (col_idx, header_spans) in headers.into_iter().enumerate() {
                         header_row = header_row.child(
-                            TableCell::new()
+                            rect()
                                 .key(col_idx)
                                 .height(Size::Inner)
-                                .padding((8.).into())
+                                .padding(8.)
                                 .child(
                                     render_content(
                                         paragraph(),
@@ -341,46 +340,43 @@ impl Component for MarkdownViewer {
                                 ),
                         );
                     }
-                    head = head.child(header_row);
-
-                    let mut body = TableBody::new();
-                    for (row_idx, row) in rows.into_iter().enumerate() {
-                        let mut table_row = TableRow::new().key(row_idx);
-                        for (col_idx, cell_spans) in row.into_iter().enumerate() {
-                            table_row = table_row.child(
-                                rect()
-                                    .key(col_idx)
-                                    .overflow(Overflow::Clip)
-                                    .width(Size::fill())
-                                    .main_align(Alignment::Start)
-                                    .cross_align(Alignment::Center)
-                                    .min_height(Size::px(35.))
-                                    .padding((0., 8.))
-                                    .horizontal()
-                                    .child(
-                                        render_content(
-                                            paragraph(),
-                                            &cell_spans,
-                                            self.font_size,
-                                            theme,
-                                            false,
-                                            false,
-                                            false,
-                                        )
-                                        .width(Size::Fill)
-                                        .text_align(TextAlign::Start),
-                                    ),
-                            );
-                        }
-                        body = body.child(table_row);
-                    }
 
                     p_container = p_container.child(
                         Table::new()
                             .column_widths(vec![Size::flex(1.); column_count])
                             .key(idx)
-                            .child(head)
-                            .child(body),
+                            .child(header_row)
+                            .children(rows.into_iter().enumerate().map(|(row_idx, row)| {
+                                let mut table_row = TableRow::new().key(row_idx);
+                                for (col_idx, cell_spans) in row.into_iter().enumerate() {
+                                    table_row = table_row.child(
+                                        rect()
+                                            .key(col_idx)
+                                            .overflow(Overflow::Clip)
+                                            .width(Size::fill())
+                                            .main_align(Alignment::Start)
+                                            .cross_align(Alignment::Center)
+                                            .min_height(Size::px(35.))
+                                            .padding((0., 8.))
+                                            .horizontal()
+                                            .child(
+                                                render_content(
+                                                    paragraph(),
+                                                    &cell_spans,
+                                                    self.font_size,
+                                                    theme,
+                                                    false,
+                                                    false,
+                                                    false,
+                                                )
+                                                .width(Size::Fill)
+                                                .text_align(TextAlign::Start),
+                                            ),
+                                    );
+                                }
+
+                                table_row
+                            })),
                     )
                 }
             };

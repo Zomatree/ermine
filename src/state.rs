@@ -163,12 +163,12 @@ impl ChannelSettingsPage {
     }
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq)]
 pub struct OrderingSettings {
     pub servers: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum NotificationState {
     All,
@@ -176,13 +176,13 @@ pub enum NotificationState {
     None,
 }
 
-#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq)]
 pub struct MuteState {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub until: Option<u128>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq)]
 pub struct NotificationsSettings {
     pub server: HashMap<String, NotificationState>,
     pub channel: HashMap<String, NotificationState>,
@@ -220,7 +220,7 @@ impl Default for ErmineSettings {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,
@@ -371,7 +371,14 @@ pub enum AppChannel {
     VoiceStates,
 }
 
-impl RadioChannel<AppState> for AppChannel {}
+impl RadioChannel<AppState> for AppChannel {
+    fn derive_channel(self, _radio: &AppState) -> Vec<Self> {
+        match self {
+            Self::Settings(key) if !key.is_empty() => vec![Self::Settings(""), Self::Settings(key)],
+            _ => vec![self]
+        }
+    }
+}
 
 pub type AppStation = RadioStation<AppState, AppChannel>;
 

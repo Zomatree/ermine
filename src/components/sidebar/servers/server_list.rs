@@ -120,13 +120,6 @@ impl Component for ServerList {
                     };
 
                     *order_settings.clone().write() = Some(value.clone());
-
-                    let mut settings = HashMap::new();
-                    settings.insert("ordering".to_string(), to_value(value).unwrap());
-
-                    spawn(async move {
-                        http().set_settings(&settings).await.unwrap();
-                    });
                 }
             }
         });

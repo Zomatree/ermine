@@ -13,7 +13,8 @@ use crate::{
         ContextMenuButton, ContextMenuDivider, ModalValue,
         material::outlined::{
             account_circle, add_circle_outline, alternate_email, assignment, badge,
-            do_not_disturb_on, message, not_interested, person_remove, report, timer, timer_off,
+            do_not_disturb_on, face, message, not_interested, person_remove, report, timer,
+            timer_off,
         },
         use_modals,
     },
@@ -139,6 +140,23 @@ impl Component for UserContextMenu {
                     let current_member = current_member.read();
                     let is_inferior = is_inferior(&current_member, &member, &server);
 
+                    let edit_identity = !is_ourself
+                        && (self
+                            .permissions
+                            .has_channel_permission(ChannelPermission::ManageNicknames)
+                            || self
+                                .permissions
+                                .has_channel_permission(ChannelPermission::RemoveAvatars))
+                        && is_inferior;
+
+                    let edit_own_identity = is_ourself
+                        && (self
+                            .permissions
+                            .has_channel_permission(ChannelPermission::ChangeNickname)
+                            || self
+                                .permissions
+                                .has_channel_permission(ChannelPermission::ChangeAvatar));
+
                     let edit_roles = &server.owner == &current_member.id.user
                         || (self
                             .permissions
@@ -165,7 +183,31 @@ impl Component for UserContextMenu {
 
                     let is_timed_out = member.timeout.is_some_and(|ts| ts > Timestamp::now_utc());
 
-                    this.maybe_child(edit_roles.then(|| {
+                    this.maybe_child(edit_own_identity.then(|| {
+                        ContextMenuButton::new(face(), "Edit Your Identity").on_press({
+                            let server = server.id.clone();
+
+                            move |_| {
+                                modals.write().push_modal(ModalValue::EditOwnServerIdentity {
+                                    server: server.clone(),
+                                });
+                            }
+                        })
+                    }))
+                    .maybe_child(edit_identity.then(|| {
+                        ContextMenuButton::new(face(), "Edit Identity").on_press({
+                            let user = self.user_id.clone();
+                            let server = server.id.clone();
+
+                            move |_| {
+                                modals.write().push_modal(ModalValue::EditServerIdentity {
+                                    user: user.clone(),
+                                    server: server.clone(),
+                                });
+                            }
+                        })
+                    }))
+                    .maybe_child(edit_roles.then(|| {
                         ContextMenuButton::new(assignment(), "Edit Roles").on_press({
                             let user = self.user_id.clone();
                             let server = server.id.clone();
@@ -179,7 +221,7 @@ impl Component for UserContextMenu {
                         })
                     }))
                     .maybe_child(
-                        (edit_roles && (kick_members || ban_members || timeout_members))
+                        ((edit_own_identity || edit_identity || edit_roles) && (kick_members || ban_members || timeout_members))
                             .then(|| ContextMenuDivider),
                     )
                     .maybe_child(timeout_members.then(|| {
@@ -242,7 +284,7 @@ impl Component for UserContextMenu {
                             })
                     }))
                     .maybe_child(
-                        (edit_roles || kick_members || ban_members || timeout_members)
+                        (edit_own_identity || edit_identity || edit_roles || kick_members || ban_members || timeout_members)
                             .then(|| ContextMenuDivider),
                     )
                 },

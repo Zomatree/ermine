@@ -392,10 +392,9 @@ impl Component for RoomControls {
                                     .await;
 
                                     if let Some(track_id) = track_id.lock().unwrap().take() {
-                                        room.local_participant()
+                                        let _ = room.local_participant()
                                             .unpublish_track(&track_id)
-                                            .await
-                                            .unwrap();
+                                            .await;
                                     };
                                 }
                             });

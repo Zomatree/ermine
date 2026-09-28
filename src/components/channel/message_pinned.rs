@@ -93,6 +93,7 @@ impl Component for MessagePinned {
                             Message {
                                 channel: self.channel.clone(),
                                 message,
+                                plain: true,
                             }
                             .into_element()
                         }))
