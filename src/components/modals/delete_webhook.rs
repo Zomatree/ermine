@@ -1,19 +1,17 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::prelude::*;
 
 use crate::{
-    AppChannel,
     components::{Dialog, use_modals},
     http,
 };
 
 #[derive(PartialEq)]
-pub struct DeleteChannel {
-    pub channel: String,
-    pub name: String,
+pub struct DeleteWebhook {
+    pub id: String,
     pub callback: EventHandler<bool>,
 }
 
-impl Component for DeleteChannel {
+impl Component for DeleteWebhook {
     fn render(&self) -> impl IntoElement {
         let mut modals = use_modals();
 
@@ -21,24 +19,27 @@ impl Component for DeleteChannel {
             .title(
                 label()
                     .line_height(1.5)
-                    .text(format!("Delete {}?", self.name)),
+                    .text("Delete Webhook?"),
             )
-            .body("Once it's deleted, there's no going back.")
+            .body(
+                label()
+                    .line_height(1.5)
+                    .text("Once it's deleted, there's no going back."),
+            )
             .default_action("Cancel")
             .action("Delete", {
-                let channel = self.channel.clone();
+                let id = self.id.clone();
                 let callback = self.callback.clone();
 
                 move || {
                     spawn({
-                        let channel = channel.clone();
+                        let id = id.clone();
                         let callback = callback.clone();
-
                         async move {
-                            modals.write().pop_modal();
-
-                            http().delete_channel(&channel).await.unwrap();
-                            callback.call(true)
+                            if http().delete_webhook(&id).await.is_ok() {
+                                callback.call(true);
+                                modals.write().pop_modal();
+                            }
                         }
                     });
 

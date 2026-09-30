@@ -31,7 +31,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> StoatSegmentedButton<
             state: state.into_writable(),
             options,
             builder,
-            height: 0.,
+            height: 40.,
         }
     }
 

@@ -50,7 +50,7 @@ impl Component for CategoryContextMenu {
                                 move |_| {
                                     modals.write().push_modal(ModalValue::DeleteCategory {
                                         server: server_id.clone(),
-                                        category: category_id.clone(),
+                                        category: category_id.clone()
                                     });
                                 }
                             })

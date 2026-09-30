@@ -51,7 +51,7 @@ impl Component for Emoji {
             let url = format!("https://static.stoat.chat/emoji/fluent-3d/{codes}.svg?v=1");
 
             SvgViewer::new(url.parse::<Url>().unwrap())
-                .parallel(true)
+                .async_rasterization(true)
                 .layout(self.layout.clone())
                 .error_renderer({
                     let layout = self.layout.clone();

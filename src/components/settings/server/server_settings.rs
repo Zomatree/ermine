@@ -9,7 +9,10 @@ use crate::{
         AuditLogServerSettings, EmojiServerSettings, InviteServerSettings, MaterialIcon,
         OverviewServerSettings, RoleServerSettings, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
-        material::filled::{chevron_right, clear, delete},
+        material::{
+            filled::{chevron_right, clear},
+            outlined::delete,
+        },
     },
     consume_material_theme,
     theme::Theme,

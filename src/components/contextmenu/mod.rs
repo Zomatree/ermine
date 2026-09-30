@@ -8,12 +8,14 @@ mod channel;
 mod message;
 mod server;
 mod user;
+mod channel_list;
 
 pub use category::*;
 pub use channel::*;
 pub use message::*;
 pub use server::*;
 pub use user::*;
+pub use channel_list::*;
 
 use crate::{
     SizeExt,

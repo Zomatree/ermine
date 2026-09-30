@@ -31,6 +31,10 @@ mod ban_member;
 mod timeout_member;
 mod remove_timeout;
 mod edit_server_identity;
+mod create_webhook;
+mod delete_webhook;
+mod create_channel;
+mod create_category;
 
 use channel_description::*;
 use create_bot::*;
@@ -65,3 +69,7 @@ use ban_member::*;
 use timeout_member::*;
 use remove_timeout::*;
 use edit_server_identity::*;
+use create_webhook::*;
+use delete_webhook::*;
+use create_channel::*;
+use create_category::*;

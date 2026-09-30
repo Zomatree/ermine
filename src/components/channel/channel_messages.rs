@@ -899,10 +899,10 @@ impl Component for ChannelMessages {
             let messages = messages.clone();
             let at_start = at_start.clone();
             let at_end = at_end.clone();
+            let id = channel.read().id().to_string();
 
             move || {
                 if *fetching.read() != Some(FetchDirection::Initial) {
-                    let channel_id = channel.read().id().to_string();
                     let (_, y): (i32, i32) = scroll_controller.into();
 
                     let state = ChannelState {
@@ -916,7 +916,7 @@ impl Component for ChannelMessages {
                         .clone()
                         .write()
                         .channel_states
-                        .insert(channel_id, state);
+                        .insert(id, state);
                 }
             }
         });

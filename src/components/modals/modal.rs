@@ -12,14 +12,22 @@ use stoat_models::v0;
 use crate::{
     Error,
     components::{
-        MessageModel, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, modals::{
-            AddFriend, BanMember, ChannelDescription, CreateBot, CreateJoinServer, CreateRole, CreateServer, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage, EditApi, EditOwnServerIdentity, EditRoles, EditServerIdentity, ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember
-        }
+        MessageModel, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        modals::{
+            AddFriend, BanMember, ChannelDescription, CreateBot, CreateCategory, CreateChannel,
+            CreateJoinServer, CreateRole, CreateServer, CreateWebhook, DeleteBot, DeleteCategory,
+            DeleteChannel, DeleteInvite, DeleteMessage, DeleteWebhook, EditApi,
+            EditOwnServerIdentity, EditRoles, EditServerIdentity, ErrorModal, ImageViewer,
+            InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer,
+            LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory, ResetBotToken,
+            ServerInfo, TimeoutMember,
+        },
     },
     consume_material_theme,
 };
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone, Debug)]
 pub enum ModalValue {
     ServerInfo {
         server: String,
@@ -59,6 +67,8 @@ pub enum ModalValue {
     },
     DeleteChannel {
         channel: String,
+        name: String,
+        callback: EventHandler<bool>,
     },
     OpenLink {
         url: String,
@@ -115,9 +125,209 @@ pub enum ModalValue {
         user: String,
         server: String,
     },
+    CreateWebhook {
+        channel: String,
+        callback: EventHandler<v0::Webhook>,
+    },
+    DeleteWebhook {
+        id: String,
+        callback: EventHandler<bool>,
+    },
+    CreateChannel {
+        server: String,
+    },
+    CreateCategory {
+        server: String,
+    },
     Error {
         error: Error,
     },
+}
+
+impl PartialEq for ModalValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::ServerInfo { server: l_server }, Self::ServerInfo { server: r_server }) => {
+                l_server == r_server
+            }
+            (
+                Self::ChannelDescription { channel: l_channel },
+                Self::ChannelDescription { channel: r_channel },
+            ) => l_channel == r_channel,
+            (Self::CreateRole { server: l_server }, Self::CreateRole { server: r_server }) => {
+                l_server == r_server
+            }
+            (
+                Self::DeleteMessage {
+                    channel: l_channel,
+                    message: l_message,
+                },
+                Self::DeleteMessage {
+                    channel: r_channel,
+                    message: r_message,
+                },
+            ) => l_channel == r_channel && l_message == r_message,
+            (Self::DeleteInvite { invite: l_invite }, Self::DeleteInvite { invite: r_invite }) => {
+                l_invite == r_invite
+            }
+            (Self::LeaveServer { server: l_server }, Self::LeaveServer { server: r_server }) => {
+                l_server == r_server
+            }
+            (
+                Self::RenameCategory {
+                    server: l_server,
+                    category: l_category,
+                },
+                Self::RenameCategory {
+                    server: r_server,
+                    category: r_category,
+                },
+            ) => l_server == r_server && l_category == r_category,
+            (
+                Self::DeleteCategory {
+                    server: l_server,
+                    category: l_category,
+                },
+                Self::DeleteCategory {
+                    server: r_server,
+                    category: r_category,
+                },
+            ) => l_server == r_server && l_category == r_category,
+            (Self::InviteInfo { code: l_code }, Self::InviteInfo { code: r_code }) => {
+                l_code == r_code
+            }
+            (Self::LeaveGroup { channel: l_channel }, Self::LeaveGroup { channel: r_channel }) => {
+                l_channel == r_channel
+            }
+            (
+                Self::DeleteChannel {
+                    channel: l_channel,
+                    name: l_name,
+                    ..
+                },
+                Self::DeleteChannel {
+                    channel: r_channel,
+                    name: r_name,
+                    ..
+                },
+            ) => l_channel == r_channel && l_name == r_name,
+            (Self::OpenLink { url: l_url }, Self::OpenLink { url: r_url }) => l_url == r_url,
+            (
+                Self::EditOwnServerIdentity { server: l_server },
+                Self::EditOwnServerIdentity { server: r_server },
+            ) => l_server == r_server,
+            (Self::LogoutOtherSessions { .. }, Self::LogoutOtherSessions { .. }) => true,
+            (Self::MFA { .. }, Self::MFA { .. }) => true,
+            (Self::CreateBot { .. }, Self::CreateBot { .. }) => true,
+            (
+                Self::ResetBotToken {
+                    id: l_id,
+                    name: l_name,
+                    ..
+                },
+                Self::ResetBotToken {
+                    id: r_id,
+                    name: r_name,
+                    ..
+                },
+            ) => l_id == r_id && l_name == r_name,
+            (
+                Self::DeleteBot {
+                    id: l_id,
+                    name: l_name,
+                    ..
+                },
+                Self::DeleteBot {
+                    id: r_id,
+                    name: r_name,
+                    ..
+                },
+            ) => l_id == r_id && l_name == r_name,
+            (Self::InviteBot { bot: l_bot }, Self::InviteBot { bot: r_bot }) => l_bot == r_bot,
+            (Self::ImageViewer(l0), Self::ImageViewer(r0)) => l0 == r0,
+            (
+                Self::EditRoles {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::EditRoles {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::KickMember {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::KickMember {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::BanMember {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::BanMember {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::TimeoutMember {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::TimeoutMember {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::RemoveTimeoutMember {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::RemoveTimeoutMember {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::EditServerIdentity {
+                    user: l_user,
+                    server: l_server,
+                },
+                Self::EditServerIdentity {
+                    user: r_user,
+                    server: r_server,
+                },
+            ) => l_user == r_user && l_server == r_server,
+            (
+                Self::CreateWebhook {
+                    channel: l_channel, ..
+                },
+                Self::CreateWebhook {
+                    channel: r_channel, ..
+                },
+            ) => l_channel == r_channel,
+            (Self::DeleteWebhook { id: l_id, .. }, Self::DeleteWebhook { id: r_id, .. }) => {
+                l_id == r_id
+            }
+            (Self::Error { error: l_error }, Self::Error { error: r_error }) => l_error == r_error,
+            (
+                Self::CreateChannel { server: l_server },
+                Self::CreateChannel { server: r_server },
+            ) => l_server == r_server,
+            (
+                Self::CreateCategory { server: l_server },
+                Self::CreateCategory { server: r_server },
+            ) => l_server == r_server,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -278,9 +488,16 @@ impl Component for Modal {
                                     ModalValue::LeaveGroup { channel } => {
                                         LeaveGroup { channel }.into_element()
                                     }
-                                    ModalValue::DeleteChannel { channel } => {
-                                        DeleteChannel { channel }.into_element()
+                                    ModalValue::DeleteChannel {
+                                        channel,
+                                        name,
+                                        callback,
+                                    } => DeleteChannel {
+                                        channel,
+                                        name,
+                                        callback,
                                     }
+                                    .into_element(),
                                     ModalValue::OpenLink { url } => OpenLink { url }.into_element(),
                                     ModalValue::EditApi => EditApi {}.into_element(),
                                     ModalValue::EditOwnServerIdentity { server } => {
@@ -323,6 +540,18 @@ impl Component for Modal {
                                     }
                                     ModalValue::EditServerIdentity { user, server } => {
                                         EditServerIdentity { user, server }.into_element()
+                                    }
+                                    ModalValue::CreateWebhook { channel, callback } => {
+                                        CreateWebhook { channel, callback }.into_element()
+                                    }
+                                    ModalValue::DeleteWebhook { id, callback } => {
+                                        DeleteWebhook { id, callback }.into_element()
+                                    }
+                                    ModalValue::CreateChannel { server } => {
+                                        CreateChannel { server }.into_element()
+                                    }
+                                    ModalValue::CreateCategory { server } => {
+                                        CreateCategory { server }.into_element()
                                     }
                                 }),
                         ),

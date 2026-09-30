@@ -73,7 +73,7 @@ impl Component for CurrentUserButton {
                     .overflow(Overflow::Clip)
                     .shadow(Shadow::new().blur(3.).color(Color::BLACK))
                     .on_sized(move |e: Event<SizedEventData>| area.set(e.area))
-                    .on_global_pointer_press(move |e: Event<PointerEventData>| {
+                    .on_global_pointer_up(move |e: Event<PointerEventData>| {
                         let area = area.read();
                         let pos = e.global_location();
 

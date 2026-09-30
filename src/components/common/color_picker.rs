@@ -197,7 +197,7 @@ impl Component for StoatColorPicker {
 
         let popup = rect()
             .on_global_pointer_move(on_global_pointer_move)
-            .on_global_pointer_press(on_global_pointer_press)
+            .on_global_pointer_up(on_global_pointer_press)
             .width(Size::px(220.))
             .padding(8.)
             .corner_radius(6.)

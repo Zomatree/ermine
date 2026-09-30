@@ -404,12 +404,6 @@ where
 
 impl<T: ContainerSizeExt> SizeExt for T {}
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum SelectedRole {
-    Default,
-    Role(String),
-}
-
 pub fn get_channel_server(channel: &v0::Channel) -> Option<&str> {
     match channel {
         v0::Channel::TextChannel { server, .. } => Some(server),

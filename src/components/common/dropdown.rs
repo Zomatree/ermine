@@ -169,7 +169,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                             .on_pointer_leave(on_pointer_leave)
                             .on_press(on_press)
                             .on_global_key_down(on_global_key_down)
-                            .on_global_pointer_press(on_global_pointer_press)
+                            .on_global_pointer_up(on_global_pointer_press)
                             .on_sized(move |e: Event<SizedEventData>| {
                                 button_area.set_if_modified(e.area);
                             })

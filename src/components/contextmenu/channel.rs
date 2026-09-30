@@ -153,7 +153,7 @@ impl Component for ChannelContextMenu {
                         }
                     }),
             ),
-            v0::Channel::TextChannel { .. } => menu.maybe_child(
+            v0::Channel::TextChannel { name, .. } => menu.maybe_child(
                 self.current_permissions
                     .has_channel_permission(ChannelPermission::ManageChannel)
                     .then(|| {
@@ -161,10 +161,13 @@ impl Component for ChannelContextMenu {
                             .danger()
                             .on_press({
                                 let id = self.channel_id.clone();
+                                let name = name.clone();
 
                                 move |_| {
                                     modals.write().push_modal(ModalValue::DeleteChannel {
                                         channel: id.clone(),
+                                        name: name.clone(),
+                                        callback: EventHandler::new(move |_| {})
                                     });
                                 }
                             })

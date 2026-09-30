@@ -46,6 +46,7 @@ impl Component for ServerListButton {
 
         let badge = use_memo({
             let server = server.clone();
+            let channels = channels.clone();
 
             move || {
                 if !*muted.read() {
@@ -161,13 +162,9 @@ impl Component for ServerListButton {
                                                         .read()
                                                         .last_channels
                                                         .get(&server.peek().id)
+                                                        .filter(|&id| channels.read().contains_key(id))
                                                         .cloned()
                                                         .or_else(|| {
-                                                            let channels = radio.slice(
-                                                                AppChannel::Channels,
-                                                                |state| &state.channels,
-                                                            );
-
                                                             server
                                                                 .read()
                                                                 .channels

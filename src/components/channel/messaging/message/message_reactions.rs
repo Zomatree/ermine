@@ -97,7 +97,7 @@ impl Component for MessageReactions {
                                     );
 
                                     SvgViewer::new(url.parse::<Url>().unwrap())
-                                        .parallel(true)
+                                        .async_rasterization(true)
                                         .size(Size::px(16.8))
                                         .error_renderer(|_| rect().size(Size::px(16.8)).into_element())
                                         .into_element()

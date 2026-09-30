@@ -105,7 +105,12 @@ fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
             thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
             hover_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
             active_thumb_background: Preference::Specific(material.md.primary.as_argb_u32().into()),
-            size: Preference::Specific(7.),
+            thumb_cross_size: Preference::Specific(7.),
+            expanded_thumb_cross_size: Preference::Specific(11.),
+            opacity: Preference::Specific(0.),
+            expanded_opacity: Preference::Specific(0.),
+            cross_gap: Preference::Specific(1.),
+            expanded_cross_gap: Preference::Specific(1.),
         },
     );
 }

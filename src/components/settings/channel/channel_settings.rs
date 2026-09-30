@@ -6,9 +6,13 @@ use stoat_models::v0;
 use crate::{
     AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
     components::{
-        MaterialIcon, OverviewChannelSettings, PermissionsChannelSettings, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-        material::filled::{chevron_right, clear, delete},
+        MaterialIcon, ModalValue, OverviewChannelSettings, PermissionsChannelSettings, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, WebhookChannelSettings,
+        material::{
+            filled::{chevron_right, clear},
+            outlined::delete,
+        },
+        use_modals,
     },
     consume_material_theme,
     theme::Theme,
@@ -91,10 +95,12 @@ impl Component for ChannelSettings {
                                         &[
                                             ChannelSettingsPage::Overview,
                                             ChannelSettingsPage::Permissions(None),
-                                            ChannelSettingsPage::Webhooks,
+                                            ChannelSettingsPage::Webhooks(None),
                                         ],
                                     ))
-                                    .child(DeleteChannelButton {}),
+                                    .child(DeleteChannelButton {
+                                        channel: self.channel.clone(),
+                                    }),
                             ),
                     )
                     .child(
@@ -119,6 +125,15 @@ impl Component for ChannelSettings {
                                                 None
                                             };
 
+                                        let selected_webhook =
+                                            if let ChannelSettingsPage::Webhooks(Some((_, name))) =
+                                                &page
+                                            {
+                                                Some(name.clone())
+                                            } else {
+                                                None
+                                            };
+
                                         rect()
                                             .spacing(8.)
                                             .child(
@@ -128,35 +143,41 @@ impl Component for ChannelSettings {
                                                     .font_size(22)
                                                     .font_weight(550)
                                                     .horizontal()
-                                                    .child(rect()
-                                                        .child(page.title())
-                                                        .maybe(selected_role.is_some(), |label|
+                                                    .child(rect().child(page.title()).maybe(
+                                                        selected_role.is_some()
+                                                            || selected_webhook.is_some(),
+                                                        |label| {
                                                             label
-                                                                .color(theme.md.outline.as_argb_u32())
+                                                                .color(
+                                                                    theme.md.outline.as_argb_u32(),
+                                                                )
                                                                 .cursor(CursorIcon::Pointer)
                                                                 .on_press({
                                                                     let mut current_page =
                                                                         current_page.clone();
                                                                     move |_| {
-                                                                        if let Some(v) = current_page
-                                                                            .write()
-                                                                            .as_mut()
+                                                                        if let Some(v) =
+                                                                            current_page
+                                                                                .write()
+                                                                                .as_mut()
                                                                         {
-                                                                            v.1 = ChannelSettingsPage::Permissions(None);
+                                                                            v.1.go_back();
                                                                         }
                                                                     }
-                                                                }))
-
-                                                    )
-                                                    .maybe_child(selected_role.is_some().then(
-                                                        || {
+                                                                })
+                                                        },
+                                                    ))
+                                                    .maybe_child(
+                                                        (selected_role.is_some()
+                                                            || selected_webhook.is_some())
+                                                        .then(|| {
                                                             MaterialIcon::new(chevron_right())
                                                                 .size(Size::px(14.))
                                                                 .color(
                                                                     theme.md.outline.as_argb_u32(),
                                                                 )
-                                                        },
-                                                    ))
+                                                        }),
+                                                    )
                                                     .maybe_child(selected_role.map(|role| {
                                                         label().text(match role {
                                                             SelectedRole::Default => {
@@ -182,7 +203,11 @@ impl Component for ChannelSettings {
                                                                     .clone()
                                                             }
                                                         })
-                                                    })),
+                                                    }))
+                                                    .maybe_child(
+                                                        selected_webhook
+                                                            .map(|name| label().text(name)),
+                                                    ),
                                             )
                                             .child(match page {
                                                 ChannelSettingsPage::Overview => {
@@ -192,10 +217,18 @@ impl Component for ChannelSettings {
                                                     .into_element()
                                                 }
                                                 ChannelSettingsPage::Permissions(selected_role) => {
-                                                    PermissionsChannelSettings { channel: self.channel.clone(), selected_role }.into_element()
+                                                    PermissionsChannelSettings {
+                                                        channel: self.channel.clone(),
+                                                        selected_role,
+                                                    }
+                                                    .into_element()
                                                 }
-                                                ChannelSettingsPage::Webhooks => {
-                                                    "Coming soon!".into_element()
+                                                ChannelSettingsPage::Webhooks(selected_webhook) => {
+                                                    WebhookChannelSettings {
+                                                        channel: self.channel.clone(),
+                                                        selected_webhook,
+                                                    }
+                                                    .into_element()
                                                 }
                                             })
                                     })),
@@ -213,8 +246,7 @@ impl Component for ChannelSettings {
                                                 .width(Size::px(40.))
                                                 .height(Size::px(40.))
                                                 .child(
-                                                    MaterialIcon::new(clear())
-                                                        .size(Size::px(24.))
+                                                    MaterialIcon::new(clear()).size(Size::px(24.)),
                                                 ),
                                         ),
                                 ),
@@ -282,6 +314,8 @@ fn settings_category(
         .child(
             label()
                 .text(title)
+                .max_lines(1)
+                .text_overflow(TextOverflow::Clip)
                 .color(theme.md.outline.as_argb_u32())
                 .font_size(12)
                 .font_weight(FontWeight::BOLD)
@@ -298,15 +332,40 @@ fn settings_category(
 }
 
 #[derive(PartialEq)]
-struct DeleteChannelButton {}
+struct DeleteChannelButton {
+    pub channel: Readable<v0::Channel>,
+}
 
 impl Component for DeleteChannelButton {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
+        let mut modals = use_modals();
+
+        let radio = use_radio(AppChannel::ChannelSettingsPage);
+        let channel_settings_page =
+            radio.slice_mut_current(|state| &mut state.channel_settings_page);
+
+        let channel = self.channel.read();
 
         StoatButton::new()
             .corner_radius(8.)
             .color(theme.md.error.as_argb_u32())
+            .on_press({
+                let id = channel.id().to_string();
+                let name = channel.name().unwrap().to_string();
+
+                move |_| {
+                    let mut channel_settings_page = channel_settings_page.clone();
+
+                    modals.write().push_modal(ModalValue::DeleteChannel {
+                        channel: id.clone(),
+                        name: name.clone(),
+                        callback: EventHandler::new(move |_| {
+                            *channel_settings_page.write() = None;
+                        }),
+                    });
+                }
+            })
             .child(
                 rect()
                     .padding((6., 8.))
@@ -322,6 +381,5 @@ impl Component for DeleteChannelButton {
                             .text("Delete Channel"),
                     ),
             )
-            .on_press(move |_| {})
     }
 }

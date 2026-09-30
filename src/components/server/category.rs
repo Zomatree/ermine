@@ -23,37 +23,27 @@ impl Component for Category {
     fn render(&self) -> impl IntoElement {
         let config = use_config();
         let radio = use_radio(AppChannel::Channels);
+        let channels = radio.slice_current(|state| &state.channels);
+
         let selected_channel =
             radio.slice(AppChannel::SelectedChannel, |state| &state.selected_channel);
 
-        let channels = use_side_effect_value({
-            let category = self.category.clone();
-
-            move || {
-                category
-                    .read()
-                    .channels
-                    .iter()
-                    .filter(|&channel_id| radio.read().channels.contains_key(channel_id))
-                    .cloned()
-                    .map(|channel_id| {
-                        radio
-                            .slice(AppChannel::Channels, move |state| {
-                                state.channels.get(&channel_id).unwrap()
-                            })
-                            .into_readable()
-                    })
-                    .collect::<Vec<Readable<v0::Channel>>>()
-            }
-        });
+        let channels = self
+            .category
+            .read()
+            .channels
+            .iter()
+            .filter_map(|channel_id| channels.read().get(channel_id).cloned())
+            .map(|channel| channel.into_readable())
+            .collect::<Vec<Readable<v0::Channel>>>();
 
         let is_expanded = use_memo({
-            let category = self.category.clone();
+            let category_id = self.category.read().id.clone();
             move || {
                 !config
                     .read()
                     .collapsed_categories
-                    .contains(&category.read().id)
+                    .contains(&category_id)
             }
         });
 
@@ -74,46 +64,41 @@ impl Component for Category {
 
         rect()
             .key(self.category.read().id.clone())
-            .spacing(8.)
             .child(CategoryHeader {
                 server: self.server.clone(),
                 category: self.category.clone(),
                 is_expanded: is_expanded.clone().into_readable(),
                 animation,
             })
-            .child(
-                rect().maybe_child(
-                    is_expanded
-                        .read()
-                        .then(|| {
-                            rect().children(channels.read().iter().map(|channel| {
-                                rect()
-                                    .key(channel.peek().id())
-                                    .child(ChannelButton {
-                                        channel: channel.clone(),
-                                        server: self.server.clone(),
-                                    })
-                                    .into_element()
+            .maybe_child(
+                is_expanded
+                    .read()
+                    .then(|| {
+                        rect()
+                            .children(channels.iter().map(|channel| ChannelButton {
+                                channel: channel.clone(),
+                                server: self.server.clone(),
                             }))
-                        })
-                        .or({
-                            let selected = selected_channel.read();
+                            .into_element()
+                    })
+                    .or({
+                        let selected = selected_channel.read();
 
-                            if let Some((id, _)) = &*selected
-                                && let Some(channel) = channels
-                                    .read()
-                                    .iter()
-                                    .find(|channel| channel.peek().id() == id)
-                            {
-                                Some(rect().key(channel.peek().id()).child(ChannelButton {
+                        if let Some((id, _)) = &*selected
+                            && let Some(channel) =
+                                channels.iter().find(|channel| channel.peek().id() == id)
+                        {
+                            Some(
+                                ChannelButton {
                                     channel: channel.clone(),
                                     server: self.server.clone(),
-                                }))
-                            } else {
-                                None
-                            }
-                        }),
-                ),
+                                }
+                                .into_element(),
+                            )
+                        } else {
+                            None
+                        }
+                    }),
             )
     }
 
@@ -140,9 +125,9 @@ impl Component for CategoryHeader {
         rect()
             .color(
                 if hovering() {
-                    theme.md.on_surface
-                } else {
                     theme.md.on_surface_variant
+                } else {
+                    theme.md.on_surface
                 }
                 .as_argb_u32(),
             )
@@ -171,7 +156,9 @@ impl Component for CategoryHeader {
                 let category_id = self.category.read().id.clone();
                 let radio = radio.clone();
 
-                move |_| {
+                move |e: Event<PressEventData>| {
+                    e.stop_propagation();
+
                     let server = server.read().clone();
                     let category_id = category_id.clone();
                     let radio = radio.clone();
@@ -191,7 +178,7 @@ impl Component for CategoryHeader {
             })
             .child(
                 rect()
-                    .padding((10., 4., 0., 12.))
+                    .padding((4., 4., 4., 12.))
                     .horizontal()
                     .cross_align(Alignment::Center)
                     .main_align(Alignment::Start)

@@ -168,7 +168,7 @@ impl Component for MessageEdit {
                                             holder: &holder.read(),
                                         });
                                     })
-                                    .on_global_pointer_press(move |_: Event<PointerEventData>| {
+                                    .on_global_pointer_up(move |_: Event<PointerEventData>| {
                                         editable.process_event(EditableEvent::Release)
                                     })
                                     .on_key_down({

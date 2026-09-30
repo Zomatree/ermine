@@ -125,16 +125,21 @@ impl Component for Server {
                         .read()
                         .clone()
                         .and_then(|(channel, message_id)| {
-                            if channels.read().contains_key(&channel) {
-                                Some((
-                                    radio.slice(AppChannel::Channels, move |state| {
-                                        state.channels.get(&channel).unwrap()
-                                    }),
-                                    message_id,
-                                ))
-                            } else {
-                                None
-                            }
+                            channels
+                                .read()
+                                .get(&channel)
+                                .cloned()
+                                .map(|c| (c, message_id))
+                            // if channels.read().contains_key(&channel) {
+                            //     Some((
+                            //         radio.slice(AppChannel::Channels, move |state| {
+                            //             state.channels.get(&channel).unwrap()
+                            //         }),
+                            //         message_id,
+                            //     ))
+                            // } else {
+                            //     None
+                            // }
                         })
                 {
                     Channel {
@@ -144,7 +149,14 @@ impl Component for Server {
                     }
                     .into_element()
                 } else {
-                    "No selected channel".into_element()
+                    rect()
+                        .expanded()
+                        .margin(8.)
+                        .padding(16.)
+                        .corner_radius(28.)
+                        .background(theme.md.surface_container_lowest.as_argb_u32())
+                        .child("No selected channel")
+                        .into_element()
                 },
             )
     }

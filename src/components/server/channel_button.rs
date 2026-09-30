@@ -123,7 +123,9 @@ impl Component for ChannelButton {
                 .on_pointer_out(move |_| hovering.set_if_modified(false))
                 .on_secondary_down({
                     let channel_id = channel_id.clone();
-                    move |_| {
+                    move |e: Event<PressEventData>| {
+                        e.stop_propagation();
+                        
                         ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
                             channel_id: channel_id.clone(),
                             current_permissions: permissions(),

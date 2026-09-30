@@ -1,5 +1,8 @@
 use std::{
-    borrow::Cow, ops::Not, sync::LazyLock, time::{Duration, SystemTime}
+    borrow::Cow,
+    ops::Not,
+    sync::LazyLock,
+    time::{Duration, SystemTime},
 };
 
 use freya::{prelude::*, radio::use_radio, text_edit::*};
@@ -11,7 +14,8 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
-    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions, components::{
+    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions,
+    components::{
         AttachmentController, EmojiGifPicker, PickerSelection, ReplyController, StoatButton,
         StoatButtonLayoutThemePartialExt,
         material::{
@@ -20,7 +24,9 @@ use crate::{
             round::insert_emoticon,
         },
         use_floating,
-    }, consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed, use_clipboard, user_permissions_query
+    },
+    consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed,
+    use_clipboard, user_permissions_query,
 };
 
 static SED_REGEX: LazyLock<Regex> =
@@ -124,8 +130,7 @@ impl Component for Textbox {
                 }
 
                 spawn(async move {
-                    let mut query =
-                        user_permissions_query(radio.clone()).channel(channel);
+                    let mut query = user_permissions_query(radio.clone()).channel(channel);
 
                     let value = calculate_channel_permissions(&mut query).await;
                     permissions.clone().set(value);
@@ -393,14 +398,15 @@ impl Component for Textbox {
                                 ))
                             } else {
                                 rect()
-                                    .width(Size::Fill)
-                                    .padding((4., 0.))
+                                    .content(Content::Flex)
+                                    .padding((4., 6.))
                                     .cursor(CursorIcon::Text)
                                     .child(
                                         paragraph()
+                                            // .padding((0., 6.))
                                             .a11y_focusable(Focusable::Enabled)
                                             .line_height(1.4)
-                                            .width(Size::Fill)
+                                            .width(Size::flex(1.))
                                             .a11y_id(a11y_id)
                                             .a11y_auto_focus(true)
                                             .cursor_index(if focus().is_focused() {
@@ -434,7 +440,7 @@ impl Component for Textbox {
                                                     holder: &holder.read(),
                                                 });
                                             })
-                                            .on_global_pointer_press(
+                                            .on_global_pointer_up(
                                                 move |_: Event<PointerEventData>| {
                                                     editable.process_event(EditableEvent::Release)
                                                 },
@@ -521,49 +527,61 @@ impl Component for Textbox {
                                             || {
                                                 rect()
                                                     .interactive(false)
+                                                    .layer(Layer::OverlayLevel(1))
+                                                    .position(Position::new_absolute())
                                                     .child(
                                                         label()
                                                             .line_height(1.4)
+                                                            .color(0xff888888)
                                                             .text(format!(
-                                                    "Message {}",
-                                                    match &*self.channel.read() {
-                                                        v0::Channel::DirectMessage {
-                                                            recipients,
-                                                            ..
-                                                        } => {
-                                                            let user_id = radio
-                                                                .peek_state()
-                                                                .user_id
-                                                                .clone()
-                                                                .unwrap();
+                                                            "Message {}",
+                                                            match &*self.channel.read() {
+                                                                v0::Channel::DirectMessage {
+                                                                    recipients,
+                                                                    ..
+                                                                } => {
+                                                                    let user_id = radio
+                                                                        .peek_state()
+                                                                        .user_id
+                                                                        .clone()
+                                                                        .unwrap();
 
-                                                            let other = recipients
-                                                                .iter()
-                                                                .find(|&id| id != &*user_id)
-                                                                .unwrap()
-                                                                .clone();
+                                                                    let other = recipients
+                                                                        .iter()
+                                                                        .find(|&id| id != &*user_id)
+                                                                        .unwrap()
+                                                                        .clone();
 
-                                                            let user = radio.slice(
-                                                                AppChannel::Users,
-                                                                move |state| {
-                                                                    state.users.get(&other).unwrap()
-                                                                },
-                                                            );
+                                                                    let user = radio.slice(
+                                                                        AppChannel::Users,
+                                                                        move |state| {
+                                                                            state
+                                                                                .users
+                                                                                .get(&other)
+                                                                                .unwrap()
+                                                                        },
+                                                                    );
 
-                                                            Cow::Owned(user.read().username.clone())
-                                                        }
-                                                        v0::Channel::Group { name, .. }
-                                                        | v0::Channel::TextChannel {
-                                                            name, ..
-                                                        } => Cow::Owned(name.clone()),
-                                                        v0::Channel::SavedMessages { .. } =>
-                                                            Cow::Borrowed("Saved Messages"),
-                                                    }
-                                                ))
-                                                            .color(0xff888888),
+                                                                    Cow::Owned(
+                                                                        user.read()
+                                                                            .username
+                                                                            .clone(),
+                                                                    )
+                                                                }
+                                                                v0::Channel::Group {
+                                                                    name, ..
+                                                                }
+                                                                | v0::Channel::TextChannel {
+                                                                    name,
+                                                                    ..
+                                                                } => Cow::Owned(name.clone()),
+                                                                v0::Channel::SavedMessages {
+                                                                    ..
+                                                                } =>
+                                                                    Cow::Borrowed("Saved Messages"),
+                                                            }
+                                                        )),
                                                     )
-                                                    .layer(Layer::OverlayLevel(1))
-                                                    .position(Position::new_absolute())
                                             },
                                         ),
                                     )

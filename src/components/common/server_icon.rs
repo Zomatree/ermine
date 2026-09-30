@@ -8,6 +8,8 @@ pub struct ServerIcon {
     icon: Option<v0::File>,
     name: String,
     size: f32,
+
+    corner_radius: CornerRadius,
 }
 
 impl ServerIcon {
@@ -22,11 +24,22 @@ impl ServerIcon {
             icon: server.icon.clone(),
             name: server.name.clone(),
             size,
+            corner_radius: CornerRadius::default(),
         }
     }
 
     pub fn from_values(icon: Option<v0::File>, name: String, size: f32) -> Self {
-        Self { icon, name, size }
+        Self {
+            icon,
+            name,
+            size,
+            corner_radius: CornerRadius::default(),
+        }
+    }
+
+    pub fn corner_radius(mut self, corner_radius: impl Into<CornerRadius>) -> Self {
+        self.corner_radius = corner_radius.into();
+        self
     }
 }
 
@@ -35,12 +48,17 @@ impl Component for ServerIcon {
         let theme = consume_material_theme();
 
         match &self.icon {
-            Some(file) => file_image(file).size(Size::px(self.size)).into_element(),
-            None => rect()
-                .background(theme.md.surface_container_low.as_argb_u32())
+            Some(file) => file_image(file)
                 .size(Size::px(self.size))
-                .font_size((12. / 32.) * self.size)
+                .corner_radius(self.corner_radius)
+                .into_element(),
+            None => rect()
+                .size(Size::px(self.size))
                 .center()
+                .background(theme.md.surface_container_low.as_argb_u32())
+                .color(theme.md.on_surface.as_argb_u32())
+                .font_size((12. / 32.) * self.size)
+                .corner_radius(self.corner_radius)
                 .child(
                     self.name
                         .split_whitespace()
@@ -48,7 +66,6 @@ impl Component for ServerIcon {
                         .map(|word| &word[0..1])
                         .collect::<String>(),
                 )
-                .color(theme.md.on_surface.as_argb_u32())
                 .into_element(),
         }
     }

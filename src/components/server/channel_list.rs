@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Category, ChannelButton},
-    map_readable,
+    AppChannel, calculate_server_permissions,
+    components::{Category, ChannelButton, ChannelListContextMenu},
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -15,6 +17,8 @@ pub struct ChannelList {
 impl Component for ChannelList {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
+        let channels: Readable<HashMap<String, v0::Channel>> =
+            radio.slice_current(|state| &state.channels).into_readable();
 
         let non_category_channels = use_memo({
             let server = self.server.clone();
@@ -50,86 +54,65 @@ impl Component for ChannelList {
             }
         });
 
-        rect().padding((0., 0., 8., 8.)).child(
-            ScrollView::new().child(
-                rect()
-                    .cross_align(Alignment::Center)
-                    .color(0xff90909a)
-                    .child(
-                        rect().padding((4., 0.)).children(
-                            non_category_channels
-                                .read()
-                                .iter()
-                                .cloned()
-                                .filter(|channel_id| radio.read().channels.contains_key(channel_id))
-                                .map(|channel_id: String| {
-                                    let channel = radio.slice_current(move |state| {
-                                        state.channels.get(&channel_id).unwrap()
-                                    });
+        rect()
+            .padding((0., 0., 8., 8.))
+            .on_secondary_down({
+                let server = self.server.clone();
+                move |_| {
+                    let server = server.read().clone();
 
-                                    ChannelButton {
-                                        channel: channel.into_readable(),
-                                        server: self.server.clone(),
-                                    }
-                                    .into_element()
-                                }),
-                        ),
-                    )
-                    .child(
-                        rect().padding((4., 0.)).spacing(8.).children(
-                            self.server
-                                .read()
-                                .categories
-                                .iter()
-                                .flatten()
-                                .filter(|cat| !cat.channels.is_empty() && cat.id != "default")
-                                .map(|cat| {
-                                    let server = self.server.clone();
+                    spawn(async move {
+                        let mut query = user_permissions_query(radio).server(server.clone());
 
-                                    let category = map_readable(server, {
-                                        let id = cat.id.clone();
+                        let permissions = calculate_server_permissions(&mut query).await;
 
-                                        move |server| {
-                                            server
-                                                .categories
-                                                .as_ref()
-                                                .unwrap()
-                                                .iter()
-                                                .find(|c| c.id == id)
-                                                .unwrap()
-                                        }
-                                    });
-
-                                    // let channels = cat
-                                    //     .channels
-                                    //     .into_iter()
-                                    //     .filter(|channel_id| radio.read().channels.contains_key(channel_id))
-                                    //     .map(|channel_id: String| {
-                                    //         radio
-                                    //             .slice_current(move |state| {
-                                    //                 state.channels.get(&channel_id).unwrap()
-                                    //             })
-                                    //             .into_readable()
-                                    //     })
-                                    //     .collect::<Vec<Readable<v0::Channel>>>();
-
-                                    // println!("chanlist: {:?}", channels.iter().map(|c| c.peek().name().map(|s| s.to_string())).collect::<Vec<_>>());
-
-                                    category
-                                })
-                                .map(|category| {
-                                    rect()
-                                        .key(category.peek().id.clone())
-                                        .child(Category {
+                        ContextMenu::open(Menu::new().child(ChannelListContextMenu {
+                            server_id: server.id.clone(),
+                            current_permissions: permissions,
+                        }))
+                    });
+                }
+            })
+            .child(
+                ScrollView::new().child(
+                    rect()
+                        .cross_align(Alignment::Center)
+                        .color(0xff90909a)
+                        .child(
+                            rect().padding((0., 0., 4., 0.)).children(
+                                non_category_channels
+                                    .read()
+                                    .iter()
+                                    .cloned()
+                                    .filter_map(|channel_id| {
+                                        channels.read().get(&channel_id).cloned()
+                                    })
+                                    .map(|channel| {
+                                        ChannelButton {
+                                            channel: channel.into_readable(),
                                             server: self.server.clone(),
-                                            category: category,
-                                        })
+                                        }
                                         .into_element()
-                                }),
-                        ),
-                    )
-                    .width(Size::Fill),
-            ),
-        )
+                                    }),
+                            ),
+                        )
+                        .child(
+                            rect().spacing(8.).children(
+                                self.server
+                                    .read()
+                                    .categories
+                                    .iter()
+                                    .flatten()
+                                    .filter(|cat| cat.id != "default")
+                                    .cloned()
+                                    .map(|category| Category {
+                                        server: self.server.clone(),
+                                        category: category.into_readable(),
+                                    }),
+                            ),
+                        )
+                        .width(Size::Fill),
+                ),
+            )
     }
 }

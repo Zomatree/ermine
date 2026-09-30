@@ -10,8 +10,8 @@ use crate::{
         checkbox::StoatCheckbox,
         file_image,
         material::{
-            filled::{chevron_right, clear, list},
-            outlined::{drag_indicator, group_add},
+            filled::{chevron_right, clear},
+            outlined::{drag_indicator, group_add, public},
         },
         permission_values, use_modals,
     },
@@ -174,7 +174,7 @@ impl Component for RoleServerSettings {
                                                         .color(theme.md.on_surface.as_argb_u32())
                                                         .center()
                                                         .child(
-                                                            MaterialIcon::new(list())
+                                                            MaterialIcon::new(public())
                                                                 .size(Size::px(22.)),
                                                         ),
                                                 )
@@ -335,11 +335,6 @@ impl Component for RoleButton {
             }
         };
         let theme = consume_material_theme();
-        let mut role_color = rect().background(theme.md.outline_variant.as_argb_u32());
-
-        if let Some(color) = &self.color {
-            role_color.get_style().background = color.clone();
-        };
 
         StoatButton::new()
             .corner_radius(12.)
@@ -360,12 +355,21 @@ impl Component for RoleButton {
                             .spacing(16.)
                             .cross_align(Alignment::Center)
                             .content(Content::Flex)
-                            .child(
-                                role_color
+                            .child(if let Some(color) = self.color.clone() {
+                                rect()
+                                    .background(color)
                                     .corner_radius(36.)
-                                    .width(Size::px(36.))
-                                    .height(Size::px(36.)),
-                            )
+                                    .size(Size::px(36.))
+                                    .into_element()
+                            } else {
+                                MaterialIcon::new(Bytes::from_static(include_bytes!(
+                                    "../../../assets/icons/outline.svg"
+                                )))
+                                .color(theme.md.on_surface_variant.as_argb_u32())
+                                .corner_radius(36.)
+                                .size(Size::px(36.))
+                                .into_element()
+                            })
                             .child(
                                 label()
                                     .width(Size::flex(1.))

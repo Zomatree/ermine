@@ -80,7 +80,7 @@ impl Component for MessageAttachment {
                                             rect()
                                                 .width(Size::px(new_width))
                                                 .height(Size::px(new_height))
-                                                .blur(24.)
+                                                .backdrop_blur(24.)
                                                 .background(0xCC000000)
                                                 .center()
                                                 .child(

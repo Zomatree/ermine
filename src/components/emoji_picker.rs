@@ -240,7 +240,7 @@ impl Component for EmojiPicker {
                                                             .padding(4.)
                                                             .child(
                                                                 SvgViewer::new(url.parse::<Url>().unwrap())
-                                                                    .parallel(true)
+                                                                    .async_rasterization(true)
                                                                     .size(Size::px(32.))
                                                             )
                                                     )

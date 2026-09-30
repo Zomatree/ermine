@@ -22,14 +22,10 @@ use stoat_models::v0::{
 use stoat_result::ErrorType;
 
 use crate::{
-    Config, SelectedRole,
-    components::material::{
-        filled::{fact_check, info, list, memory},
-        outlined::{
-            account_circle, color_lens, credit_card, gavel, language, link, mic, rate_review,
-            science, smart_toy, verified_user, webhook,
-        },
-        round::{flag, insert_emoticon},
+    Config,
+    components::material::outlined::{
+        account_circle, color_lens, credit_card, fact_check, flag, gavel, info, insert_emoticon,
+        language, link, memory, mic, rate_review, science, smart_toy, tune, verified_user, webhook,
     },
     http,
     types::EventV1,
@@ -137,12 +133,18 @@ impl ServerSettingsPage {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum SelectedRole {
+    Default,
+    Role(String),
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum ChannelSettingsPage {
     #[default]
     Overview,
     Permissions(Option<SelectedRole>),
-    Webhooks,
+    Webhooks(Option<(String, String)>),
 }
 
 impl ChannelSettingsPage {
@@ -150,15 +152,23 @@ impl ChannelSettingsPage {
         match self {
             Self::Overview => "Overview",
             Self::Permissions(_) => "Permissions",
-            Self::Webhooks => "Webhooks",
+            Self::Webhooks(_) => "Webhooks",
         }
     }
 
     pub fn icon(&self) -> Bytes {
         match self {
             Self::Overview => info(),
-            Self::Permissions(_) => list(),
-            Self::Webhooks => webhook(),
+            Self::Permissions(_) => tune(),
+            Self::Webhooks(_) => webhook(),
+        }
+    }
+
+    pub fn go_back(&mut self) {
+        match self {
+            ChannelSettingsPage::Overview => {}
+            ChannelSettingsPage::Permissions(selected_role) => *selected_role = None,
+            ChannelSettingsPage::Webhooks(selected_webhook) => *selected_webhook = None,
         }
     }
 }
@@ -375,7 +385,7 @@ impl RadioChannel<AppState> for AppChannel {
     fn derive_channel(self, _radio: &AppState) -> Vec<Self> {
         match self {
             Self::Settings(key) if !key.is_empty() => vec![Self::Settings(""), Self::Settings(key)],
-            _ => vec![self]
+            _ => vec![self],
         }
     }
 }
@@ -731,7 +741,10 @@ pub fn update_voice_state(
 }
 
 pub fn delete_voice_state(channel_id: &str, mut station: AppStation) {
-    station.write_channel(AppChannel::VoiceStates).voice_states.remove(channel_id);
+    station
+        .write_channel(AppChannel::VoiceStates)
+        .voice_states
+        .remove(channel_id);
 }
 
 pub async fn update_state(

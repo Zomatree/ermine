@@ -1,6 +1,6 @@
 use std::{io::Cursor, rc::Rc};
 
-use freya::{prelude::*, radio::use_init_radio_station, webview::WebViewPlugin};
+use freya::{prelude::*, radio::use_init_radio_station};
 use tokio::runtime::Builder;
 
 pub mod components;
@@ -119,8 +119,7 @@ fn main() {
             "Fira Code Medium",
             include_bytes!("./assets/fonts/FiraCode-Medium.ttf") as &[u8],
         )
-        .with_default_font("Inter")
-        .with_plugin(WebViewPlugin::new());
+        .with_default_font("Inter");
 
     #[cfg(feature = "performance")]
     let config = config.with_plugin(freya_metrics_plugin::MetricsPlugin::default());

@@ -133,7 +133,7 @@ impl Component for MessageAttachmentPreview {
                                     .height(Size::px(100.))
                                     .layer(Layer::Relative(3))
                                     .background(0x33FFFFFF)
-                                    .blur(8.)
+                                    .backdrop_blur(8.)
                             }))
                             .maybe_child(hovering.read().then(|| {
                                 rect()

@@ -4,6 +4,7 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
+        StoatTooltip,
         material::{filled::content_copy, outlined::delete},
         use_modals,
     },
@@ -103,7 +104,7 @@ impl Component for InviteServerSettings {
                                     .padding(15.)
                                     .child("Invite Code"),
                             )
-                            .child(rect().padding(15.).child(rect().width(Size::px(80.)))),
+                            .child(rect().padding(15.).child(rect().width(Size::px(36.)))),
                     )
                     .child({
                         VirtualScrollView::new(move |item, _| {
@@ -128,11 +129,7 @@ impl Component for InviteServerSettings {
                                             bottom: 1.,
                                             left: 0.,
                                         })
-                                        .fill(theme.md.outline_variant.as_argb_u32()), // .fill(if item.index != invites.len() - 1 {
-                                                                                       //     theme.md.outline_variant.as_argb_u32().into()
-                                                                                       // } else {
-                                                                                       //     Color::TRANSPARENT
-                                                                                       // }),
+                                        .fill(theme.md.outline_variant.as_argb_u32()),
                                 )
                                 .child(
                                     rect()
@@ -178,47 +175,51 @@ impl Component for InviteServerSettings {
                                     rect()
                                         .width(Size::flex(1.))
                                         .padding(15.)
-                                        .child(invite.code.clone()),
+                                        .spacing(4.)
+                                        .horizontal()
+                                        .cross_align(Alignment::Center)
+                                        .font_size(16.)
+                                        .child(label().line_height(1.5).text(invite.code.clone()))
+                                        .child(
+                                            StoatTooltip::new(
+                                                label()
+                                                    .max_lines(1)
+                                                    .font_size(11.)
+                                                    .text("Copy Invite Link"),
+                                            )
+                                            .child(
+                                                StoatButton::new()
+                                                    .corner_radius(18.)
+                                                    .on_press({
+                                                        let code = invite.code.clone();
+
+                                                        move |_| {
+                                                            Clipboard::set(format!(
+                                                                "https://stt.gg/{code}"
+                                                            ))
+                                                            .unwrap();
+                                                        }
+                                                    })
+                                                    .child(
+                                                        rect()
+                                                            .size(Size::px(36.))
+                                                            .color(theme.md.primary.as_argb_u32())
+                                                            .center()
+                                                            .child(
+                                                                MaterialIcon::new(content_copy())
+                                                                    .size(Size::px(18.)),
+                                                            ),
+                                                    ),
+                                            ),
+                                        ),
                                 )
                                 .child(
-                                    rect()
-                                        .padding(15.)
-                                        .spacing(8.)
-                                        .horizontal()
-                                        .child(
-                                            StoatButton::new()
-                                                .corner_radius(18.)
-                                                .on_press({
-                                                    let code = invite.code.clone();
-
-                                                    move |_| {
-                                                        Clipboard::set(format!(
-                                                            "https://stt.gg/{code}"
-                                                        ))
-                                                        .unwrap();
-                                                    }
-                                                })
-                                                .child(
-                                                    rect()
-                                                        .size(Size::px(36.))
-                                                        .background(
-                                                            theme
-                                                                .md
-                                                                .secondary_container
-                                                                .as_argb_u32(),
-                                                        )
-                                                        .color(
-                                                            theme
-                                                                .md
-                                                                .on_secondary_container
-                                                                .as_argb_u32(),
-                                                        )
-                                                        .center()
-                                                        .child(
-                                                            MaterialIcon::new(content_copy())
-                                                                .size(Size::px(20.)),
-                                                        ),
-                                                ),
+                                    rect().padding(15.).child(
+                                        StoatTooltip::new(
+                                            label()
+                                                .max_lines(1)
+                                                .font_size(11.)
+                                                .text("Delete Invite"),
                                         )
                                         .child(
                                             StoatButton::new()
@@ -246,6 +247,7 @@ impl Component for InviteServerSettings {
                                                         ),
                                                 ),
                                         ),
+                                    ),
                                 )
                                 .into_element()
                         })

@@ -441,6 +441,7 @@ impl Component for MemberListMember {
                                                     )
                                                     .font_size(14)
                                                     .max_lines(1)
+                                                    .font_weight(500)
                                                     .text_overflow(TextOverflow::Ellipsis),
                                             )
                                             .maybe_child(is_bot.then(|| {
