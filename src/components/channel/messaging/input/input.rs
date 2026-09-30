@@ -225,8 +225,6 @@ impl Component for MessageInput {
             let char_count = editor.len_chars();
             editor.selection_mut().move_to(char_count);
             editor.selection_mut().set_as_cursor();
-
-
         });
         use_drop(|| {
             provide_root_context::<Option<UseEditable>>(None);
@@ -261,7 +259,10 @@ impl Component for MessageInput {
                 && !last_char.is_whitespace()
                 && let Some(last_section) = section.split_whitespace().last()
             {
-                let mut chars = last_section.chars().enumerate().skip_while(|(_, c)| !['@', '#', ':', '%'].contains(c) && !c.is_alphabetic());
+                let mut chars = last_section
+                    .chars()
+                    .enumerate()
+                    .skip_while(|(_, c)| !['@', '#', ':', '%'].contains(c) && !c.is_alphabetic());
                 if let Some((pos, char)) = chars.next() {
                     if let Some(ty) = match char {
                         '@' => Some(AutocompleteType::User),

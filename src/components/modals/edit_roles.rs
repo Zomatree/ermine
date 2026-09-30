@@ -91,7 +91,7 @@ impl Component for EditRoles {
 
                     spawn(async move {
                         let new_roles = roles.read().cloned().into_iter().collect();
-                        
+
                         if let Ok(member) = http()
                             .edit_member(
                                 &server,

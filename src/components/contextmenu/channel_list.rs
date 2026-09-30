@@ -38,8 +38,7 @@ impl Component for ChannelListContextMenu {
                 self.current_permissions
                     .has_channel_permission(ChannelPermission::ManageChannel)
                     .then(|| {
-                        ContextMenuButton::new(add_circle_outline(), "Create Category")
-                            .on_press({
+                        ContextMenuButton::new(add_circle_outline(), "Create Category").on_press({
                             let server_id = self.server_id.clone();
 
                             move |_| {
@@ -47,7 +46,7 @@ impl Component for ChannelListContextMenu {
                                     server: server_id.clone(),
                                 });
                             }
-                            })
+                        })
                     }),
             )
     }

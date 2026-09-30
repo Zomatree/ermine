@@ -67,83 +67,86 @@ impl Component for WebhookChannelSettings {
                 webhook,
             }
             .into_element(),
-            None => {
-                rect()
-                    .spacing(15.)
-                    .child(
-                        rect().spacing(4.).child(
-                            StoatButton::new()
-                                .corner_radius(12.)
-                                .on_press({
-                                    let id = self.channel.read().id().to_string();
-                                    move |_| {
-                                        let mut set_selected_webhook = set_selected_webhook.clone();
+            None => rect()
+                .spacing(15.)
+                .child(
+                    rect().spacing(4.).child(
+                        StoatButton::new()
+                            .corner_radius(12.)
+                            .on_press({
+                                let id = self.channel.read().id().to_string();
+                                move |_| {
+                                    let mut set_selected_webhook = set_selected_webhook.clone();
 
-                                        modals.write().push_modal(ModalValue::CreateWebhook {
-                                            channel: id.clone(),
-                                            callback: EventHandler::new(move |webhook: v0::Webhook| {
-                                                set_selected_webhook((webhook.id.clone(), webhook.name.clone()));
-                                                webhooks.write().insert(webhook.id.clone(), webhook);
-                                            })
-                                        })
-                                    }
-                                })
-                                .child(
-                                    rect()
-                                        .padding(13.)
-                                        .background(theme.md.secondary_container.as_argb_u32())
-                                        .color(theme.md.on_secondary_container.as_argb_u32())
-                                        .child(
-                                            rect()
-                                                .horizontal()
-                                                .spacing(16.)
-                                                .cross_align(Alignment::Center)
-                                                .content(Content::Flex)
-                                                .child(
-                                                    rect()
-                                                        .corner_radius(36.)
-                                                        .width(Size::px(36.))
-                                                        .height(Size::px(36.))
-                                                        .background(
-                                                            theme.md.surface_dim.as_argb_u32(),
-                                                        )
-                                                        .color(theme.md.on_surface.as_argb_u32())
-                                                        .center()
-                                                        .child(
-                                                            MaterialIcon::new(webhook())
-                                                                .size(Size::px(22.)),
-                                                        ),
-                                                )
-                                                .child(
-                                                    rect().width(Size::flex(1.)).child(
-                                                        label()
-                                                            .font_size(14.)
-                                                            .font_weight(500)
-                                                            .line_height(1.5)
-                                                            .text("Create Webhook"),
+                                    modals.write().push_modal(ModalValue::CreateWebhook {
+                                        channel: id.clone(),
+                                        callback: EventHandler::new(move |webhook: v0::Webhook| {
+                                            set_selected_webhook((
+                                                webhook.id.clone(),
+                                                webhook.name.clone(),
+                                            ));
+                                            webhooks.write().insert(webhook.id.clone(), webhook);
+                                        }),
+                                    })
+                                }
+                            })
+                            .child(
+                                rect()
+                                    .padding(13.)
+                                    .background(theme.md.secondary_container.as_argb_u32())
+                                    .color(theme.md.on_secondary_container.as_argb_u32())
+                                    .child(
+                                        rect()
+                                            .horizontal()
+                                            .spacing(16.)
+                                            .cross_align(Alignment::Center)
+                                            .content(Content::Flex)
+                                            .child(
+                                                rect()
+                                                    .corner_radius(36.)
+                                                    .width(Size::px(36.))
+                                                    .height(Size::px(36.))
+                                                    .background(theme.md.surface_dim.as_argb_u32())
+                                                    .color(theme.md.on_surface.as_argb_u32())
+                                                    .center()
+                                                    .child(
+                                                        MaterialIcon::new(webhook())
+                                                            .size(Size::px(22.)),
                                                     ),
-                                                )
-                                                .child(
-                                                    MaterialIcon::new(chevron_right())
-                                                        .width(Size::px(18.))
-                                                        .height(Size::px(18.)),
+                                            )
+                                            .child(
+                                                rect().width(Size::flex(1.)).child(
+                                                    label()
+                                                        .font_size(14.)
+                                                        .font_weight(500)
+                                                        .line_height(1.5)
+                                                        .text("Create Webhook"),
                                                 ),
-                                        ),
-                                ),
-                        ),
-                    )
-                    .child(
-                        rect()
-                            .spacing(8.)
-                            .children(webhooks.read().values().cloned().map(|webhook| {
-                                WebhookButton {
+                                            )
+                                            .child(
+                                                MaterialIcon::new(chevron_right())
+                                                    .width(Size::px(18.))
+                                                    .height(Size::px(18.)),
+                                            ),
+                                    ),
+                            ),
+                    ),
+                )
+                .child(
+                    rect()
+                        .spacing(8.)
+                        .children(
+                            webhooks
+                                .read()
+                                .values()
+                                .cloned()
+                                .map(|webhook| WebhookButton {
                                     channel: self.channel.clone(),
                                     webhook,
-                                }
-                            })),
-                    )
-                    .into_element()
-            }
+                                }),
+                        ),
+                )
+                .into_element(),
         }
     }
 }
@@ -264,7 +267,7 @@ impl Component for SelectedWebhookChannelSettings {
                         Ok(webhook) => {
                             webhooks.write().insert(webhook.id.clone(), webhook.clone());
                             Some(webhook)
-                        },
+                        }
                         Err(e) => {
                             error.set(Some(e));
                             None
@@ -356,10 +359,10 @@ impl Component for SelectedWebhookChannelSettings {
                                     }
                                 })
                                 .child(
-                                    rect().size(Size::px(36.)).center().child(
-                                        MaterialIcon::new(clear())
-                                            .size(Size::px(24.))
-                                    ),
+                                    rect()
+                                        .size(Size::px(36.))
+                                        .center()
+                                        .child(MaterialIcon::new(clear()).size(Size::px(24.))),
                                 ),
                         ),
                 )

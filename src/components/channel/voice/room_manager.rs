@@ -106,10 +106,14 @@ impl Component for RoomManager {
                                         .filter(|track_pub| track_pub.kind() == TrackKind::Video)
                                         .filter_map(|track_pub| track_pub.track())
                                         .map(|track| {
-                                            let LocalTrack::Video(track) = track else { unreachable!() };
+                                            let LocalTrack::Video(track) = track else {
+                                                unreachable!()
+                                            };
 
                                             RoomVideoCard {
-                                                participant: Participant::Local(local_participant.read().cloned()),
+                                                participant: Participant::Local(
+                                                    local_participant.read().cloned(),
+                                                ),
                                                 track: VideoTrack::Local(track),
                                                 channel: channel.clone(),
                                                 server: server.clone(),

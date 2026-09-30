@@ -3,10 +3,12 @@ use stoat_models::v0;
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, ThemeScheme, ThemeSet, ThemeVariant, components::{
+    AppChannel, ThemeScheme, ThemeSet, ThemeVariant,
+    components::{
         Dropdown, Message, MessageModel, StoatColorPicker, StoatSegmentedButton,
         checkbox::StoatCheckbox,
-    }, consume_material_theme, use_config
+    },
+    consume_material_theme, use_config,
 };
 
 #[derive(PartialEq)]
@@ -297,12 +299,7 @@ impl Component for AppearanceSettings {
                     .into_element()
                 },
             ))
-            .child(
-                label()
-                    .text("Chat Input")
-                    .font_size(14.)
-                    .font_weight(600),
-            )
+            .child(label().text("Chat Input").font_size(14.).font_weight(600))
             .child(StoatCheckbox::from_writable(hide_send_button).child("Hide send message button"))
     }
 }

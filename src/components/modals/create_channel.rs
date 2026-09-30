@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{Dialog, SingleLineEntry, StoatSegmentedButton, use_modals}, consume_material_theme, format_error, http
+    AppChannel,
+    components::{Dialog, SingleLineEntry, StoatSegmentedButton, use_modals},
+    consume_material_theme, format_error, http,
 };
 
 #[derive(PartialEq)]

@@ -287,8 +287,7 @@ impl Component for RoomControls {
                             #[cfg(not(any(target_os = "macos", target_os = "linux")))]
                             let source_type = DesktopCaptureSourceType::Window;
 
-                            let mut capture_options =
-                                DesktopCapturerOptions::new(source_type);
+                            let mut capture_options = DesktopCapturerOptions::new(source_type);
 
                             capture_options.set_include_cursor(true);
                             #[cfg(target_os = "macos")]
@@ -362,7 +361,7 @@ impl Component for RoomControls {
                                             source.capture_frame(&frame_buffer);
                                         }
                                     }
-                                    Err(_) => {},
+                                    Err(_) => {}
                                 }
                             });
 
@@ -392,7 +391,8 @@ impl Component for RoomControls {
                                     .await;
 
                                     if let Some(track_id) = track_id.lock().unwrap().take() {
-                                        let _ = room.local_participant()
+                                        let _ = room
+                                            .local_participant()
                                             .unpublish_track(&track_id)
                                             .await;
                                     };
@@ -406,12 +406,17 @@ impl Component for RoomControls {
                                     if let Ok(res) = res_rx.await {
                                         let width1 = res.width as f32;
                                         let height1 = res.height as f32;
-                                        let scale = (1080. / width1 as f32).min(720. / height1 as f32).min(1.);
+                                        let scale = (1080. / width1 as f32)
+                                            .min(720. / height1 as f32)
+                                            .min(1.);
 
                                         let width = (width1 * scale) as u32;
                                         let height = (height1 * scale) as u32;
 
-                                        let native_source = NativeVideoSource::new(VideoResolution { width, height }, true);
+                                        let native_source = NativeVideoSource::new(
+                                            VideoResolution { width, height },
+                                            true,
+                                        );
 
                                         let track = LocalVideoTrack::create_video_track(
                                             "screenshare",

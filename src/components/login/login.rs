@@ -182,9 +182,12 @@ impl Component for Login {
                                             )
                                             .on_press(|_| {
                                                 let platform = Platform::get();
-                                                Platform::get().with_window(Platform::window_id(), move |window| {
-                                                    platform.close_window(window.id());
-                                                });
+                                                Platform::get().with_window(
+                                                    Platform::window_id(),
+                                                    move |window| {
+                                                        platform.close_window(window.id());
+                                                    },
+                                                );
                                             }),
                                     )
                                     .child(

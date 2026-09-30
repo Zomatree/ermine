@@ -188,9 +188,11 @@ impl Component for UserContextMenu {
                             let server = server.id.clone();
 
                             move |_| {
-                                modals.write().push_modal(ModalValue::EditOwnServerIdentity {
-                                    server: server.clone(),
-                                });
+                                modals
+                                    .write()
+                                    .push_modal(ModalValue::EditOwnServerIdentity {
+                                        server: server.clone(),
+                                    });
                             }
                         })
                     }))
@@ -221,7 +223,8 @@ impl Component for UserContextMenu {
                         })
                     }))
                     .maybe_child(
-                        ((edit_own_identity || edit_identity || edit_roles) && (kick_members || ban_members || timeout_members))
+                        ((edit_own_identity || edit_identity || edit_roles)
+                            && (kick_members || ban_members || timeout_members))
                             .then(|| ContextMenuDivider),
                     )
                     .maybe_child(timeout_members.then(|| {
@@ -284,7 +287,12 @@ impl Component for UserContextMenu {
                             })
                     }))
                     .maybe_child(
-                        (edit_own_identity || edit_identity || edit_roles || kick_members || ban_members || timeout_members)
+                        (edit_own_identity
+                            || edit_identity
+                            || edit_roles
+                            || kick_members
+                            || ban_members
+                            || timeout_members)
                             .then(|| ContextMenuDivider),
                     )
                 },

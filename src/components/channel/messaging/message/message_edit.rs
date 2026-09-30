@@ -88,8 +88,14 @@ impl Component for MessageEdit {
                 let mut saving = saving.clone();
 
                 if new_content.is_empty() {
-                    modals.clone().write().push_modal(ModalValue::DeleteMessage { channel: channel_id.clone(), message });
-                    return
+                    modals
+                        .clone()
+                        .write()
+                        .push_modal(ModalValue::DeleteMessage {
+                            channel: channel_id.clone(),
+                            message,
+                        });
+                    return;
                 }
 
                 spawn(async move {

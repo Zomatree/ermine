@@ -530,7 +530,7 @@ impl Component for SelectedBotsSettings {
                                         let bot = bot.clone();
                                         let settings = settings.clone();
                                         let user = user.clone();
-                                        
+
                                         move |_| {
                                             let edit_user = edit_user.clone();
                                             let edit_bot = edit_bot.clone();

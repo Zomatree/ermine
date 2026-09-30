@@ -167,7 +167,7 @@ impl Component for ChannelContextMenu {
                                     modals.write().push_modal(ModalValue::DeleteChannel {
                                         channel: id.clone(),
                                         name: name.clone(),
-                                        callback: EventHandler::new(move |_| {})
+                                        callback: EventHandler::new(move |_| {}),
                                     });
                                 }
                             })

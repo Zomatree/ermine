@@ -16,11 +16,7 @@ impl Component for DeleteWebhook {
         let mut modals = use_modals();
 
         Dialog::new()
-            .title(
-                label()
-                    .line_height(1.5)
-                    .text("Delete Webhook?"),
-            )
+            .title(label().line_height(1.5).text("Delete Webhook?"))
             .body(
                 label()
                     .line_height(1.5)

@@ -48,7 +48,6 @@ impl AnimatedImage {
         self.loading_placeholder = Some(placeholder.into());
         self
     }
-
 }
 
 impl KeyExt for AnimatedImage {
@@ -206,7 +205,9 @@ impl Component for AnimatedImage {
                             .decode_mode(self.decode_mode)
                             .layout(self.layout.clone())
                             .image_data(self.image_data.clone())
-                            .map(self.loading_placeholder.clone(), |img, placeholder| img.loading_placeholder(placeholder))
+                            .map(self.loading_placeholder.clone(), |img, placeholder| {
+                                img.loading_placeholder(placeholder)
+                            })
                             .into_element()
                     })
                     .into_element()

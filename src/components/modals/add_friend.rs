@@ -31,30 +31,34 @@ impl Component for AddFriend {
                     ),
             )
             .default_action("Close")
-            .action_with_state("Send Request", {
-                let username = username.read();
+            .action_with_state(
+                "Send Request",
+                {
+                    let username = username.read();
 
-                !username.is_empty() && username.split_once('#').is_some()
-            }, {
-                move || {
-                    let username = username.read().cloned();
+                    !username.is_empty() && username.split_once('#').is_some()
+                },
+                {
+                    move || {
+                        let username = username.read().cloned();
 
-                    spawn(async move {
-                        match http()
-                            .send_friend_request(&v0::DataSendFriendRequest { username })
-                            .await
-                        {
-                            Ok(_) => {
-                                modals.write().pop_modal();
+                        spawn(async move {
+                            match http()
+                                .send_friend_request(&v0::DataSendFriendRequest { username })
+                                .await
+                            {
+                                Ok(_) => {
+                                    modals.write().pop_modal();
+                                }
+                                Err(e) => {
+                                    error.set(Some(format_error(&e, "user")));
+                                }
                             }
-                            Err(e) => {
-                                error.set(Some(format_error(&e, "user")));
-                            }
-                        }
-                    });
+                        });
 
-                    false
-                }
-            })
+                        false
+                    }
+                },
+            )
     }
 }

@@ -1,14 +1,12 @@
 use std::borrow::Cow;
 
 use freya::prelude::*;
-use syntect::{
-    easy::HighlightLines,
-    util::LinesWithEndings,
-};
+use syntect::{easy::HighlightLines, util::LinesWithEndings};
 
 use crate::{
+    SyntaxSet, ThemeSet,
     components::{StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
-    consume_material_theme, use_config, ThemeSet, SyntaxSet
+    consume_material_theme, use_config,
 };
 
 #[derive(PartialEq)]

@@ -321,23 +321,19 @@ impl Component for MarkdownViewer {
 
                     for (col_idx, header_spans) in headers.into_iter().enumerate() {
                         header_row = header_row.child(
-                            rect()
-                                .key(col_idx)
-                                .height(Size::Inner)
-                                .padding(8.)
-                                .child(
-                                    render_content(
-                                        paragraph(),
-                                        &header_spans,
-                                        self.font_size,
-                                        theme,
-                                        true,
-                                        false,
-                                        false,
-                                    )
-                                    .width(Size::Fill)
-                                    .text_align(TextAlign::Start),
-                                ),
+                            rect().key(col_idx).height(Size::Inner).padding(8.).child(
+                                render_content(
+                                    paragraph(),
+                                    &header_spans,
+                                    self.font_size,
+                                    theme,
+                                    true,
+                                    false,
+                                    false,
+                                )
+                                .width(Size::Fill)
+                                .text_align(TextAlign::Start),
+                            ),
                         );
                     }
 

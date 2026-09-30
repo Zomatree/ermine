@@ -28,15 +28,11 @@ impl Component for DeleteMessage {
                 rect()
                     .spacing(12.)
                     .child("Are you sure you want to delete this?")
-                    .child(
-                        rect()
-                            .padding((0., 15., 0., 0.))
-                            .child(Message {
-                                channel: channel.into_readable(),
-                                message: self.message.clone(),
-                                plain: true,
-                            }),
-                    ),
+                    .child(rect().padding((0., 15., 0., 0.)).child(Message {
+                        channel: channel.into_readable(),
+                        message: self.message.clone(),
+                        plain: true,
+                    })),
             )
             .default_action("Cancel")
             .action("Delete", {

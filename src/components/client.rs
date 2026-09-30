@@ -274,10 +274,12 @@ impl Component for Client {
                     }),
             )
             .maybe_child(user_profile.read().cloned().map(|(user_id, server_id)| {
-                let user = radio.slice(AppChannel::Users, {
-                    let user_id = user_id.clone();
-                    move |state| state.users.get(&user_id).unwrap()
-                }).into_readable();
+                let user = radio
+                    .slice(AppChannel::Users, {
+                        let user_id = user_id.clone();
+                        move |state| state.users.get(&user_id).unwrap()
+                    })
+                    .into_readable();
 
                 let member = server_id
                     .filter(|server_id| {
@@ -288,14 +290,16 @@ impl Component for Client {
                             .contains_key(&user_id)
                     })
                     .map(|server_id| {
-                        radio.slice(AppChannel::Members, move |state| {
-                            state
-                                .members
-                                .get(&server_id)
-                                .unwrap()
-                                .get(&user_id)
-                                .unwrap()
-                        }).into_readable()
+                        radio
+                            .slice(AppChannel::Members, move |state| {
+                                state
+                                    .members
+                                    .get(&server_id)
+                                    .unwrap()
+                                    .get(&user_id)
+                                    .unwrap()
+                            })
+                            .into_readable()
                     });
 
                 rect()
@@ -303,10 +307,7 @@ impl Component for Client {
                     .width(Size::window_percent(100.))
                     .height(Size::window_percent(100.))
                     .layer(Layer::OverlayLevel(6))
-                    .child(UserProfile {
-                        user,
-                        member,
-                    })
+                    .child(UserProfile { user, member })
                     .into_element()
             }))
             .child(FloatingManager {})

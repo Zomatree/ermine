@@ -293,7 +293,6 @@ impl Component for DMListNavButton {
                     .maybe_child(self.secondary.clone().map(|text| {
                         rect()
                             .padding((4., 8.))
-
                             .color(theme.md.on_error.as_argb_u32())
                             .background(theme.md.error.as_argb_u32())
                             .corner_radius(12.)

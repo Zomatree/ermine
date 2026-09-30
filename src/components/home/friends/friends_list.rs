@@ -148,17 +148,15 @@ impl Component for FriendsList {
             let item = groups.read()[vitem.index].clone();
 
             match item {
-                ListItem::Header(title, count) => {
-                    rect()
-                        .key(&(title, count))
-                        .padding((0., 32.))
-                        .height(Size::px(54.))
-                        .main_align(Alignment::Center)
-                        .font_size(11.)
-                        .color(theme.md.on_surface_variant.as_argb_u32())
-                        .child(format!("{title} – {count}"))
-                        .into_element()
-                }
+                ListItem::Header(title, count) => rect()
+                    .key(&(title, count))
+                    .padding((0., 32.))
+                    .height(Size::px(54.))
+                    .main_align(Alignment::Center)
+                    .font_size(11.)
+                    .color(theme.md.on_surface_variant.as_argb_u32())
+                    .child(format!("{title} – {count}"))
+                    .into_element(),
 
                 ListItem::User(user) => rect()
                     .key(&user.peek().id)

@@ -189,7 +189,8 @@ impl Component for SystemMessage {
                             p.span(" started a call")
                         }
                     }
-                }.line_height(1.5),
+                }
+                .line_height(1.5),
             )
     }
 }

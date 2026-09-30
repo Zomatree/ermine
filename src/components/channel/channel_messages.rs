@@ -912,11 +912,7 @@ impl Component for ChannelMessages {
                         scroll_pos: Some(y),
                     };
 
-                    radio
-                        .clone()
-                        .write()
-                        .channel_states
-                        .insert(id, state);
+                    radio.clone().write().channel_states.insert(id, state);
                 }
             }
         });

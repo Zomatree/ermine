@@ -51,24 +51,29 @@ impl Component for CreateCategory {
                         categories.push(v0::Category {
                             id: Ulid::new().to_string(),
                             title: name,
-                            channels: Vec::new()
+                            channels: Vec::new(),
                         });
 
                         async move {
-
-                            match http().edit_server(&server.id, &v0::DataEditServer {
-                                name: None,
-                                description: None,
-                                icon: None,
-                                banner: None,
-                                categories: Some(categories),
-                                system_messages: None,
-                                flags: None,
-                                discoverable: None,
-                                analytics: None,
-                                owner: None,
-                                remove: Vec::new(),
-                            }).await {
+                            match http()
+                                .edit_server(
+                                    &server.id,
+                                    &v0::DataEditServer {
+                                        name: None,
+                                        description: None,
+                                        icon: None,
+                                        banner: None,
+                                        categories: Some(categories),
+                                        system_messages: None,
+                                        flags: None,
+                                        discoverable: None,
+                                        analytics: None,
+                                        owner: None,
+                                        remove: Vec::new(),
+                                    },
+                                )
+                                .await
+                            {
                                 Ok(_) => {
                                     modals.write().pop_modal();
                                 }
