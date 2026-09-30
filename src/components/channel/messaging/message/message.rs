@@ -200,7 +200,7 @@ impl Component for Message {
                                                     let permissions =
                                                         calculate_server_permissions(&mut query)
                                                             .await;
-                                                    ContextMenu::open(Menu::new().child(
+                                                    ContextMenu::open(Menu::new().key(&user.id).child(
                                                         UserContextMenu {
                                                             user_id: user.id.clone(),
                                                             server_id: server.map(|s| s.id),

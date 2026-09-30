@@ -66,10 +66,12 @@ impl Component for ChannelList {
 
                         let permissions = calculate_server_permissions(&mut query).await;
 
-                        ContextMenu::open(Menu::new().child(ChannelListContextMenu {
-                            server_id: server.id.clone(),
-                            current_permissions: permissions,
-                        }))
+                        ContextMenu::open(Menu::new().key(&server.id).child(
+                            ChannelListContextMenu {
+                                server_id: server.id.clone(),
+                                current_permissions: permissions,
+                            },
+                        ))
                     });
                 }
             })

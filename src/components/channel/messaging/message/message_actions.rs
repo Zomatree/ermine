@@ -10,12 +10,16 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, calculate_channel_permissions, components::{
+    AppChannel, calculate_channel_permissions,
+    components::{
         EmojiPicker, MaterialIcon, MessageContextMenu, MessageModel, ModalValue, ReplyController,
         StoatButton, StoatButtonColorsThemePartialExt,
         material::outlined::{delete, edit, insert_emoticon, more_vert, reply},
         use_floating, use_modals,
-    }, consume_material_theme, http, peak_material_theme, theme::Theme, user_permissions_query
+    },
+    consume_material_theme, http, peak_material_theme,
+    theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -293,11 +297,13 @@ impl Component for MessageActions {
                         let replies = self.replies;
 
                         move |_| {
-                            ContextMenu::open(Menu::new().child(MessageContextMenu {
-                                message: message.clone(),
-                                replies,
-                                current_permissions: permissions(),
-                            }));
+                            ContextMenu::open(Menu::new().key(&message.message.id).child(
+                                MessageContextMenu {
+                                    message: message.clone(),
+                                    replies,
+                                    current_permissions: permissions(),
+                                },
+                            ));
                         }
                     }))
             }))

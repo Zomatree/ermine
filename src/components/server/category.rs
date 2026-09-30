@@ -39,12 +39,7 @@ impl Component for Category {
 
         let is_expanded = use_memo({
             let category_id = self.category.read().id.clone();
-            move || {
-                !config
-                    .read()
-                    .collapsed_categories
-                    .contains(&category_id)
-            }
+            move || !config.read().collapsed_categories.contains(&category_id)
         });
 
         let animation = use_animation(move |conf| {
@@ -168,11 +163,13 @@ impl Component for CategoryHeader {
 
                         let permissions = calculate_server_permissions(&mut query).await;
 
-                        ContextMenu::open(Menu::new().child(CategoryContextMenu {
-                            server_id: server.id.clone(),
-                            category_id: category_id.clone(),
-                            current_permissions: permissions,
-                        }));
+                        ContextMenu::open(Menu::new().key(&category_id).child(
+                            CategoryContextMenu {
+                                server_id: server.id.clone(),
+                                category_id: category_id.clone(),
+                                current_permissions: permissions,
+                            },
+                        ));
                     });
                 }
             })

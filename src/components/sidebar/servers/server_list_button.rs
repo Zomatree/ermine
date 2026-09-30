@@ -92,7 +92,8 @@ impl Component for ServerListButton {
             }
         });
 
-        let indicator_height = if &*selection.read() == &Selection::Server(server.peek().id.clone()) {
+        let indicator_height = if &*selection.read() == &Selection::Server(server.peek().id.clone())
+        {
             32.
         } else if hovering() {
             16.
@@ -116,9 +117,11 @@ impl Component for ServerListButton {
                 let server_id = server.read().id.clone();
 
                 move |_| {
-                    ContextMenu::open_from_down(Menu::new().child(ServerContextMenu {
-                        server_id: server_id.clone(),
-                    }));
+                    ContextMenu::open_from_down(Menu::new().key(&server_id).child(
+                        ServerContextMenu {
+                            server_id: server_id.clone(),
+                        },
+                    ));
                 }
             })
             .child(
@@ -162,7 +165,9 @@ impl Component for ServerListButton {
                                                         .read()
                                                         .last_channels
                                                         .get(&server.peek().id)
-                                                        .filter(|&id| channels.read().contains_key(id))
+                                                        .filter(|&id| {
+                                                            channels.read().contains_key(id)
+                                                        })
                                                         .cloned()
                                                         .or_else(|| {
                                                             server

@@ -7,10 +7,13 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions, components::{
+    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
+    components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
-    }, consume_material_theme, http, insert_user, map_optional_readable, member_display_color, user_permissions_query
+    },
+    consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
+    user_permissions_query,
 };
 
 #[derive(Clone)]
@@ -400,10 +403,13 @@ impl Component for MemberListMember {
                                     let radio = radio.clone();
 
                                     spawn(async move {
-                                        let mut query = user_permissions_query(radio).user(user.clone()).server(server.clone());
-                                        let permissions = calculate_server_permissions(&mut query).await;
+                                        let mut query = user_permissions_query(radio)
+                                            .user(user.clone())
+                                            .server(server.clone());
+                                        let permissions =
+                                            calculate_server_permissions(&mut query).await;
 
-                                        ContextMenu::open(Menu::new().child(
+                                        ContextMenu::open(Menu::new().key(&user.id).child(
                                             UserContextMenu {
                                                 user_id: user.id.clone(),
                                                 server_id: Some(server.id.clone()),

@@ -450,8 +450,7 @@ impl Component for ProfileButtons {
                             let radio = radio.clone();
 
                             spawn(async move {
-                                let mut query = user_permissions_query(radio)
-                                    .user(user.clone());
+                                let mut query = user_permissions_query(radio).user(user.clone());
 
                                 let server_id = if let Some(member) = member {
                                     query = query.member(member.clone());
@@ -461,11 +460,13 @@ impl Component for ProfileButtons {
                                 };
 
                                 let permissions = calculate_server_permissions(&mut query).await;
-                                ContextMenu::open(Menu::new().child(UserContextMenu {
-                                    user_id: user.id,
-                                    server_id,
-                                    permissions,
-                                }));
+                                ContextMenu::open(Menu::new().key(&user.id).child(
+                                    UserContextMenu {
+                                        user_id: user.id,
+                                        server_id,
+                                        permissions,
+                                    },
+                                ));
                             });
                         }
                     })

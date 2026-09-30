@@ -125,11 +125,13 @@ impl Component for ChannelButton {
                     let channel_id = channel_id.clone();
                     move |e: Event<PressEventData>| {
                         e.stop_propagation();
-                        
-                        ContextMenu::open_from_down(Menu::new().child(ChannelContextMenu {
-                            channel_id: channel_id.clone(),
-                            current_permissions: permissions(),
-                        }));
+
+                        ContextMenu::open_from_down(Menu::new().key(&channel_id).child(
+                            ChannelContextMenu {
+                                channel_id: channel_id.clone(),
+                                current_permissions: permissions(),
+                            }
+                        ));
                     }
                 }).child(
                     StoatButton::new()
