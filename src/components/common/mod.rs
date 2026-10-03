@@ -14,6 +14,7 @@ pub mod segmented_button;
 pub mod server_icon;
 pub mod tooltip;
 pub mod user_mention;
+pub mod radio_button;
 
 pub use animated_image::*;
 pub use avatar::*;
@@ -31,3 +32,4 @@ pub use segmented_button::*;
 pub use server_icon::*;
 pub use tooltip::*;
 pub use user_mention::*;
+pub use radio_button::*;

@@ -27,8 +27,12 @@ impl<T: PartialEq + 'static, B> PartialEq for StoatSegmentedButton<T, B> {
 
 impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> StoatSegmentedButton<T, B> {
     pub fn new(state: impl IntoWritable<T>, options: Vec<T>, builder: B) -> Self {
+        Self::from_writable(state.into_writable(), options, builder)
+    }
+
+    pub fn from_writable(state: Writable<T>, options: Vec<T>, builder: B) -> Self {
         Self {
-            state: state.into_writable(),
+            state,
             options,
             builder,
             height: 40.,
@@ -42,7 +46,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> StoatSegmentedButton<
     }
 }
 
-impl<T: Debug + Hash + Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component
+impl<T: Debug + Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component
     for StoatSegmentedButton<T, B>
 {
     fn render(&self) -> impl IntoElement {
@@ -80,7 +84,7 @@ struct StoatInnerSegmentedButton<T: 'static> {
     pub last: bool,
 }
 
-impl<T: Hash + Clone + PartialEq + 'static> Component for StoatInnerSegmentedButton<T> {
+impl<T: Debug + Clone + PartialEq + 'static> Component for StoatInnerSegmentedButton<T> {
     fn render(&self) -> impl IntoElement {
         const ANIM_TIME: u64 = 200;
         let radius = self.height / 2.;
@@ -149,6 +153,6 @@ impl<T: Hash + Clone + PartialEq + 'static> Component for StoatInnerSegmentedBut
     }
 
     fn render_key(&self) -> DiffKey {
-        (&self.value).into()
+        (&format!("{:?}", self.value)).into()
     }
 }

@@ -6,9 +6,10 @@ use material_colors::{
 };
 use serde::{Deserialize, Serialize};
 
-pub fn generate_theme(base_color: u32, variant: Variant) -> Theme {
+pub fn generate_theme(base_color: u32, variant: Variant, contrast: f64) -> Theme {
     ThemeBuilder::with_source(Rgb::from_u32(base_color))
         .variant(variant)
+        .contrast_level(contrast)
         .build()
 }
 
@@ -36,6 +37,7 @@ pub enum ThemeVariant {
     Content,
     Rainbow,
     FruitSalad,
+    Cmf,
 }
 
 impl From<Variant> for ThemeVariant {
@@ -50,6 +52,7 @@ impl From<Variant> for ThemeVariant {
             Variant::Content => ThemeVariant::Content,
             Variant::Rainbow => ThemeVariant::Rainbow,
             Variant::FruitSalad => ThemeVariant::FruitSalad,
+            Variant::Cmf => ThemeVariant::Cmf,
         }
     }
 }
@@ -66,6 +69,7 @@ impl From<ThemeVariant> for Variant {
             ThemeVariant::Content => Variant::Content,
             ThemeVariant::Rainbow => Variant::Rainbow,
             ThemeVariant::FruitSalad => Variant::FruitSalad,
+            ThemeVariant::Cmf => Variant::Cmf,
         }
     }
 }

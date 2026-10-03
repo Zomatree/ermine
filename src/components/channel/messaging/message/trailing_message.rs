@@ -9,7 +9,7 @@ use stoat_models::v0;
 
 use crate::{
     components::{MessageContent, MessageHover, MessageModel, StoatTooltip},
-    consume_material_theme,
+    consume_material_theme, peak_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -27,7 +27,7 @@ impl Component for TrailingMessage {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Nothing);
 
-            let theme = consume_material_theme();
+            let theme = peak_material_theme();
 
             let anim = AnimColor::new(theme.md.outline.as_u32(), theme.md.outline.as_argb_u32())
                 .duration(Duration::from_secs_f32(0.1))

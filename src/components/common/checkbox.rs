@@ -58,7 +58,7 @@ impl Component for StoatCheckbox {
                 anim.on_change(OnChange::Rerun);
 
                 let opacity = AnimNum::new(0., 1.)
-                    .duration(Duration::from_millis(200))
+                    .duration(Duration::from_millis(150))
                     .ease(Ease::Out);
 
                 if *value {
@@ -78,7 +78,6 @@ impl Component for StoatCheckbox {
 
         rect()
             .horizontal()
-            .spacing(8.)
             .a11y_id(a11y_id)
             .a11y_role(AccessibilityRole::CheckBox)
             .cross_align(Alignment::Center)

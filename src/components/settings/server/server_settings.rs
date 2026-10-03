@@ -6,9 +6,9 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
     components::{
-        AuditLogServerSettings, EmojiServerSettings, InviteServerSettings, MaterialIcon,
-        OverviewServerSettings, RoleServerSettings, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
+        AuditLogServerSettings, CategoryServerSettings, EmojiServerSettings, InviteServerSettings,
+        MaterialIcon, OverviewServerSettings, RoleServerSettings, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
         material::{
             filled::{chevron_right, clear},
             outlined::delete,
@@ -86,7 +86,7 @@ impl Component for ServerSettings {
                                     .child(settings_category(
                                         self.server.read().name.to_uppercase(),
                                         &theme,
-                                        &[ServerSettingsPage::Overview],
+                                        &[ServerSettingsPage::Overview, ServerSettingsPage::Categories],
                                     ))
                                     .child(settings_category(
                                         "CUSTOMISATION",
@@ -191,6 +191,12 @@ impl Component for ServerSettings {
                                             .child(match page {
                                                 ServerSettingsPage::Overview => {
                                                     OverviewServerSettings {
+                                                        server: self.server.clone(),
+                                                    }
+                                                    .into_element()
+                                                }
+                                                ServerSettingsPage::Categories => {
+                                                    CategoryServerSettings {
                                                         server: self.server.clone(),
                                                     }
                                                     .into_element()

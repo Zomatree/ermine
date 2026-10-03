@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::consume_material_theme;
+use crate::{components::StoatTooltip, consume_material_theme};
 
 define_theme! {
     for = StoatButton;
@@ -42,6 +42,10 @@ pub struct StoatButton {
     elements: Vec<Element>,
     on_press: Option<EventHandler<Event<PressEventData>>>,
     on_hover: Option<EventHandler<Event<PointerEventData>>>,
+
+    tooltip: Option<Element>,
+    tooltip_position: AttachedPosition,
+
     key: DiffKey,
 }
 
@@ -54,6 +58,8 @@ impl StoatButton {
             on_press: None,
             on_hover: None,
             elements: Vec::default(),
+            tooltip: None,
+            tooltip_position: AttachedPosition::default(),
             key: DiffKey::None,
         }
     }
@@ -70,6 +76,16 @@ impl StoatButton {
 
     pub fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
+        self
+    }
+
+    pub fn tooltip(mut self, element: impl IntoElement) -> Self {
+        self.tooltip = Some(element.into_element());
+        self
+    }
+
+    pub fn tooltip_position(mut self, position: AttachedPosition) -> Self {
+        self.tooltip_position = position;
         self
     }
 }
@@ -126,7 +142,7 @@ impl Component for StoatButton {
             theme_colors.background
         };
 
-        rect()
+        let button = rect()
             .overflow(Overflow::Clip)
             .a11y_id(a11y_id)
             .a11y_role(AccessibilityRole::Button)
@@ -188,12 +204,7 @@ impl Component for StoatButton {
                 }
             })
             .on_sized(move |e: Event<SizedEventData>| size.set(e.area.size))
-            .child(
-                rect()
-                    .interactive(enabled)
-                    // .layer(Layer::Relative(-100))
-                    .children(self.elements.clone()),
-            )
+            .child(rect().interactive(enabled).children(self.elements.clone()))
             .child(
                 rect()
                     .position(Position::new_absolute())
@@ -213,7 +224,16 @@ impl Component for StoatButton {
                     })
                     .overflow(Overflow::Clip)
                     .corner_radius(theme_layout.corner_radius),
-            )
+            );
+
+        if let Some(tooltip) = self.tooltip.clone() {
+            StoatTooltip::new(tooltip)
+                .position(self.tooltip_position)
+                .child(button)
+                .into_element()
+        } else {
+            button.into_element()
+        }
     }
 
     fn render_key(&self) -> DiffKey {

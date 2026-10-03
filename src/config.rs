@@ -35,6 +35,8 @@ pub struct ThemeConfig {
     pub scheme: ThemeScheme,
     #[serde(default)]
     pub variant: ThemeVariant,
+    #[serde(default)]
+    pub contrast: f64,
     #[serde(default = "default_theme_source")]
     pub theme_source: u32,
     #[serde(default = "default_code_theme")]
@@ -46,6 +48,7 @@ impl Default for ThemeConfig {
         Self {
             scheme: Default::default(),
             variant: Default::default(),
+            contrast: 0.0,
             theme_source: default_theme_source(),
             code_theme: default_code_theme(),
         }

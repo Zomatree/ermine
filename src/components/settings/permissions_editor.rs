@@ -312,7 +312,7 @@ impl Component for PermissionOverriteSwitchOverride {
                     None => remove(),
                     Some(false) => clear(),
                 })
-                .size(Size::px(24.)),
+                .size(Size::px(16.)),
             )
             .maybe_child(hover().then(|| {
                 rect()

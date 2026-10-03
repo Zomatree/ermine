@@ -23,7 +23,7 @@ use crate::{
 };
 
 fn generate(theme_config: &ThemeConfig) -> Theme {
-    let material_theme = generate_theme(theme_config.theme_source, theme_config.variant.into());
+    let material_theme = generate_theme(theme_config.theme_source, theme_config.variant.into(), theme_config.contrast);
 
     let material_scheme = match theme_config.scheme {
         ThemeScheme::Light => material_theme.schemes.light,

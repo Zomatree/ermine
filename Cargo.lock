@@ -3996,7 +3996,8 @@ checksum = "ffbee8634e0d45d258acb448e7eaab3fce7a0a467395d4d9f228e3c1f01fb2e4"
 [[package]]
 name = "material-colors"
 version = "0.5.0"
-source = "git+https://github.com/Aiving/material-colors?rev=3fe7f52#3fe7f52cde8c221d9a44dec84bca3706a71bb080"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a5bf6a9d1cf6319a36cebc589b9a681a6b1c699e162f27c020877783579cc7"
 dependencies = [
  "ahash 0.8.12",
  "indexmap",

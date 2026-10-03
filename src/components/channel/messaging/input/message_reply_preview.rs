@@ -5,6 +5,7 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         Avatar, MarkdownViewer, ReplyController, ReplyIntent, StoatButton,
+        StoatButtonLayoutThemePartialExt,
         material::{
             MaterialIcon,
             filled::{alternate_email, description},
@@ -113,6 +114,7 @@ impl Component for MessageReplyPreview {
                     .child(
                         label()
                             .map(role_color.read().cloned(), |this, color| this.color(color))
+                            .font_weight(500)
                             .text(display_name.read().cloned()),
                     )
                     .child(
@@ -150,15 +152,17 @@ impl Component for MessageReplyPreview {
             .child(
                 rect()
                     .horizontal()
-                    .spacing(15.)
+                    .spacing(12.)
                     .cross_align(Alignment::Center)
                     .main_align(Alignment::End)
                     .child({
                         let mention = self.reply.read().mention;
 
                         StoatButton::new()
+                            .corner_radius(8.)
                             .child(
                                 rect()
+                                    .padding((0., 4.))
                                     .spacing(4.)
                                     .horizontal()
                                     .cross_align(Alignment::Center)
@@ -184,6 +188,7 @@ impl Component for MessageReplyPreview {
                     })
                     .child(
                         StoatButton::new()
+                            .corner_radius(8.)
                             .child(
                                 MaterialIcon::new(cancel())
                                     .color(theme.md.on_primary_container.as_argb_u32())

@@ -336,6 +336,10 @@ impl<T: Clone + 'static> Initial<T> {
     pub fn apply(&mut self) {
         self.initial.set(self.current.read().cloned());
     }
+
+    pub fn as_current(&self) -> State<T> {
+        self.current
+    }
 }
 
 impl<T> Deref for Initial<T> {
@@ -525,14 +529,13 @@ pub fn format_duration(duration: jiff::Span) -> String {
     }
 }
 
-pub fn use_changed<T: PartialEq + Clone + 'static>(
-    value: impl IntoReadable<T>,
+pub fn use_changed_from_readable<T: PartialEq + Clone + 'static>(
+    value: Readable<T>,
     mut callback: impl FnMut(&T) + 'static,
 ) {
-    let readable = value.into_readable();
-    let mut previous = use_state(|| readable.read().clone());
+    let mut previous = use_state(|| value.read().clone());
 
-    use_side_effect_with_deps(&*readable.read(), move |after| {
+    use_side_effect_with_deps(&*value.read(), move |after| {
         let changed = &*previous.peek() != after;
 
         if changed {
@@ -542,14 +545,20 @@ pub fn use_changed<T: PartialEq + Clone + 'static>(
     });
 }
 
-pub fn use_changed_with_previous<T: PartialEq + Clone + 'static>(
+pub fn use_changed<T: PartialEq + Clone + 'static>(
     value: impl IntoReadable<T>,
+    callback: impl FnMut(&T) + 'static,
+) {
+    use_changed_from_readable(value.into_readable(), callback)
+}
+
+pub fn use_changed_with_previous_from_readable<T: PartialEq + Clone + 'static>(
+    value: Readable<T>,
     mut callback: impl FnMut(T, &T) + 'static,
 ) {
-    let readable = value.into_readable();
-    let mut previous = use_state(|| readable.read().clone());
+    let mut previous = use_state(|| value.read().clone());
 
-    use_side_effect_with_deps(&*readable.read(), move |after| {
+    use_side_effect_with_deps(&*value.read(), move |after| {
         let before = previous.peek();
         let changed = &*before != after;
 
@@ -560,6 +569,13 @@ pub fn use_changed_with_previous<T: PartialEq + Clone + 'static>(
             callback(before_value, after)
         }
     });
+}
+
+pub fn use_changed_with_previous<T: PartialEq + Clone + 'static>(
+    value: impl IntoReadable<T>,
+    callback: impl FnMut(T, &T) + 'static,
+) {
+    use_changed_with_previous_from_readable(value.into_readable(), callback)
 }
 
 pub fn get_member_rank(member: &v0::Member, server: &v0::Server) -> i64 {

@@ -135,6 +135,7 @@ pub enum ModalValue {
     },
     CreateChannel {
         server: String,
+        callback: EventHandler<v0::Channel>,
     },
     CreateCategory {
         server: String,
@@ -318,8 +319,8 @@ impl PartialEq for ModalValue {
             }
             (Self::Error { error: l_error }, Self::Error { error: r_error }) => l_error == r_error,
             (
-                Self::CreateChannel { server: l_server },
-                Self::CreateChannel { server: r_server },
+                Self::CreateChannel { server: l_server, .. },
+                Self::CreateChannel { server: r_server, .. },
             ) => l_server == r_server,
             (
                 Self::CreateCategory { server: l_server },
@@ -547,8 +548,8 @@ impl Component for Modal {
                                     ModalValue::DeleteWebhook { id, callback } => {
                                         DeleteWebhook { id, callback }.into_element()
                                     }
-                                    ModalValue::CreateChannel { server } => {
-                                        CreateChannel { server }.into_element()
+                                    ModalValue::CreateChannel { server, callback } => {
+                                        CreateChannel { server, callback }.into_element()
                                     }
                                     ModalValue::CreateCategory { server } => {
                                         CreateCategory { server }.into_element()

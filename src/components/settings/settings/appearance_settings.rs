@@ -35,22 +35,27 @@ impl Component for AppearanceSettings {
             |settings| &mut settings.hide_send_button,
         );
 
-        let mut config = use_config();
+        let config = use_config().into_writable();
 
-        let scheme = use_state(|| config.read().theme.scheme);
-        let variant = use_state(|| config.read().theme.variant);
+        let scheme = config.map(
+            |config| &config.theme.scheme,
+            |config| &mut config.theme.scheme,
+        );
         let mut source = use_state(|| Color::new(config.read().theme.theme_source | (0xFF << 24)));
-        let code_theme = config.into_writable().map(
+        let contrast = config.map(
+            |config| &config.theme.contrast,
+            |config| &mut config.theme.contrast,
+        );
+        let variant = config.map(
+            |config| &config.theme.variant,
+            |config| &mut config.theme.variant,
+        );
+        let code_theme = config.map(
             |config| &config.theme.code_theme,
             |config| &mut config.theme.code_theme,
         );
 
-        use_side_effect(move || {
-            let mut config = config.write();
-            config.theme.scheme = scheme();
-            config.theme.variant = variant();
-        });
-
+        let mut config = use_config();
         use_side_effect(move || {
             let source = *source.read();
 
@@ -69,7 +74,7 @@ impl Component for AppearanceSettings {
                 rect()
                     .spacing(8.)
                     .child(
-                        StoatSegmentedButton::new(
+                        StoatSegmentedButton::from_writable(
                             scheme,
                             vec![ThemeScheme::Light, ThemeScheme::Dark],
                             |scheme| {
@@ -118,8 +123,22 @@ impl Component for AppearanceSettings {
                                 ),
                             ),
                     )
+                    .child(StoatSegmentedButton::from_writable(
+                        contrast,
+                        vec![-1.0, 0.0, 0.5, 1.0],
+                        |contrast| {
+                            match contrast {
+                                -1.0 => "Reduced",
+                                0.0 => "Normal",
+                                0.5 => "More Contrast",
+                                1.0 => "High Contrast",
+                                _ => unreachable!(),
+                            }
+                            .into_element()
+                        },
+                    ))
                     .child(
-                        StoatSegmentedButton::new(
+                        StoatSegmentedButton::from_writable(
                             variant,
                             vec![
                                 ThemeVariant::Monochrome,
@@ -146,6 +165,7 @@ impl Component for AppearanceSettings {
                                         ThemeVariant::Content => "Content",
                                         ThemeVariant::Rainbow => "Rainbow",
                                         ThemeVariant::FruitSalad => "Fruit Salad",
+                                        ThemeVariant::Cmf => "Dual",
                                     })
                                     .into_element()
                             },
