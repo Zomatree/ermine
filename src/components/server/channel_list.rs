@@ -4,7 +4,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, calculate_server_permissions, components::{Category, ChannelButton, ChannelListContextMenu, stoat_scrollbar}, user_permissions_query,
+    AppChannel, calculate_server_permissions,
+    components::{Category, ChannelButton, ChannelListContextMenu, stoat_scrollbar},
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]

@@ -14,7 +14,9 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, Room, SizeExt, components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off, stoat_scrollbar}, consume_material_theme,
+    AppChannel, Room, SizeExt,
+    components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off, stoat_scrollbar},
+    consume_material_theme,
 };
 
 pub struct RoomManager {

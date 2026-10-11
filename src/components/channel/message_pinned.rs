@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{Message, MessageModel, stoat_scrollbar}, http,
+    AppChannel,
+    components::{Message, MessageModel, stoat_scrollbar},
+    http,
 };
 
 #[derive(PartialEq)]
@@ -78,25 +80,27 @@ impl Component for MessagePinned {
         rect()
             .child(rect().padding(8.).child(label().text("Pinned Messages")))
             .child(
-                ScrollView::new().scrollbar(stoat_scrollbar).child(match results.read().cloned() {
-                    None => rect()
-                        .width(Size::Fill)
-                        .center()
-                        .child(CircularLoader::new())
-                        .into_element(),
+                ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
+                    .child(match results.read().cloned() {
+                        None => rect()
+                            .width(Size::Fill)
+                            .center()
+                            .child(CircularLoader::new())
+                            .into_element(),
 
-                    Some(messages) => rect()
-                        .spacing(8.)
-                        .children(messages.into_iter().map(|message| {
-                            Message {
-                                channel: self.channel.clone(),
-                                message,
-                                plain: true,
-                            }
-                            .into_element()
-                        }))
-                        .into_element(),
-                }),
+                        Some(messages) => rect()
+                            .spacing(8.)
+                            .children(messages.into_iter().map(|message| {
+                                Message {
+                                    channel: self.channel.clone(),
+                                    message,
+                                    plain: true,
+                                }
+                                .into_element()
+                            }))
+                            .into_element(),
+                    }),
             )
     }
 }

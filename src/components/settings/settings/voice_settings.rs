@@ -96,7 +96,12 @@ impl Component for VoiceSettings {
             .child(
                 rect()
                     .spacing(8.)
-                    .child(label().font_size(14.).font_weight(550).text("Voice Processing"))
+                    .child(
+                        label()
+                            .font_size(14.)
+                            .font_weight(550)
+                            .text("Voice Processing"),
+                    )
                     .child(StoatCheckbox::new(noise_suppression).child("Noise Suppression"))
                     .child(StoatCheckbox::new(echo_cancellation).child("Echo Cancellation"))
                     .child(

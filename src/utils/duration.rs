@@ -1,6 +1,5 @@
 use jiff::{Span, Unit};
 
-
 pub fn format_duration(duration: Span) -> String {
     let hours = duration.total(Unit::Hour).unwrap_or(0.).floor() as u64;
 

@@ -4,12 +4,16 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{
-        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt, material::{
+    AppChannel, SizeExt,
+    components::{
+        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::{
             MaterialIcon,
             outlined::{group, home, sticky_note_2},
-        }, stoat_scrollbar,
-    }, consume_material_theme, http,
+        },
+        stoat_scrollbar,
+    },
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]
@@ -281,7 +285,6 @@ impl Component for DMListNavButton {
                     .height(Size::px(42.))
                     .cross_align(Alignment::Center)
                     .content(Content::Flex)
-
                     .color(theme.md.outline.as_argb_u32())
                     .maybe(self.selected, |btn| {
                         btn.background(theme.md.primary_container.as_argb_u32())

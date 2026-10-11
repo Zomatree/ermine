@@ -2,11 +2,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
-use crate::{AppChannel, components::{
-    ContextMenuButton, ModalValue,
-    material::outlined::add_circle_outline,
-    use_modals,
-}};
+use crate::{
+    AppChannel,
+    components::{
+        ContextMenuButton, ModalValue, material::outlined::add_circle_outline, use_modals,
+    },
+};
 
 #[derive(PartialEq)]
 pub struct ChannelListContextMenu {
@@ -35,8 +36,9 @@ impl Component for ChannelListContextMenu {
                                 modals.write().push_modal(ModalValue::CreateChannel {
                                     server: server_id.clone(),
                                     callback: EventHandler::new(move |channel: v0::Channel| {
-                                        selected_channel.set(Some((channel.id().to_string(), None)));
-                                    })
+                                        selected_channel
+                                            .set(Some((channel.id().to_string(), None)));
+                                    }),
                                 });
                             }
                         })

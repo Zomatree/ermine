@@ -9,10 +9,12 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, ConnectionState, Room, Selection, SizeExt, components::{
+    AppChannel, ConnectionState, Room, Selection, SizeExt,
+    components::{
         AttachmentController, ChannelSettings, Discover, FloatingManager, Home, MaterialIcon,
         Server, ServerList, ServerSettings, Settings, UserProfile, material::filled::description,
-    }, consume_material_theme, map_readable,
+    },
+    consume_material_theme, map_readable,
 };
 
 #[derive(PartialEq)]

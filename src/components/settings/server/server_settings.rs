@@ -4,12 +4,19 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, components::{
-        AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings, InviteServerSettings, MaterialIcon, OverviewServerSettings, RoleServerSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
+    components::{
+        AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings,
+        InviteServerSettings, MaterialIcon, OverviewServerSettings, RoleServerSettings,
+        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        material::{
             filled::{chevron_right, clear},
             outlined::delete,
-        }, stoat_scrollbar,
-    }, consume_material_theme, theme::Theme,
+        },
+        stoat_scrollbar,
+    },
+    consume_material_theme,
+    theme::Theme,
 };
 
 #[derive(PartialEq)]

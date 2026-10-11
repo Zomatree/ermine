@@ -1,7 +1,4 @@
-use freya::{
-    prelude::*,
-    radio::{Readable},
-};
+use freya::{prelude::*, radio::Readable};
 
 pub fn use_changed_from_readable<T: PartialEq + Clone + 'static>(
     value: Readable<T>,

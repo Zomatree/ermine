@@ -319,8 +319,12 @@ impl PartialEq for ModalValue {
             }
             (Self::Error { error: l_error }, Self::Error { error: r_error }) => l_error == r_error,
             (
-                Self::CreateChannel { server: l_server, .. },
-                Self::CreateChannel { server: r_server, .. },
+                Self::CreateChannel {
+                    server: l_server, ..
+                },
+                Self::CreateChannel {
+                    server: r_server, ..
+                },
             ) => l_server == r_server,
             (
                 Self::CreateCategory { server: l_server },

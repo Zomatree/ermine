@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{FriendButton, FriendPage, stoat_scrollbar}, consume_material_theme,
+    AppChannel,
+    components::{FriendButton, FriendPage, stoat_scrollbar},
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]

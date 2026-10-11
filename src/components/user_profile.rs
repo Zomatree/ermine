@@ -5,9 +5,17 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions, components::{
-        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu, file_image, material::{filled::cancel, outlined::more_vert}, stoat_scrollbar, use_modals,
-    }, consume_material_theme, format_autumn_url, http, parse_fill, theme::Theme, user_permissions_query,
+    AppChannel, SizeExt, calculate_server_permissions,
+    components::{
+        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
+        file_image,
+        material::{filled::cancel, outlined::more_vert},
+        stoat_scrollbar, use_modals,
+    },
+    consume_material_theme, format_autumn_url, http, parse_fill,
+    theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -46,102 +54,105 @@ impl Component for UserProfile {
         });
 
         rect().background(0xBB000000).expanded().child(
-            ScrollView::new().scrollbar(stoat_scrollbar).expanded().child(
-                rect()
-                    .padding(80.)
-                    .cross_align(Alignment::Center)
-                    .width(Size::Fill)
-                    .on_press(move |_| close_profile())
-                    .on_global_key_down(move |e: Event<KeyboardEventData>| {
-                        if e.key == Key::Named(NamedKey::Escape) {
-                            close_profile()
-                        }
-                    })
-                    .child(
-                        rect()
-                            .on_press(|e: Event<PressEventData>| e.stop_propagation())
-                            .corner_radius(28.)
-                            .background(theme.md.surface_container_high.as_argb_u32())
-                            .width(Size::px(560.))
-                            .padding(8.)
-                            .child(
-                                rect()
-                                    .padding(8.)
-                                    .spacing(8.)
-                                    .content(Content::Flex)
-                                    .child(ProfileBanner {
-                                        user: self.user.clone(),
-                                        member: self.member.clone(),
-                                        profile: profile.into_readable(),
-                                    })
-                                    .child(ProfileButtons {
-                                        user: self.user.clone(),
-                                        member: self.member.clone(),
-                                        close: Rc::new(close_profile),
-                                    })
-                                    .child({
-                                        let status_text = user
-                                            .read()
-                                            .status
-                                            .as_ref()
-                                            .and_then(|status| status.text.clone());
+            ScrollView::new()
+                .scrollbar(stoat_scrollbar)
+                .expanded()
+                .child(
+                    rect()
+                        .padding(80.)
+                        .cross_align(Alignment::Center)
+                        .width(Size::Fill)
+                        .on_press(move |_| close_profile())
+                        .on_global_key_down(move |e: Event<KeyboardEventData>| {
+                            if e.key == Key::Named(NamedKey::Escape) {
+                                close_profile()
+                            }
+                        })
+                        .child(
+                            rect()
+                                .on_press(|e: Event<PressEventData>| e.stop_propagation())
+                                .corner_radius(28.)
+                                .background(theme.md.surface_container_high.as_argb_u32())
+                                .width(Size::px(560.))
+                                .padding(8.)
+                                .child(
+                                    rect()
+                                        .padding(8.)
+                                        .spacing(8.)
+                                        .content(Content::Flex)
+                                        .child(ProfileBanner {
+                                            user: self.user.clone(),
+                                            member: self.member.clone(),
+                                            profile: profile.into_readable(),
+                                        })
+                                        .child(ProfileButtons {
+                                            user: self.user.clone(),
+                                            member: self.member.clone(),
+                                            close: Rc::new(close_profile),
+                                        })
+                                        .child({
+                                            let status_text = user
+                                                .read()
+                                                .status
+                                                .as_ref()
+                                                .and_then(|status| status.text.clone());
 
-                                        let badges = user.read().badges;
+                                            let badges = user.read().badges;
 
-                                        let show_hidden = status_text.is_none() || badges == 0;
+                                            let show_hidden = status_text.is_none() || badges == 0;
 
-                                        row()
-                                            .maybe_child(
-                                                status_text.map(|text| ProfileStatus { text }),
-                                            )
-                                            .maybe_child(
-                                                (badges != 0).then(|| ProfileBadges { badges }),
-                                            )
-                                            .child(ProfileJoined {
-                                                user: user.into_readable(),
-                                                member: self.member.clone(),
-                                            })
-                                            .maybe_child(show_hidden.then(empty_card))
-                                    })
-                                    .maybe_child({
-                                        let has_roles = self
-                                            .member
-                                            .as_ref()
-                                            .is_some_and(|m| !m.read().roles.is_empty());
-
-                                        let has_pronouns = user.read().pronouns.is_some()
-                                            || self
+                                            row()
+                                                .maybe_child(
+                                                    status_text.map(|text| ProfileStatus { text }),
+                                                )
+                                                .maybe_child(
+                                                    (badges != 0).then(|| ProfileBadges { badges }),
+                                                )
+                                                .child(ProfileJoined {
+                                                    user: user.into_readable(),
+                                                    member: self.member.clone(),
+                                                })
+                                                .maybe_child(show_hidden.then(empty_card))
+                                        })
+                                        .maybe_child({
+                                            let has_roles = self
                                                 .member
                                                 .as_ref()
-                                                .is_some_and(|m| m.read().pronouns.is_some());
+                                                .is_some_and(|m| !m.read().roles.is_empty());
 
-                                        (has_roles || has_pronouns).then(|| {
-                                            row()
-                                                .maybe_child(has_roles.then(|| {
-                                                    ProfileRoles {
-                                                        member: self.member.clone().unwrap(),
-                                                    }
-                                                    .into_element()
-                                                }))
-                                                .maybe_child(has_pronouns.then(|| {
-                                                    ProfilePronouns {
-                                                        user: user.into_readable(),
-                                                        member: self.member.clone(),
-                                                    }
-                                                    .into_element()
-                                                }))
+                                            let has_pronouns = user.read().pronouns.is_some()
+                                                || self
+                                                    .member
+                                                    .as_ref()
+                                                    .is_some_and(|m| m.read().pronouns.is_some());
+
+                                            (has_roles || has_pronouns).then(|| {
+                                                row()
+                                                    .maybe_child(has_roles.then(|| {
+                                                        ProfileRoles {
+                                                            member: self.member.clone().unwrap(),
+                                                        }
+                                                        .into_element()
+                                                    }))
+                                                    .maybe_child(has_pronouns.then(|| {
+                                                        ProfilePronouns {
+                                                            user: user.into_readable(),
+                                                            member: self.member.clone(),
+                                                        }
+                                                        .into_element()
+                                                    }))
+                                            })
                                         })
-                                    })
-                                    .maybe_child(
-                                        profile
-                                            .read()
-                                            .as_ref()
-                                            .and_then(|profile| profile.content.clone())
-                                            .map(|bio| ProfileBio { bio }),
-                                    ),
-                            ),
-                    ),
-            ),
+                                        .maybe_child(
+                                            profile
+                                                .read()
+                                                .as_ref()
+                                                .and_then(|profile| profile.content.clone())
+                                                .map(|bio| ProfileBio { bio }),
+                                        ),
+                                ),
+                        ),
+                ),
         )
     }
 }
@@ -668,25 +679,27 @@ impl Component for ProfileRoles {
         card(
             "Roles",
             &theme,
-            ScrollView::new().scrollbar(stoat_scrollbar).children(roles.read().iter().map(|(role, color)| {
-                rect()
-                    .horizontal()
-                    .main_align(Alignment::SpaceBetween)
-                    .cross_align(Alignment::Center)
-                    .width(Size::Fill)
-                    .child(label().text(role.name.clone()).font_size(12.))
-                    .child({
-                        let mut rect = rect()
-                            .width(Size::px(8.))
-                            .height(Size::px(8.))
-                            .corner_radius(8.);
+            ScrollView::new()
+                .scrollbar(stoat_scrollbar)
+                .children(roles.read().iter().map(|(role, color)| {
+                    rect()
+                        .horizontal()
+                        .main_align(Alignment::SpaceBetween)
+                        .cross_align(Alignment::Center)
+                        .width(Size::Fill)
+                        .child(label().text(role.name.clone()).font_size(12.))
+                        .child({
+                            let mut rect = rect()
+                                .width(Size::px(8.))
+                                .height(Size::px(8.))
+                                .corner_radius(8.);
 
-                        rect.get_style().background = color.clone();
+                            rect.get_style().background = color.clone();
 
-                        rect
-                    })
-                    .into_element()
-            })),
+                            rect
+                        })
+                        .into_element()
+                })),
         )
     }
 }

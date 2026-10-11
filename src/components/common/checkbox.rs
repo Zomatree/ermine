@@ -2,8 +2,7 @@ use std::time::Duration;
 
 use freya::{
     animation::{
-        AnimNum, AnimatedValue, Ease, OnChange, OnCreation,
-        use_animation_with_dependencies,
+        AnimNum, AnimatedValue, Ease, OnChange, OnCreation, use_animation_with_dependencies,
     },
     prelude::*,
 };

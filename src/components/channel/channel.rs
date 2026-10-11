@@ -117,7 +117,13 @@ impl Component for Channel {
                             _ => grid_3x3(),
                         },
                     })
-                    .child(label().font_weight(600).font_size(16).max_lines(1).text(channel_name))
+                    .child(
+                        label()
+                            .font_weight(600)
+                            .font_size(16)
+                            .max_lines(1)
+                            .text(channel_name),
+                    )
                     .maybe_child(channel_description.is_some().then(|| {
                         rect()
                             .height(Size::px(20.))

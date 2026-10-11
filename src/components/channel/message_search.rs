@@ -2,7 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, components::{Message, MessageModel, StoatSegmentedButton, stoat_scrollbar}, http,
+    AppChannel,
+    components::{Message, MessageModel, StoatSegmentedButton, stoat_scrollbar},
+    http,
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]

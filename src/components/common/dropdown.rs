@@ -9,7 +9,9 @@ use freya::{
 };
 
 use crate::{
-    SizeExt, components::{MaterialIcon, StoatButton, material::filled::expand_more, stoat_scrollbar}, consume_material_theme,
+    SizeExt,
+    components::{MaterialIcon, StoatButton, material::filled::expand_more, stoat_scrollbar},
+    consume_material_theme,
 };
 
 pub struct Dropdown<T: PartialEq + 'static, B> {

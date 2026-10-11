@@ -174,11 +174,7 @@ impl Component for AppearanceSettings {
                     ),
             )
             .child(label().text("Pronouns").font_size(14.).font_weight(600))
-            .child(
-                rect().child(
-                    StoatCheckbox::new(hide_pronouns).child("Hide pronouns in chat"),
-                ),
-            )
+            .child(rect().child(StoatCheckbox::new(hide_pronouns).child("Hide pronouns in chat")))
             .child(
                 label()
                     .text("Display & Text")

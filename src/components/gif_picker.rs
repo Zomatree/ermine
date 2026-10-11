@@ -6,9 +6,12 @@ use itertools::Itertools;
 use tokio::time::sleep;
 
 use crate::{
-    CategoriesQueryParams, SearchQueryParams, SizeExt, TrendingQueryParams, components::{
-        AnimatedImage, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, material::outlined::arrow_back, stoat_scrollbar,
-    }, consume_material_theme, http, proxy_url,
+    CategoriesQueryParams, SearchQueryParams, SizeExt, TrendingQueryParams,
+    components::{
+        AnimatedImage, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
+        material::outlined::arrow_back, stoat_scrollbar,
+    },
+    consume_material_theme, http, proxy_url,
 };
 
 const LOCALE: &str = "en_US";
@@ -163,98 +166,104 @@ impl Component for GifPicker {
                             .padding(16.),
                     ),
             )
-            .child(ScrollView::new().scrollbar(stoat_scrollbar).height(Size::px(280.)).child({
-                if !(on_trending() || !query.read().is_empty()) {
-                    let trending = trending_placeholder.read().cloned();
-                    let mut categories = categories.read().cloned().unwrap_or_default().into_iter();
+            .child(
+                ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
+                    .height(Size::px(280.))
+                    .child({
+                        if !(on_trending() || !query.read().is_empty()) {
+                            let trending = trending_placeholder.read().cloned();
+                            let mut categories =
+                                categories.read().cloned().unwrap_or_default().into_iter();
 
-                    let first = categories.next();
-
-                    rect()
-                        .spacing(4.)
-                        .child(
-                            rect()
-                                .horizontal()
-                                .spacing(4.)
-                                .child(GifCategory {
-                                    title: "Trending GIFs".to_string(),
-                                    image: trending.map(|res| res.url.clone()),
-                                    query,
-                                    is_trending: true,
-                                    on_trending,
-                                })
-                                .child(rect().width(Size::px(190.)).maybe_child(first.map(
-                                    |category| {
-                                        GifCategory {
-                                            title: category.title,
-                                            image: Some(category.image),
-                                            query,
-                                            is_trending: false,
-                                            on_trending,
-                                        }
-                                        .into_element()
-                                    },
-                                ))),
-                        )
-                        .children(categories.chunks(2).into_iter().map(|mut chunk| {
-                            let l = chunk.next().unwrap();
-                            let r = chunk.next();
+                            let first = categories.next();
 
                             rect()
-                                .horizontal()
                                 .spacing(4.)
                                 .child(
-                                    GifCategory {
-                                        title: l.title,
-                                        image: Some(l.image),
-                                        query,
-                                        is_trending: false,
-                                        on_trending,
-                                    }
-                                    .into_element(),
-                                )
-                                .child(rect().width(Size::px(190.)).maybe_child(r.map(
-                                    |category| {
-                                        GifCategory {
-                                            title: category.title,
-                                            image: Some(category.image),
+                                    rect()
+                                        .horizontal()
+                                        .spacing(4.)
+                                        .child(GifCategory {
+                                            title: "Trending GIFs".to_string(),
+                                            image: trending.map(|res| res.url.clone()),
                                             query,
-                                            is_trending: false,
+                                            is_trending: true,
                                             on_trending,
-                                        }
-                                        .into_element()
-                                    },
-                                )))
-                        }))
-                } else {
-                    let results = results.read();
-
-                    rect()
-                        .spacing(4.)
-                        .horizontal()
-                        .content(Content::wrap_spacing(4.))
-                        .width(Size::px(384.))
-                        .children(results.iter().map(|result| {
-                            StoatButton::new()
-                                .key(&result.id)
-                                .corner_radius(12.)
-                                .on_press({
-                                    let on_select = self.on_select.clone();
-                                    let url = result.url.clone();
-
-                                    move |_| {
-                                        on_select.call(url.clone());
-                                    }
-                                })
-                                .child(
-                                    AnimatedImage::new(proxy_url(&result.url))
-                                        .aspect_ratio(AspectRatio::Min)
-                                        .image_cover(ImageCover::Center)
-                                        .width(Size::px(190.)),
+                                        })
+                                        .child(rect().width(Size::px(190.)).maybe_child(
+                                            first.map(|category| {
+                                                GifCategory {
+                                                    title: category.title,
+                                                    image: Some(category.image),
+                                                    query,
+                                                    is_trending: false,
+                                                    on_trending,
+                                                }
+                                                .into_element()
+                                            }),
+                                        )),
                                 )
-                        }))
-                }
-            }))
+                                .children(categories.chunks(2).into_iter().map(|mut chunk| {
+                                    let l = chunk.next().unwrap();
+                                    let r = chunk.next();
+
+                                    rect()
+                                        .horizontal()
+                                        .spacing(4.)
+                                        .child(
+                                            GifCategory {
+                                                title: l.title,
+                                                image: Some(l.image),
+                                                query,
+                                                is_trending: false,
+                                                on_trending,
+                                            }
+                                            .into_element(),
+                                        )
+                                        .child(rect().width(Size::px(190.)).maybe_child(r.map(
+                                            |category| {
+                                                GifCategory {
+                                                    title: category.title,
+                                                    image: Some(category.image),
+                                                    query,
+                                                    is_trending: false,
+                                                    on_trending,
+                                                }
+                                                .into_element()
+                                            },
+                                        )))
+                                }))
+                        } else {
+                            let results = results.read();
+
+                            rect()
+                                .spacing(4.)
+                                .horizontal()
+                                .content(Content::wrap_spacing(4.))
+                                .width(Size::px(384.))
+                                .children(results.iter().map(|result| {
+                                    StoatButton::new()
+                                        .key(&result.id)
+                                        .corner_radius(12.)
+                                        .on_press({
+                                            let on_select = self.on_select.clone();
+                                            let url = result.url.clone();
+
+                                            move |_| {
+                                                on_select.call(url.clone());
+                                            }
+                                        })
+                                        .child(
+                                            AnimatedImage::new(proxy_url(&result.url))
+                                                .aspect_ratio(AspectRatio::Min)
+                                                .image_cover(ImageCover::Center)
+                                                .width(Size::px(190.)),
+                                        )
+                                }))
+                        }
+                    }),
+            )
     }
 }
 

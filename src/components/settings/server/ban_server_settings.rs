@@ -4,9 +4,13 @@ use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
-    SizeExt, components::{
-        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonLayoutThemePartialExt, file_image, material::outlined::{clear, delete}, stoat_scrollbar,
-    }, consume_material_theme, http,
+    SizeExt,
+    components::{
+        MaterialIcon, SingleLineEntry, StoatButton, StoatButtonLayoutThemePartialExt, file_image,
+        material::outlined::{clear, delete},
+        stoat_scrollbar,
+    },
+    consume_material_theme, http,
 };
 
 #[derive(PartialEq)]

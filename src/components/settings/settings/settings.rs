@@ -3,12 +3,20 @@ use std::mem::discriminant;
 use freya::{prelude::*, radio::use_radio};
 
 use crate::{
-    AppChannel, AppState, Config, SettingsPage, SizeExt, components::{
-        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings, SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, VoiceSettings, material::{
+    AppChannel, AppState, Config, SettingsPage, SizeExt,
+    components::{
+        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings,
+        SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt, VoiceSettings,
+        material::{
             filled::clear,
             outlined::{chevron_right, logout},
-        }, stoat_scrollbar,
-    }, consume_material_theme, http, theme::Theme, use_config,
+        },
+        stoat_scrollbar,
+    },
+    consume_material_theme, http,
+    theme::Theme,
+    use_config,
 };
 
 #[derive(PartialEq)]

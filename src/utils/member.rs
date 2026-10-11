@@ -36,13 +36,21 @@ pub fn member_role_icon(member: &v0::Member, server: &v0::Server) -> Option<(v0:
         .next()
 }
 
-pub fn display_name<'a>(user: &'a v0::User, member: Option<&'a v0::Member>, message: Option<&'a v0::Message>) -> &'a str {
-    message.and_then(|msg| msg.masquerade.as_ref().and_then(|masq| masq.name.as_deref()))
+pub fn display_name<'a>(
+    user: &'a v0::User,
+    member: Option<&'a v0::Member>,
+    message: Option<&'a v0::Message>,
+) -> &'a str {
+    message
+        .and_then(|msg| {
+            msg.masquerade
+                .as_ref()
+                .and_then(|masq| masq.name.as_deref())
+        })
         .or_else(|| member.and_then(|member| member.nickname.as_deref()))
         .or(user.display_name.as_deref())
         .unwrap_or(&user.username)
 }
-
 
 pub fn get_member_rank(member: &v0::Member, server: &v0::Server) -> i64 {
     if &member.id.user == &server.owner {

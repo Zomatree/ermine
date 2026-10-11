@@ -138,8 +138,10 @@ pub fn map_optional_readable<T, U>(
     )
 }
 
-
-pub fn with_readable< T: 'static, R>(readable: Option<&Readable<T>>, f: impl FnOnce(Option<&T>) -> R) -> R {
+pub fn with_readable<T: 'static, R>(
+    readable: Option<&Readable<T>>,
+    f: impl FnOnce(Option<&T>) -> R,
+) -> R {
     if let Some(readable) = readable {
         let value = readable.read();
         f(Some(&value))
@@ -147,7 +149,6 @@ pub fn with_readable< T: 'static, R>(readable: Option<&Readable<T>>, f: impl FnO
         f(None)
     }
 }
-
 
 // pub fn map_optional_readable<T, U>(
 //     readable: Readable<T>,

@@ -47,14 +47,17 @@ fn named_color_parser<'a>() -> impl Parser<'a, &'a str, Color> {
 }
 
 fn direction_parser<'a>() -> impl Parser<'a, &'a str, Direction> {
-    let direction = choice((keyword("top"), keyword("bottom"), keyword("left"), keyword("right")))
-        .to_slice()
-        .padded();
+    let direction = choice((
+        keyword("top"),
+        keyword("bottom"),
+        keyword("left"),
+        keyword("right"),
+    ))
+    .to_slice()
+    .padded();
 
     just("to")
-        .ignore_then(
-            direction.clone().then(direction.or_not())
-        )
+        .ignore_then(direction.clone().then(direction.or_not()))
         .map(|(a, b)| match (a, b) {
             ("bottom", None) => Direction::Bottom,
             ("bottom", Some("left")) | ("left", Some("bottom")) => Direction::BottomLeft,

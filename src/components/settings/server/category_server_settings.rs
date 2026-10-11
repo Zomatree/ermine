@@ -5,12 +5,17 @@ use stoat_models::v0;
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, SizeExt, components::{
-        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
+    AppChannel, SizeExt,
+    components::{
+        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::{
             filled::clear,
             outlined::{add, drag_indicator, grid_3x3, headset_mic},
-        }, stoat_scrollbar, use_modals,
-    }, consume_material_theme, http, use_changed_from_readable,
+        },
+        stoat_scrollbar, use_modals,
+    },
+    consume_material_theme, http, use_changed_from_readable,
 };
 
 #[derive(PartialEq)]

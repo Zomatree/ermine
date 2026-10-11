@@ -1,13 +1,18 @@
 use freya::prelude::*;
 
 use crate::{
-    SizeExt, components::{
-        Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
+    SizeExt,
+    components::{
+        Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
+        material::{
             MaterialIcon,
             filled::{add, description},
             outlined::{cancel, hide_image, image},
-        }, stoat_scrollbar,
-    }, consume_material_theme,
+        },
+        stoat_scrollbar,
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]

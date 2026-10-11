@@ -14,13 +14,19 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
-    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions, components::{
-        AttachmentController, EmojiGifPicker, PickerSelection, ReplyController, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
+    AppChannel, ClientMessage, LocalFile, SizeExt, calculate_channel_permissions,
+    components::{
+        AttachmentController, EmojiGifPicker, PickerSelection, ReplyController, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        material::{
             MaterialIcon,
             filled::{add, do_not_disturb, gif, send},
             round::insert_emoticon,
-        }, stoat_scrollbar, use_floating,
-    }, consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed, use_clipboard, user_permissions_query,
+        },
+        stoat_scrollbar, use_floating,
+    },
+    consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed,
+    use_clipboard, user_permissions_query,
 };
 
 static SED_REGEX: LazyLock<Regex> =
@@ -662,7 +668,10 @@ impl Component for Textbox {
             )
             .maybe_child(hide_send_button.not().then(|| {
                 StoatButton::new()
-                    .enabled(self.editable.editor().read().len_chars() > 0 || self.attachments.not_empty())
+                    .enabled(
+                        self.editable.editor().read().len_chars() > 0
+                            || self.attachments.not_empty(),
+                    )
                     .height(Size::px(height()))
                     .width(Size::px(48.))
                     .corner_radius((12., 28., 28., 12.))

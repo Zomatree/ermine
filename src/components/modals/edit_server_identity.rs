@@ -3,10 +3,7 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{
-        Dialog,  SingleLineEntry,
-        use_modals,
-    },
+    components::{Dialog, SingleLineEntry, use_modals},
     format_error, http,
 };
 

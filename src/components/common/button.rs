@@ -1,10 +1,7 @@
 use std::time::Duration;
 
 use freya::{
-    animation::{
-        AnimNum, AnimatedValue, OnChange, OnCreation,
-        use_animation_with_dependencies,
-    },
+    animation::{AnimNum, AnimatedValue, OnChange, OnCreation, use_animation_with_dependencies},
     prelude::*,
 };
 

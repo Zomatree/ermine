@@ -72,7 +72,7 @@ fn default_deafened() -> bool {
 impl Default for AudioConfig {
     fn default() -> Self {
         Self {
-            deafened: default_deafened()
+            deafened: default_deafened(),
         }
     }
 }

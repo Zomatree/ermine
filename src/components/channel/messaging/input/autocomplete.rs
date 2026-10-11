@@ -7,9 +7,13 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, SizeExt, calculate_channel_permissions, components::{
-        AutocompleteType, Avatar, Emoji, StoatButton, StoatButtonColorsThemePartialExt, material::{MaterialIcon, filled::grid_3x3, outlined::alternate_email}, stoat_scrollbar,
-    }, consume_material_theme, get_unicode_emojis, parse_fill, user_permissions_query,
+    AppChannel, SizeExt, calculate_channel_permissions,
+    components::{
+        AutocompleteType, Avatar, Emoji, StoatButton, StoatButtonColorsThemePartialExt,
+        material::{MaterialIcon, filled::grid_3x3, outlined::alternate_email},
+        stoat_scrollbar,
+    },
+    consume_material_theme, get_unicode_emojis, parse_fill, user_permissions_query,
 };
 
 #[derive(PartialEq, Eq, Clone, Debug)]

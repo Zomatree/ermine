@@ -2,12 +2,17 @@ use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexSet;
 
 use crate::{
-    AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt, components::{
-        CurrentUserButton, HomeButton, ModalValue, Reorder, ServerListButton, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{
+    AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt,
+    components::{
+        CurrentUserButton, HomeButton, ModalValue, Reorder, ServerListButton, StoatButton,
+        StoatButtonLayoutThemePartialExt, StoatTooltip,
+        material::{
             MaterialIcon,
             filled::{add, explore, settings},
-        }, stoat_scrollbar, use_modals,
-    }, consume_material_theme,
+        },
+        stoat_scrollbar, use_modals,
+    },
+    consume_material_theme,
 };
 
 #[derive(PartialEq)]

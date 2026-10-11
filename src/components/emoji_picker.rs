@@ -2,7 +2,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, components::{AnimatedImage, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, stoat_scrollbar}, consume_material_theme, get_unicode_emojis, http, types::Tag,
+    AppChannel, SizeExt,
+    components::{
+        AnimatedImage, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, stoat_scrollbar,
+    },
+    consume_material_theme, get_unicode_emojis, http,
+    types::Tag,
 };
 
 #[derive(PartialEq, Clone, Debug)]

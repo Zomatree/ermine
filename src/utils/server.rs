@@ -4,7 +4,10 @@ use freya::radio::Readable;
 
 use crate::NotificationsSettings;
 
-pub fn is_server_muted(server_id: &str, settings: &Readable<Option<NotificationsSettings>>) -> bool {
+pub fn is_server_muted(
+    server_id: &str,
+    settings: &Readable<Option<NotificationsSettings>>,
+) -> bool {
     let mute = settings
         .read()
         .as_ref()

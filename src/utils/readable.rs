@@ -7,12 +7,15 @@ use crate::AppChannel;
 
 pub struct KeyedReadable<T: 'static> {
     id: String,
-    inner: Readable<T>
+    inner: Readable<T>,
 }
 
 impl<T: 'static> KeyedReadable<T> {
     pub fn new(id: String, readable: Readable<T>) -> Self {
-        Self { id, inner: readable }
+        Self {
+            id,
+            inner: readable,
+        }
     }
 
     pub fn id(&self) -> &str {
@@ -28,7 +31,7 @@ impl<T: 'static> Clone for KeyedReadable<T> {
     fn clone(&self) -> Self {
         Self {
             id: self.id.clone(),
-            inner: self.inner.clone()
+            inner: self.inner.clone(),
         }
     }
 }
@@ -58,7 +61,12 @@ pub fn use_channel(id: impl Into<String>) -> KeyedReadable<v0::Channel> {
 
     let id = id.into();
 
-    KeyedReadable::new(id.clone(), radio.slice_current(move |state| state.channels.get(&id).unwrap()).into_readable())
+    KeyedReadable::new(
+        id.clone(),
+        radio
+            .slice_current(move |state| state.channels.get(&id).unwrap())
+            .into_readable(),
+    )
 }
 
 pub fn use_server(id: impl Into<String>) -> KeyedReadable<v0::Server> {
@@ -66,5 +74,10 @@ pub fn use_server(id: impl Into<String>) -> KeyedReadable<v0::Server> {
 
     let id = id.into();
 
-    KeyedReadable::new(id.clone(), radio.slice_current(move |state| state.servers.get(&id).unwrap()).into_readable())
+    KeyedReadable::new(
+        id.clone(),
+        radio
+            .slice_current(move |state| state.servers.get(&id).unwrap())
+            .into_readable(),
+    )
 }

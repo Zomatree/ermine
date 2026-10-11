@@ -5,9 +5,13 @@ use stoat_permissions::{ChannelPermission, UserPermission};
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions, calculate_user_permissions, components::{
-        Dialog, GroupDMIcon, ServerIcon, SingleLineEntry, StoatButton, StoatButtonLayoutThemePartialExt, checkbox::StoatCheckbox, file_image, stoat_scrollbar, use_modals,
-    }, consume_material_theme, http, user_permissions_query,
+    AppChannel, SizeExt, calculate_server_permissions, calculate_user_permissions,
+    components::{
+        Dialog, GroupDMIcon, ServerIcon, SingleLineEntry, StoatButton,
+        StoatButtonLayoutThemePartialExt, checkbox::StoatCheckbox, file_image, stoat_scrollbar,
+        use_modals,
+    },
+    consume_material_theme, http, user_permissions_query,
 };
 
 #[derive(Clone)]
@@ -242,58 +246,64 @@ impl Component for InviteBot {
                                 ),
                             ),
                     )
-                    .child(ScrollView::new().scrollbar(stoat_scrollbar).max_height(Size::px(240.)).children(
-                        filtered.read().iter().map({
-                            let current_selection = selected.read();
+                    .child(
+                        ScrollView::new()
+                            .scrollbar(stoat_scrollbar)
+                            .max_height(Size::px(240.))
+                            .children(filtered.read().iter().map({
+                                let current_selection = selected.read();
 
-                            move |destination| {
-                                let is_selected = current_selection
-                                    .as_ref()
-                                    .is_some_and(|dest| dest == destination);
+                                move |destination| {
+                                    let is_selected = current_selection
+                                        .as_ref()
+                                        .is_some_and(|dest| dest == destination);
 
-                                let (icon, name) = match destination {
-                                    InviteDestination::Server((_, server)) => (
-                                        rect()
-                                            .corner_radius(12.)
-                                            .overflow(Overflow::Clip)
-                                            .child(ServerIcon::from_readable(server.clone(), 24.))
-                                            .into_element(),
-                                        server.read().name.clone(),
-                                    ),
-                                    InviteDestination::Group((_, channel)) => (
-                                        GroupDMIcon::new(channel.clone())
-                                            .size(24.)
-                                            .invert(true)
-                                            .into_element(),
-                                        channel.read().name().unwrap().to_string(),
-                                    ),
-                                };
+                                    let (icon, name) = match destination {
+                                        InviteDestination::Server((_, server)) => (
+                                            rect()
+                                                .corner_radius(12.)
+                                                .overflow(Overflow::Clip)
+                                                .child(ServerIcon::from_readable(
+                                                    server.clone(),
+                                                    24.,
+                                                ))
+                                                .into_element(),
+                                            server.read().name.clone(),
+                                        ),
+                                        InviteDestination::Group((_, channel)) => (
+                                            GroupDMIcon::new(channel.clone())
+                                                .size(24.)
+                                                .invert(true)
+                                                .into_element(),
+                                            channel.read().name().unwrap().to_string(),
+                                        ),
+                                    };
 
-                                StoatButton::new()
-                                    .corner_radius(8.)
-                                    .on_press({
-                                        let destination = destination.clone();
-                                        move |_| {
-                                            selected.set(Some(destination.clone()));
-                                        }
-                                    })
-                                    .child(
-                                        rect()
-                                            .horizontal()
-                                            .padding(8.)
-                                            .spacing(8.)
-                                            .cross_align(Alignment::Center)
-                                            .maybe(is_selected, |this| {
-                                                this.background(theme.md.primary.as_argb_u32())
-                                                    .color(theme.md.on_primary.as_argb_u32())
-                                            })
-                                            .width(Size::Fill)
-                                            .child(icon)
-                                            .child(name),
-                                    )
-                            }
-                        }),
-                    ))
+                                    StoatButton::new()
+                                        .corner_radius(8.)
+                                        .on_press({
+                                            let destination = destination.clone();
+                                            move |_| {
+                                                selected.set(Some(destination.clone()));
+                                            }
+                                        })
+                                        .child(
+                                            rect()
+                                                .horizontal()
+                                                .padding(8.)
+                                                .spacing(8.)
+                                                .cross_align(Alignment::Center)
+                                                .maybe(is_selected, |this| {
+                                                    this.background(theme.md.primary.as_argb_u32())
+                                                        .color(theme.md.on_primary.as_argb_u32())
+                                                })
+                                                .width(Size::Fill)
+                                                .child(icon)
+                                                .child(name),
+                                        )
+                                }
+                            })),
+                    )
                     .child(
                         label()
                             .font_size(11.)
