@@ -38,8 +38,9 @@ impl Component for Server {
             .child(
                 label()
                     .font_size(16)
+                    .font_weight(600)
+                    .width(Size::flex(1.))
                     .text(self.server.read().name.clone())
-                    .width(Size::flex(1.)),
             )
             .child(
                 StoatButton::new()

@@ -287,7 +287,7 @@ impl Component for RoleServerSettings {
                                     }),
                                 ))
                                 .child(
-                                    Reorder::from_writable(orderable, {
+                                    Reorder::new(orderable, {
                                         let server = self.server.clone();
                                         move |(role, color)| {
                                             rect()

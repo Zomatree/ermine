@@ -1,7 +1,8 @@
-use freya::prelude::*;
+use freya::{prelude::*, radio::use_radio};
+use stoat_models::v0;
 
 use crate::{
-    SizeExt,
+    AppChannel, SizeExt,
     components::{
         FriendsList, HideSidebarHeader, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip,
@@ -34,6 +35,19 @@ impl Component for Friends {
 
         let mut page = use_state(FriendPage::default);
 
+        let radio = use_radio(AppChannel::Users);
+        let user =
+            radio.slice_current(|state| state.users.get(state.user_id.as_ref().unwrap()).unwrap());
+
+        let incoming_friend_count = user
+            .read()
+            .relations
+            .iter()
+            .filter(|r| r.status == v0::RelationshipStatus::Incoming)
+            .count();
+
+        println!("{incoming_friend_count}");
+
         rect()
             .child(
                 rect()
@@ -44,7 +58,7 @@ impl Component for Friends {
                     .margin((8., 8., 8., 0.))
                     .cross_align(Alignment::Center)
                     .child(HideSidebarHeader { icon: group() })
-                    .child(label().text("Friends").font_size(16)),
+                    .child(label().font_size(16).font_weight(600).text("Friends")),
             )
             .child(
                 rect().horizontal().child(
@@ -131,10 +145,31 @@ impl Component for Friends {
                                                                         .width(Size::px(56.))
                                                                         .height(Size::px(32.))
                                                                         .child(
-                                                                            MaterialIcon::new(icon)
-                                                                                .size(Size::px(
-                                                                                    24.,
-                                                                                )),
+                                                                            rect()
+                                                                                .size(Size::px(24.))
+                                                                                .child(
+                                                                                    MaterialIcon::new(icon)
+                                                                                        .size(Size::px(24.))
+                                                                                )
+                                                                                .maybe_child((value == FriendPage::Pending && incoming_friend_count != 0).then(|| {
+                                                                                    let count = if incoming_friend_count < 10 {
+                                                                                        incoming_friend_count.to_string()
+                                                                                    } else {
+                                                                                        "+".to_string()
+                                                                                    };
+
+                                                                                    rect()
+                                                                                        .position(Position::new_absolute().top(-4.).right(-4.))
+                                                                                        .layer(1)
+                                                                                        .size(Size::px(16.))
+                                                                                        .corner_radius(8.)
+                                                                                        .background(theme.md.error.as_argb_u32())
+                                                                                        .color(theme.md.on_error.as_argb_u32())
+                                                                                        .center()
+                                                                                        .font_size(11.)
+                                                                                        .font_weight(500)
+                                                                                        .child(count)
+                                                                                }))
                                                                         ),
                                                                 )
                                                                 .child(

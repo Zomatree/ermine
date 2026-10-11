@@ -74,7 +74,7 @@ impl Component for AppearanceSettings {
                 rect()
                     .spacing(8.)
                     .child(
-                        StoatSegmentedButton::from_writable(
+                        StoatSegmentedButton::new(
                             scheme,
                             vec![ThemeScheme::Light, ThemeScheme::Dark],
                             |scheme| {
@@ -123,7 +123,7 @@ impl Component for AppearanceSettings {
                                 ),
                             ),
                     )
-                    .child(StoatSegmentedButton::from_writable(
+                    .child(StoatSegmentedButton::new(
                         contrast,
                         vec![-1.0, 0.0, 0.5, 1.0],
                         |contrast| {
@@ -138,7 +138,7 @@ impl Component for AppearanceSettings {
                         },
                     ))
                     .child(
-                        StoatSegmentedButton::from_writable(
+                        StoatSegmentedButton::new(
                             variant,
                             vec![
                                 ThemeVariant::Monochrome,
@@ -176,7 +176,7 @@ impl Component for AppearanceSettings {
             .child(label().text("Pronouns").font_size(14.).font_weight(600))
             .child(
                 rect().child(
-                    StoatCheckbox::from_writable(hide_pronouns).child("Hide pronouns in chat"),
+                    StoatCheckbox::new(hide_pronouns).child("Hide pronouns in chat"),
                 ),
             )
             .child(
@@ -320,6 +320,6 @@ impl Component for AppearanceSettings {
                 },
             ))
             .child(label().text("Chat Input").font_size(14.).font_weight(600))
-            .child(StoatCheckbox::from_writable(hide_send_button).child("Hide send message button"))
+            .child(StoatCheckbox::new(hide_send_button).child("Hide send message button"))
     }
 }

@@ -2,9 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Message, MessageModel},
-    http,
+    AppChannel, components::{Message, MessageModel, stoat_scrollbar}, http,
 };
 
 #[derive(PartialEq)]
@@ -80,7 +78,7 @@ impl Component for MessagePinned {
         rect()
             .child(rect().padding(8.).child(label().text("Pinned Messages")))
             .child(
-                ScrollView::new().child(match results.read().cloned() {
+                ScrollView::new().scrollbar(stoat_scrollbar).child(match results.read().cloned() {
                     None => rect()
                         .width(Size::Fill)
                         .center()

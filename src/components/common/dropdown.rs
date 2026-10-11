@@ -9,9 +9,7 @@ use freya::{
 };
 
 use crate::{
-    SizeExt,
-    components::{MaterialIcon, StoatButton, material::filled::expand_more},
-    consume_material_theme,
+    SizeExt, components::{MaterialIcon, StoatButton, material::filled::expand_more, stoat_scrollbar}, consume_material_theme,
 };
 
 pub struct Dropdown<T: PartialEq + 'static, B> {
@@ -32,13 +30,13 @@ impl<T: PartialEq + 'static, B> PartialEq for Dropdown<T, B> {
 impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> Dropdown<T, B> {
     pub fn new(
         title: impl Into<Cow<'static, str>>,
-        state: Writable<T>,
+        state: impl IntoWritable<T>,
         options: Vec<T>,
         builder: B,
     ) -> Self {
         Self {
             title: title.into(),
-            state,
+            state: state.into_writable(),
             options,
             builder,
 
@@ -228,6 +226,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                     ScrollView::new()
                                         .max_height(Size::window_percent(40.))
                                         .height(Size::Inner)
+                                        .scrollbar(stoat_scrollbar)
                                         .child(rect().padding((8., 0.)).children(
                                             self.options.iter().map(move |value| {
                                                 DropdownItem::new(value.clone(), self.state.clone())

@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use freya::{
     animation::{
-        AnimColor, AnimNum, AnimatedValue, Ease, OnChange, OnCreation, ReadAnimatedValue,
-        use_animation, use_animation_with_dependencies,
+        AnimNum, AnimatedValue, Ease, OnChange, OnCreation,
+        use_animation_with_dependencies,
     },
     prelude::*,
 };
@@ -27,13 +27,6 @@ impl StoatCheckbox {
     pub fn new(value: impl IntoWritable<bool>) -> Self {
         Self {
             value: value.into_writable(),
-            children: Vec::new(),
-        }
-    }
-
-    pub fn from_writable(value: Writable<bool>) -> Self {
-        Self {
-            value,
             children: Vec::new(),
         }
     }

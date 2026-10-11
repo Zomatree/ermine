@@ -7,11 +7,14 @@ use stoat_models::v0;
 use crate::{
     SizeExt,
     components::{
-        MaterialIcon, MessageModel, UserMention,
+        MaterialIcon, MessageModel, StoatTooltip, UserMention,
         markdown::components::MessageMention,
-        material::filled::{
-            add, arrow_back, arrow_forward, cancel, clear, format_align_left, image, info, key,
-            local_offer, local_police, push_pin, volume_up,
+        material::{
+            filled::{
+                add, arrow_back, arrow_forward, cancel, clear, format_align_left, gpp_bad, image,
+                info, key, local_offer, push_pin,
+            },
+            outlined::phone,
         },
     },
     consume_material_theme, format_duration,
@@ -40,7 +43,7 @@ impl Component for SystemMessage {
                     v0::SystemMessage::UserJoined { .. } => (arrow_forward(), theme.md.primary),
                     v0::SystemMessage::UserLeft { .. } => (arrow_back(), theme.md.error),
                     v0::SystemMessage::UserKicked { .. } => (cancel(), theme.md.error),
-                    v0::SystemMessage::UserBanned { .. } => (local_police(), theme.md.error),
+                    v0::SystemMessage::UserBanned { .. } => (gpp_bad(), theme.md.error),
                     v0::SystemMessage::ChannelRenamed { .. } => (local_offer(), theme.md.primary),
                     v0::SystemMessage::ChannelDescriptionChanged { .. } => {
                         (format_align_left(), theme.md.primary)
@@ -49,7 +52,7 @@ impl Component for SystemMessage {
                     v0::SystemMessage::ChannelOwnershipChanged { .. } => (key(), theme.md.primary),
                     v0::SystemMessage::MessagePinned { .. } => (push_pin(), theme.md.primary),
                     v0::SystemMessage::MessageUnpinned { .. } => (push_pin(), theme.md.primary),
-                    v0::SystemMessage::CallStarted { .. } => (volume_up(), theme.md.primary),
+                    v0::SystemMessage::CallStarted { .. } => (phone(), theme.md.primary),
                 };
 
                 rect()
@@ -57,7 +60,25 @@ impl Component for SystemMessage {
                     .height(Size::px(20.))
                     .center()
                     .color(color.as_argb_u32())
-                    .child(MaterialIcon::new(icon).size(Size::px(16.)))
+                    .child({
+                        let datetime = Timestamp::try_from(
+                            ulid::Ulid::from_string(&self.message.message.id)
+                                .unwrap()
+                                .datetime(),
+                        )
+                        .unwrap()
+                        .to_zoned(TimeZone::system());
+
+                        StoatTooltip::new(
+                            label()
+                                .font_size(11.)
+                                .max_lines(1)
+                                .font_weight(500)
+                                .text(format!("Sent {}", datetime.strftime("%d/%m/%Y %H:%M"))),
+                        )
+                        .position(AttachedPosition::Top)
+                        .child(MaterialIcon::new(icon).size(Size::px(16.)))
+                    })
             })
             .child(
                 match self.system.clone() {
@@ -174,16 +195,26 @@ impl Component for SystemMessage {
                             let end = Timestamp::try_from(SystemTime::from(timestamp)).unwrap();
 
                             p.span(" started a call that lasted ").child(
-                                rect()
-                                    .background(0xff0d1117)
-                                    .padding((1., 4.))
-                                    .corner_radius(12.)
-                                    .child(
-                                        label()
-                                            .color(0xffc9d1d9)
-                                            .line_height(1.5)
-                                            .text(format_duration(end - start)),
-                                    ),
+                                StoatTooltip::new(
+                                    label()
+                                        .font_size(11.)
+                                        .max_lines(1)
+                                        .font_weight(500)
+                                        .text(end.strftime("%d/%m/%Y %H:%M").to_string()),
+                                )
+                                .position(AttachedPosition::Top)
+                                .child(
+                                    rect()
+                                        .background(0xff0d1117)
+                                        .padding((1., 4.))
+                                        .corner_radius(12.)
+                                        .child(
+                                            label()
+                                                .color(0xffc9d1d9)
+                                                .line_height(1.5)
+                                                .text(format_duration(end - start)),
+                                        ),
+                                ),
                             )
                         } else {
                             p.span(" started a call")

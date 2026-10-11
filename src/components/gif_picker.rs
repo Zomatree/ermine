@@ -6,12 +6,9 @@ use itertools::Itertools;
 use tokio::time::sleep;
 
 use crate::{
-    CategoriesQueryParams, SearchQueryParams, SizeExt, TrendingQueryParams,
-    components::{
-        AnimatedImage, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
-        material::outlined::arrow_back,
-    },
-    consume_material_theme, http, proxy_url,
+    CategoriesQueryParams, SearchQueryParams, SizeExt, TrendingQueryParams, components::{
+        AnimatedImage, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, material::outlined::arrow_back, stoat_scrollbar,
+    }, consume_material_theme, http, proxy_url,
 };
 
 const LOCALE: &str = "en_US";
@@ -166,7 +163,7 @@ impl Component for GifPicker {
                             .padding(16.),
                     ),
             )
-            .child(ScrollView::new().height(Size::px(280.)).child({
+            .child(ScrollView::new().scrollbar(stoat_scrollbar).height(Size::px(280.)).child({
                 if !(on_trending() || !query.read().is_empty()) {
                     let trending = trending_placeholder.read().cloned();
                     let mut categories = categories.read().cloned().unwrap_or_default().into_iter();

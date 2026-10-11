@@ -4,9 +4,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, calculate_server_permissions,
-    components::{Category, ChannelButton, ChannelListContextMenu},
-    user_permissions_query,
+    AppChannel, calculate_server_permissions, components::{Category, ChannelButton, ChannelListContextMenu, stoat_scrollbar}, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -76,7 +74,7 @@ impl Component for ChannelList {
                 }
             })
             .child(
-                ScrollView::new().child(
+                ScrollView::new().scrollbar(stoat_scrollbar).child(
                     rect()
                         .cross_align(Alignment::Center)
                         .color(0xff90909a)

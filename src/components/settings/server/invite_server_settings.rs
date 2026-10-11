@@ -1,14 +1,9 @@
 use std::borrow::Cow;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{
-        Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
-        StoatTooltip,
-        material::{filled::content_copy, outlined::delete},
-        use_modals,
-    },
-    consume_material_theme, http,
+    AppChannel, SizeExt, components::{
+        Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{filled::content_copy, outlined::delete}, stoat_scrollbar, use_modals,
+    }, consume_material_theme, http,
 };
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
@@ -251,6 +246,7 @@ impl Component for InviteServerSettings {
                                 )
                                 .into_element()
                         })
+                        .scrollbar(stoat_scrollbar)
                         .length(invites.read().len())
                         .item_size(66.)
                         .min_height(Size::Inner)

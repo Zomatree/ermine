@@ -3,7 +3,7 @@ use std::ops::Not;
 use freya::prelude::*;
 use rand::seq::IteratorRandom;
 
-use crate::{SizeExt, consume_material_theme};
+use crate::{SizeExt, components::stoat_scrollbar, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct MessageList {
@@ -69,6 +69,7 @@ impl Component for MessageList {
             .on_sized(move |e: Event<SizedEventData>| list_viewport.set_if_modified(e.area))
             .child(
                 ScrollView::new_controlled(self.controller)
+                    .scrollbar(stoat_scrollbar)
                     .max_height(Size::Fill)
                     .height(Size::Inner)
                     .maybe_child(self.at_start.read().not().then(|| {

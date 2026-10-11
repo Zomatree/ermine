@@ -4,18 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
-    components::{
-        MaterialIcon, ModalValue, OverviewChannelSettings, PermissionsChannelSettings, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, WebhookChannelSettings,
-        material::{
+    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt, components::{
+        MaterialIcon, ModalValue, OverviewChannelSettings, PermissionsChannelSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, WebhookChannelSettings, material::{
             filled::{chevron_right, clear},
             outlined::delete,
-        },
-        use_modals,
-    },
-    consume_material_theme,
-    theme::Theme,
+        }, stoat_scrollbar, use_modals,
+    }, consume_material_theme, theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -79,6 +73,7 @@ impl Component for ChannelSettings {
                     ))
                     .child(
                         ScrollView::new()
+                            .scrollbar(stoat_scrollbar)
                             .height(Size::Fill)
                             .width(Size::px(230.))
                             .child(

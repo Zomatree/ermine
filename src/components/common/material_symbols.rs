@@ -48,9 +48,12 @@ impl Component for MaterialIcon {
 
         rect()
             .layout(self.layout.clone())
-            .style(self.style.clone())
+            .corner_radius(self.style.corner_radius)
             .child(
                 SvgViewer::new(self.content.clone())
+                    // .asset_age(AssetAge::Unspecified)
+                    .show_loader(false)
+                    .async_rasterization(true)
                     .accessibility(self.accessibility.clone())
                     .image_data(self.image_data.clone())
                     .effect(self.effect.clone())
@@ -110,6 +113,8 @@ impl StyleExt for MaterialIcon {
         &mut self.style
     }
 }
+
+impl DecorationExt for MaterialIcon {}
 
 #[macro_export]
 macro_rules! generate_svg {

@@ -4,13 +4,11 @@ use freya::{
     radio::{RadioChannel, RadioStation},
 };
 use jiff::Timestamp;
-use livekit::{PlatformAudio, Room};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
     rc::Rc,
-    sync::Arc,
     time::Duration,
 };
 
@@ -319,7 +317,6 @@ pub struct AppState {
     pub editing_message: Option<EditingMessage>,
     pub server_settings_page: Option<(String, ServerSettingsPage)>,
     pub channel_settings_page: Option<(String, ChannelSettingsPage)>,
-    pub current_room: Option<(Arc<Room>, PlatformAudio)>,
     pub users_last_message: Option<EditingMessage>,
     pub typing: HashMap<String, HashSet<String>>,
     pub file_hover: bool,
@@ -377,7 +374,6 @@ pub enum AppChannel {
     MessageHandlers,
     EditingMessage,
     ChannelSettingsPage,
-    CurrentRoom,
     UsersLastMessage,
     Typing,
     FileHover,

@@ -1,21 +1,13 @@
-use std::collections::HashMap;
-
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexSet;
-use serde_json::to_value;
 
 use crate::{
-    AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt,
-    components::{
-        CurrentUserButton, HomeButton, ModalValue, Reorder, ServerListButton, StoatButton,
-        StoatButtonLayoutThemePartialExt, StoatTooltip,
-        material::{
+    AppChannel, OrderingSettings, Selection, SettingsPage, SizeExt, components::{
+        CurrentUserButton, HomeButton, ModalValue, Reorder, ServerListButton, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, material::{
             MaterialIcon,
             filled::{add, explore, settings},
-        },
-        use_modals,
-    },
-    consume_material_theme, http,
+        }, stoat_scrollbar, use_modals,
+    }, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -127,6 +119,7 @@ impl Component for ServerList {
         rect()
             .child(
                 ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
                     .child(
                         rect()
                             .width(Size::fill())
@@ -143,7 +136,7 @@ impl Component for ServerList {
                             .child(
                                 Reorder::new(servers, move |server| {
                                     ServerListButton {
-                                        server: server.clone().into_readable(),
+                                        server: server.clone(),
                                     }
                                     .into_element()
                                 })

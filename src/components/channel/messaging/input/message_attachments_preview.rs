@@ -1,17 +1,13 @@
 use freya::prelude::*;
 
 use crate::{
-    SizeExt,
-    components::{
-        Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-        material::{
+    SizeExt, components::{
+        Attachment, AttachmentController, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
             MaterialIcon,
             filled::{add, description},
             outlined::{cancel, hide_image, image},
-        },
-    },
-    consume_material_theme,
+        }, stoat_scrollbar,
+    }, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -31,6 +27,7 @@ impl Component for MessageAttachmentsPreview {
             .width(Size::Fill)
             .child(
                 ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
                     .height(Size::px(130.))
                     .spacing(8.)
                     .direction(Direction::Horizontal)

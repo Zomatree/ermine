@@ -1,8 +1,7 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage,
     components::{Dialog, SingleLineEntry, use_modals},
     consume_material_theme, http,
 };

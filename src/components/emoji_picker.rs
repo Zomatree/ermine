@@ -2,10 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{AnimatedImage, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt},
-    consume_material_theme, get_unicode_emojis, http,
-    types::Tag,
+    AppChannel, SizeExt, components::{AnimatedImage, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, stoat_scrollbar}, consume_material_theme, get_unicode_emojis, http, types::Tag,
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -252,6 +249,7 @@ impl Component for EmojiPicker {
                             }))
                             .into_element()
                 }})
+                .scrollbar(stoat_scrollbar)
                 .item_size(40.)
                 .length(items.read().len() / 10)
                 .width(Size::Fill)

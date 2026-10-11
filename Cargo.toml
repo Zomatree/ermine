@@ -22,20 +22,20 @@ devtools = ["freya/devtools", "freya-devtools"]
 serde_qs = { git = "https://github.com/Zomatree/serde_qs.git", rev = "b7497ee180401babefdf4701f5074710edc1a27b" }
 
 [dependencies]
-freya = { version = "0.5.0-rc.8", features = [
+freya = { version = "0.5.0-beta.11", features = [
     "radio",
     "remote-asset",
     "markdown",
     "zoom-shortcuts",
 ] }
-freya-engine = { version = "0.5.0-rc.8" }
-freya-core = { version = "0.5.0-rc.8" }
-freya-components = { version = "0.5.0-rc.8", features = [
+freya-engine = { version = "0.5.0-beta.11" }
+freya-core = { version = "0.5.0-beta.11" }
+freya-components = { version = "0.5.0-beta.11", features = [
     "remote-asset",
     "gif",
 ] }
-freya-devtools = { version = "0.5.0-rc.8", optional = true }
-freya-metrics-plugin = { version = "0.5.0-rc.8", optional = true }
+freya-devtools = { version = "0.5.0-beta.11", optional = true }
+freya-metrics-plugin = { version = "0.5.0-beta.11", optional = true }
 # freya = { git = "https://github.com/marc2332/freya.git", features = [
 #     "radio",
 #     "remote-asset",
@@ -104,6 +104,8 @@ syntect = { version = "5.3.0", default-features = false, features = [
 two-face = { version = "0.5.2", features = ["syntect-default-fancy"] }
 thumbhash = "0.1.0"
 yuv = { version = "0.8.19", features = ["fast_mode"] }
+# nokhwa = { version = "0.10", features = ["input-native", "output-threaded"]}
+cameras = "0.3.2"
 
 stoat-models = { package = "revolt-models", version = "0.15.1", default-features = false, features = [
     "serde",

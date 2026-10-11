@@ -60,6 +60,24 @@ fn default_api_url() -> String {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct AudioConfig {
+    #[serde(default = "default_deafened")]
+    pub deafened: bool,
+}
+
+fn default_deafened() -> bool {
+    true
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        Self {
+            deafened: default_deafened()
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Config {
     #[serde(default = "default_api_url")]
     pub api: String,
@@ -77,6 +95,8 @@ pub struct Config {
     pub theme: ThemeConfig,
     #[serde(default)]
     pub drafts: HashMap<String, String>,
+    #[serde(default)]
+    pub audio: AudioConfig,
 }
 
 impl Default for Config {
@@ -90,6 +110,7 @@ impl Default for Config {
             hide_members_list: Default::default(),
             theme: Default::default(),
             drafts: Default::default(),
+            audio: Default::default(),
         }
     }
 }

@@ -15,7 +15,7 @@ use crate::{
 
 #[derive(PartialEq)]
 pub struct ServerListButton {
-    pub server: Readable<v0::Server>,
+    pub server: v0::Server,
 }
 
 impl Component for ServerListButton {
@@ -32,20 +32,15 @@ impl Component for ServerListButton {
         let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
         let channels = radio.slice(AppChannel::Channels, |state| &state.channels);
 
-        let server = use_memo({
-            let server = self.server.clone();
-            move || server.read().clone()
-        });
-
         let muted = use_memo({
             let notifications_settings = notifications_settings.clone().into_readable();
-            let server = server.clone();
+            let server_id = self.server.id.clone();
 
-            move || is_server_muted(&server.peek().id, notifications_settings.clone())
+            move || is_server_muted(&server_id, &notifications_settings)
         });
 
+        let server = use_reactive(&self.server);
         let badge = use_memo({
-            let server = server.clone();
             let channels = channels.clone();
 
             move || {
@@ -92,8 +87,7 @@ impl Component for ServerListButton {
             }
         });
 
-        let indicator_height = if &*selection.read() == &Selection::Server(server.peek().id.clone())
-        {
+        let indicator_height = if &*selection.read() == &Selection::Server(self.server.id.clone()) {
             32.
         } else if hovering() {
             16.
@@ -114,7 +108,7 @@ impl Component for ServerListButton {
             })
             .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
-                let server_id = server.read().id.clone();
+                let server_id = self.server.id.clone();
 
                 move |_| {
                     ContextMenu::open_from_down(Menu::new().key(&server_id).child(
@@ -139,7 +133,7 @@ impl Component for ServerListButton {
                     ),
             )
             .child(
-                StoatTooltip::new(label().max_lines(1).text(server.read().name.clone()))
+                StoatTooltip::new(label().max_lines(1).text(self.server.name.clone()))
                     .position(AttachedPosition::Right)
                     .child(
                         rect()
@@ -155,23 +149,24 @@ impl Component for ServerListButton {
                                             .corner_radius(42.)
                                             .child(ServerIcon::new(server, 42.))
                                             .on_press({
+                                                let server = self.server.clone();
+
                                                 move |_| {
                                                     radio
                                                         .write_channel(AppChannel::Selection)
                                                         .selection =
-                                                        Selection::Server(server.peek().id.clone());
+                                                        Selection::Server(server.id.clone());
 
                                                     let channel_id = config
                                                         .read()
                                                         .last_channels
-                                                        .get(&server.peek().id)
+                                                        .get(&server.id)
                                                         .filter(|&id| {
                                                             channels.read().contains_key(id)
                                                         })
                                                         .cloned()
                                                         .or_else(|| {
                                                             server
-                                                                .read()
                                                                 .channels
                                                                 .iter()
                                                                 .find(|&id| {
@@ -225,6 +220,6 @@ impl Component for ServerListButton {
     }
 
     fn render_key(&self) -> DiffKey {
-        (&self.server.peek().id).into()
+        (&self.server.id).into()
     }
 }

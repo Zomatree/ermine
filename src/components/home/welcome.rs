@@ -39,7 +39,7 @@ impl Component for Welcome {
                             }
 
                     )
-                    .child(label().text("Home").font_size(16))
+                    .child(label().font_weight(600).font_size(16).text("Home"))
             )
             .child(
                 rect().horizontal().child(

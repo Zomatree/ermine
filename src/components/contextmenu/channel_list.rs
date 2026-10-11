@@ -4,7 +4,7 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{AppChannel, components::{
     ContextMenuButton, ModalValue,
-    material::outlined::{add_circle_outline, badge, delete, edit},
+    material::outlined::add_circle_outline,
     use_modals,
 }};
 

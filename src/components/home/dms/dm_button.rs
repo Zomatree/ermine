@@ -6,8 +6,7 @@ use stoat_models::v0;
 use crate::{
     AppChannel, NotificationBadge, SizeExt, calculate_channel_permissions,
     components::{
-        Avatar, ChannelContextMenu, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
-        file_image,
+        Avatar, ChannelContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, file_image,
     },
     consume_material_theme, get_unread_badge, user_permissions_query,
 };
@@ -176,13 +175,14 @@ impl Component for DMDirectMessageButton {
                 rect()
                     .child(
                         label()
+                            .font_weight(500)
+                            .font_size(15)
+                            .max_lines(1)
+                            .text_overflow(TextOverflow::Ellipsis)
                             .text({
                                 let user = user.read();
                                 user.display_name.as_ref().unwrap_or(&user.username).clone()
-                            })
-                            .font_size(15)
-                            .max_lines(1)
-                            .text_overflow(TextOverflow::Ellipsis),
+                            }),
                     )
                     .maybe_child(
                         user.read()
@@ -282,6 +282,7 @@ impl Component for GroupDMIcon {
                         .height(Size::Fill)
                         .center()
                         .font_size((12. / 32.) * self.size)
+                        .font_weight(600)
                         .child(initials)
                         .color(
                             if self.invert {
@@ -319,10 +320,11 @@ impl Component for DMGroupButton {
                 rect()
                     .child(
                         label()
-                            .text(name)
+                            .font_weight(500)
                             .max_lines(1)
                             .text_overflow(TextOverflow::Clip)
-                            .font_size(15),
+                            .font_size(15)
+                            .text(name),
                     )
                     .child(label().text(format!("{users} Members")).font_size(11)),
             )

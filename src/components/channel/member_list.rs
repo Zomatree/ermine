@@ -7,13 +7,9 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
-    components::{
-        Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-        UserCard, UserContextMenu, file_image, material::filled::smart_toy, use_floating,
-    },
-    consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
-    user_permissions_query,
+    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions, components::{
+        Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, UserCard, UserContextMenu, file_image, material::filled::smart_toy, stoat_scrollbar, use_floating,
+    }, consume_material_theme, http, insert_user, map_optional_readable, member_display_color, user_permissions_query,
 };
 
 #[derive(Clone)]
@@ -311,6 +307,7 @@ impl Component for MemberList {
                     }
                 }
             })
+            .scrollbar(stoat_scrollbar)
             .item_size(42.)
             .length(elements.read().len()),
         )

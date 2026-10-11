@@ -1,7 +1,6 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::prelude::*;
 
 use crate::{
-    AppChannel,
     components::{Dialog, use_modals},
     http,
 };

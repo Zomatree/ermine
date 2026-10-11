@@ -2,9 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Message, MessageModel, StoatSegmentedButton},
-    http,
+    AppChannel, components::{Message, MessageModel, StoatSegmentedButton, stoat_scrollbar}, http,
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -134,6 +132,7 @@ impl Component for MessageSearch {
             )
             .child(
                 ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
                     .width(Size::Fill)
                     .child(match results.read().cloned() {
                         None => rect()

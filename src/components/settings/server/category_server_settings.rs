@@ -5,17 +5,12 @@ use stoat_models::v0;
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{
-        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
-        material::{
+    AppChannel, SizeExt, components::{
+        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
             filled::clear,
             outlined::{add, drag_indicator, grid_3x3, headset_mic},
-        },
-        use_modals,
-    },
-    consume_material_theme, http, use_changed_from_readable,
+        }, stoat_scrollbar, use_modals,
+    }, consume_material_theme, http, use_changed_from_readable,
 };
 
 #[derive(PartialEq)]
@@ -107,6 +102,7 @@ impl Component for CategoryServerSettings {
             )
             .child(
                 ScrollView::new()
+                    .scrollbar(stoat_scrollbar)
                     .direction(Direction::Horizontal)
                     .child(ReorderCategories {
                         server: self.server.clone(),

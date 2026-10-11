@@ -5,7 +5,7 @@ use crate::{
     components::{
         AnimatedImage, MarkdownViewer, MessageAttachment, MessageModel, ModalValue, use_modals,
     },
-    consume_material_theme, http, parse_fill, proxy_url,
+    consume_material_theme, parse_fill, proxy_url,
 };
 
 #[derive(PartialEq)]

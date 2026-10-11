@@ -1,24 +1,14 @@
 use std::mem::discriminant;
 
-use freya::{
-    prelude::*,
-    radio::{use_radio, use_radio_station},
-};
+use freya::{prelude::*, radio::use_radio};
 
 use crate::{
-    AppChannel, AppState, Config, SettingsPage, SizeExt,
-    components::{
-        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings,
-        SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, VoiceSettings,
-        material::{
+    AppChannel, AppState, Config, SettingsPage, SizeExt, components::{
+        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings, SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, VoiceSettings, material::{
             filled::clear,
             outlined::{chevron_right, logout},
-        },
-    },
-    consume_material_theme, http,
-    theme::Theme,
-    use_config,
+        }, stoat_scrollbar,
+    }, consume_material_theme, http, theme::Theme, use_config,
 };
 
 #[derive(PartialEq)]
@@ -78,6 +68,7 @@ impl Component for Settings {
                     ))
                     .child(
                         ScrollView::new()
+                            .scrollbar(stoat_scrollbar)
                             .height(Size::Fill)
                             .width(Size::px(230.))
                             .child(
@@ -142,6 +133,7 @@ impl Component for Settings {
                             .content(Content::Flex)
                             .child(
                                 ScrollView::new()
+                                    .scrollbar(stoat_scrollbar)
                                     .width(Size::flex(1.))
                                     .max_width(Size::px(740.))
                                     .child(rect().padding((32., 32.)).maybe_child(

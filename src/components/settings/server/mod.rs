@@ -5,6 +5,7 @@ pub mod overview_server_settings;
 pub mod role_server_settings;
 pub mod server_settings;
 pub mod category_server_settings;
+pub mod ban_server_settings;
 
 pub use audit_log_server_settings::*;
 pub use emoji_server_settings::*;
@@ -13,3 +14,4 @@ pub use overview_server_settings::*;
 pub use role_server_settings::*;
 pub use server_settings::*;
 pub use category_server_settings::*;
+pub use ban_server_settings::*;

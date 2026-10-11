@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
 use freya::{
     animation::{
@@ -27,12 +27,8 @@ impl<T: PartialEq + 'static, B> PartialEq for StoatSegmentedButton<T, B> {
 
 impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> StoatSegmentedButton<T, B> {
     pub fn new(state: impl IntoWritable<T>, options: Vec<T>, builder: B) -> Self {
-        Self::from_writable(state.into_writable(), options, builder)
-    }
-
-    pub fn from_writable(state: Writable<T>, options: Vec<T>, builder: B) -> Self {
         Self {
-            state,
+            state: state.into_writable(),
             options,
             builder,
             height: 40.,

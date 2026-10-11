@@ -1,26 +1,24 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use bytes::BytesMut;
 use freya::{elements::image::ImageHandle, prelude::*, radio::use_radio};
 use freya_engine::prelude::AlphaType;
 use futures::StreamExt;
 use livekit::{
-    PlatformAudio, Room,
-    prelude::{Participant, RemoteParticipant},
-    track::{LocalTrack, RemoteTrack, RemoteVideoTrack, TrackKind, TrackSource, VideoTrack},
+    Room as LivekitRoom,
+    prelude::Participant,
+    track::{LocalTrack, RemoteTrack, TrackKind, TrackSource, VideoTrack},
     webrtc::{prelude::VideoBuffer, video_stream::native::NativeVideoStream},
 };
 use stoat_models::v0;
+use tokio::time::sleep;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off},
-    consume_material_theme,
+    AppChannel, Room, SizeExt, components::{Avatar, MaterialIcon, RoomControls, material::filled::mic_off, stoat_scrollbar}, consume_material_theme,
 };
 
 pub struct RoomManager {
-    pub room: Arc<Room>,
-    pub audio: PlatformAudio,
+    pub room: Arc<LivekitRoom>,
 }
 
 impl PartialEq for RoomManager {
@@ -32,12 +30,13 @@ impl PartialEq for RoomManager {
 impl Component for RoomManager {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Channels);
+        let room = consume_context::<Room>();
 
         let channel = radio
             .slice_current({
-                let room = self.room.clone();
+                let name = self.room.name();
 
-                move |state| state.channels.get(&room.name()).unwrap()
+                move |state| state.channels.get(&name).unwrap()
             })
             .into_readable();
 
@@ -57,25 +56,8 @@ impl Component for RoomManager {
             }
         });
 
-        let mut local_participant = use_state(|| self.room.local_participant());
-        let mut remote_participants = use_state(|| self.room.remote_participants());
-
-        use_hook({
-            let room = self.room.clone();
-
-            move || {
-                let mut sub = room.subscribe();
-
-                spawn({
-                    async move {
-                        while let Some(_event) = sub.recv().await {
-                            local_participant.set(room.local_participant());
-                            remote_participants.set(room.remote_participants());
-                        }
-                    }
-                });
-            }
-        });
+        let local_participant = room.local_participant().unwrap();
+        let remote_participants = room.remote_participants();
 
         rect()
             .content(Content::Flex)
@@ -86,21 +68,18 @@ impl Component for RoomManager {
                     .overflow(Overflow::Clip)
                     .height(Size::flex(1.))
                     .child(
-                        ScrollView::new().child(
+                        ScrollView::new().scrollbar(stoat_scrollbar).child(
                             rect()
                                 .horizontal()
                                 .content(Content::wrap_spacing(8.))
                                 .spacing(8.)
                                 .child(RoomUserCard {
-                                    participant: Participant::Local(
-                                        local_participant.read().cloned(),
-                                    ),
+                                    participant: Participant::Local(local_participant.clone()),
                                     channel: channel.clone(),
                                     server: server.clone(),
                                 })
                                 .children(
                                     local_participant
-                                        .read()
                                         .track_publications()
                                         .values()
                                         .filter(|track_pub| track_pub.kind() == TrackKind::Video)
@@ -112,7 +91,7 @@ impl Component for RoomManager {
 
                                             RoomVideoCard {
                                                 participant: Participant::Local(
-                                                    local_participant.read().cloned(),
+                                                    local_participant.clone(),
                                                 ),
                                                 track: VideoTrack::Local(track),
                                                 channel: channel.clone(),
@@ -122,7 +101,6 @@ impl Component for RoomManager {
                                 )
                                 .children(
                                     remote_participants
-                                        .read()
                                         .values()
                                         .map(|p| {
                                             let mut cards = Vec::new();
@@ -165,8 +143,6 @@ impl Component for RoomManager {
             )
             .child(rect().width(Size::Fill).center().child(RoomControls {
                 room: self.room.clone(),
-                audio: self.audio.clone(),
-                local_participant,
             }))
     }
 }
@@ -178,8 +154,8 @@ struct RoomUserCard {
 }
 
 impl PartialEq for RoomUserCard {
-    fn eq(&self, _other: &Self) -> bool {
-        false
+    fn eq(&self, other: &Self) -> bool {
+        self.participant.identity() == other.participant.identity()
     }
 }
 
@@ -307,7 +283,7 @@ impl Component for RoomVideoCard {
             let mut stream = NativeVideoStream::new(self.track.rtc_track());
             spawn(async move {
                 while let Some(frame) = stream.next().await {
-                    let buf = frame.buffer.as_i420().unwrap();
+                    let buf = frame.buffer.to_i420();
                     let (stride_y, stride_u, stride_v) = buf.strides();
 
                     let (y, u, v) = buf.data();
@@ -350,11 +326,11 @@ impl Component for RoomVideoCard {
                         yuv::YuvStandardMatrix::Bt601,
                     )
                     .unwrap();
-
                     let bytes = Bytes::copy_from_slice(&rgba_buf);
                     let h =
                         ImageHandle::from_rgba(buf.width(), buf.height(), bytes, AlphaType::Opaque);
                     handle.set(h);
+                    sleep(Duration::from_secs_f64(1. / 30.)).await
                 }
             });
         });

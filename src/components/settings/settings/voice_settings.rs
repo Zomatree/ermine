@@ -27,6 +27,9 @@ impl Component for VoiceSettings {
             .collect::<HashMap<_, _>>();
         let audio_output = use_state(|| PlayoutDeviceId::from_unchecked_guid("default"));
 
+        let video_devices = use_hook(|| cameras::devices().unwrap_or_default());
+        let video_input = use_state(|| video_devices.first().map(|d| d.id.clone()));
+
         let noise_suppression = use_state(|| audio.active_ns_type() != AudioProcessingType::None);
         let echo_cancellation = use_state(|| audio.active_aec_type() != AudioProcessingType::None);
         let automatic_gain_control =
@@ -58,7 +61,7 @@ impl Component for VoiceSettings {
                     .spacing(8.)
                     .child(Dropdown::new(
                         "Audio Input",
-                        audio_input.into_writable(),
+                        audio_input,
                         recording_devices.keys().cloned().collect(),
                         move |id| {
                             recording_devices
@@ -71,14 +74,29 @@ impl Component for VoiceSettings {
                     ))
                     .child(Dropdown::new(
                         "Audio Output",
-                        audio_output.into_writable(),
+                        audio_output,
                         playout_devices.keys().cloned().collect(),
                         move |id| playout_devices.get(id).unwrap().name.clone().into_element(),
+                    ))
+                    .child(Dropdown::new(
+                        "Video Input",
+                        video_input,
+                        video_devices.iter().map(|d| Some(d.id.clone())).collect(),
+                        move |id| {
+                            if let Some(id) = id
+                                && let Some(device) = video_devices.iter().find(|d| &d.id == id)
+                            {
+                                device.name.clone().into_element()
+                            } else {
+                                "Unknown Device".into_element()
+                            }
+                        },
                     )),
             )
             .child(
                 rect()
                     .spacing(8.)
+                    .child(label().font_size(14.).font_weight(550).text("Voice Processing"))
                     .child(StoatCheckbox::new(noise_suppression).child("Noise Suppression"))
                     .child(StoatCheckbox::new(echo_cancellation).child("Echo Cancellation"))
                     .child(

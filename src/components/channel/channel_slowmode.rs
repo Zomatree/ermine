@@ -83,6 +83,7 @@ impl Component for ChannelSlowmode {
                 .cross_align(Alignment::Center)
                 .horizontal()
                 .spacing(4.)
+                .font_weight(600)
                 .child(MaterialIcon::new(schedule()).size(Size::px(16.)))
                 .child(
                     if permissions().has_channel_permission(

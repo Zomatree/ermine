@@ -5,6 +5,7 @@ use chumsky::{
     text::{digits, ident, int, keyword, whitespace},
 };
 use freya::prelude::*;
+use freya_engine::prelude::{RuntimeEffect, Shader};
 
 // angle of 0. is down
 
@@ -45,30 +46,24 @@ fn named_color_parser<'a>() -> impl Parser<'a, &'a str, Color> {
     ))
 }
 
-fn direction_parser<'a>() -> impl Parser<'a, &'a str, f32> {
-    let primary = choice((keyword("top"), keyword("bottom")))
-        .to_slice()
-        .padded();
-    let secondary = choice((keyword("left"), keyword("right")))
+fn direction_parser<'a>() -> impl Parser<'a, &'a str, Direction> {
+    let direction = choice((keyword("top"), keyword("bottom"), keyword("left"), keyword("right")))
         .to_slice()
         .padded();
 
     just("to")
         .ignore_then(
-            secondary
-                .clone()
-                .map(|v| (Some(v), None))
-                .or(primary.map(Some).then(secondary.map(Some))),
+            direction.clone().then(direction.or_not())
         )
         .map(|(a, b)| match (a, b) {
-            (Some("bottom"), None) => 0.,
-            (Some("bottom"), Some("left")) => 45.,
-            (Some("left"), None) => 90.,
-            (Some("top"), Some("left")) => 135.,
-            (Some("top"), None) => 180.,
-            (Some("top"), Some("right")) => 225.,
-            (Some("right"), None) => 270.,
-            (Some("bottom"), Some("right")) => 315.,
+            ("bottom", None) => Direction::Bottom,
+            ("bottom", Some("left")) | ("left", Some("bottom")) => Direction::BottomLeft,
+            ("left", None) => Direction::Left,
+            ("top", Some("left")) | ("left", Some("top")) => Direction::TopLeft,
+            ("top", None) => Direction::Top,
+            ("top", Some("right")) | ("right", Some("top")) => Direction::TopRight,
+            ("right", None) => Direction::Right,
+            ("bottom", Some("right")) | ("right", Some("bottom")) => Direction::BottomRight,
             _ => unreachable!(),
         })
 }
@@ -93,8 +88,8 @@ fn base_angle_parser<'a>() -> impl Parser<'a, &'a str, f32> {
         } + 180.)
 }
 
-fn angle_parser<'a>() -> impl Parser<'a, &'a str, f32> {
-    direction_parser().or(base_angle_parser())
+fn angle_parser<'a>() -> impl Parser<'a, &'a str, Direction> {
+    direction_parser().or(base_angle_parser().map(Direction::Angle))
 }
 
 fn hex_parser<'a>() -> impl Parser<'a, &'a str, Color> {
@@ -183,7 +178,7 @@ fn stop_parser<'a>() -> impl Parser<'a, &'a str, (Color, Option<f32>)> {
     )
 }
 
-fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, LinearGradient> {
+fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, Fill> {
     let angle = angle_parser().padded().then_ignore(just(','));
     let stops = stop_parser()
         .padded()
@@ -199,7 +194,7 @@ fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, LinearGradient> {
                 .delimited_by(just('('), just(')')),
         )
         .map(|(angle, stops)| {
-            let mut gradient = LinearGradient::new().angle(angle.unwrap_or(0.));
+            let mut gradient = LinearGradient::new().angle(0.);
 
             if stops.iter().all(|(_, p)| p.is_some()) {
                 for (color, percentage) in stops {
@@ -213,7 +208,7 @@ fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, LinearGradient> {
                 }
             }
 
-            gradient
+            generate_linear_shader(gradient, angle.unwrap_or_else(|| Direction::Bottom))
         })
         .boxed()
 }
@@ -221,10 +216,61 @@ fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, LinearGradient> {
 fn fill_parser<'a>() -> impl Parser<'a, &'a str, Fill> {
     choice((
         inner_color_parser().map(Fill::Color),
-        linear_gradient_parser().map(|gr| Fill::LinearGradient(Box::new(gr))),
+        linear_gradient_parser(),
     ))
 }
 
 pub fn parse_fill(input: &str) -> Option<Fill> {
     fill_parser().parse(input).into_result().ok()
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Direction {
+    Angle(f32),
+    Bottom,
+    BottomLeft,
+    Left,
+    TopLeft,
+    Top,
+    TopRight,
+    Right,
+    BottomRight,
+}
+
+struct Provider(LinearGradient, Direction);
+
+impl ShaderProvider for Provider {
+    fn prepare_shader(&self, _effect: &RuntimeEffect, bounds: Area) -> Option<Shader> {
+        let angle = match &self.1 {
+            Direction::Angle(angle) => *angle,
+            Direction::Bottom => 0.,
+            Direction::BottomLeft => (bounds.width() / bounds.height()).atan() * (180. / PI),
+            Direction::Left => 90.,
+            Direction::TopLeft => 90. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
+            Direction::Top => 180.,
+            Direction::TopRight => 180. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
+            Direction::Right => 270.,
+            Direction::BottomRight => {
+                270. + ((bounds.width() / bounds.height()).atan() * (180. / PI))
+            }
+        };
+
+        self.0.clone().angle(angle).prepare_shader(bounds)
+    }
+}
+
+const FAKE_SHADER: &str = "float4 main(vec2 inCoords) { return float4(0.0, 0.0, 0.0, 0.0); }";
+
+thread_local! {
+    static S: RuntimeEffect = RuntimeEffect::make_for_shader(FAKE_SHADER, None).unwrap();
+}
+
+fn generate_linear_shader(gradient: LinearGradient, direction: Direction) -> Fill {
+    let effect = S.with(|e| e.clone());
+
+    Fill::Shader(Box::new(ShaderFill::from_provider(
+        FAKE_SHADER,
+        effect,
+        Provider(gradient, direction),
+    )))
 }

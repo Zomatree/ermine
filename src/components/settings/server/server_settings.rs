@@ -4,18 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
-    components::{
-        AuditLogServerSettings, CategoryServerSettings, EmojiServerSettings, InviteServerSettings,
-        MaterialIcon, OverviewServerSettings, RoleServerSettings, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
-        material::{
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, components::{
+        AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings, InviteServerSettings, MaterialIcon, OverviewServerSettings, RoleServerSettings, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, material::{
             filled::{chevron_right, clear},
             outlined::delete,
-        },
-    },
-    consume_material_theme,
-    theme::Theme,
+        }, stoat_scrollbar,
+    }, consume_material_theme, theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -77,6 +71,7 @@ impl Component for ServerSettings {
                     ))
                     .child(
                         ScrollView::new()
+                            .scrollbar(stoat_scrollbar)
                             .height(Size::Fill)
                             .width(Size::px(230.))
                             .child(
@@ -219,10 +214,10 @@ impl Component for ServerSettings {
                                                     .into_element()
                                                 }
                                                 ServerSettingsPage::Bans => {
-                                                    "Coming soon!".into_element()
+                                                    BanServerSettings { server: self.server.clone() }.into_element()
                                                 },
                                                 ServerSettingsPage::AuditLogs => {
-                                                    AuditLogServerSettings {  server: self.server.clone() }.into_element()
+                                                    AuditLogServerSettings { server: self.server.clone() }.into_element()
                                                 }
                                             })
                                     })),

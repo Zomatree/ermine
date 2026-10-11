@@ -1,12 +1,11 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
-use livekit::{PlatformAudio, Room, RoomOptions};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
+    AppChannel, Room, SizeExt, VoiceConnectionStatus,
     components::{
         AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
         MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, RoomManager,
@@ -18,7 +17,7 @@ use crate::{
         message_pinned::MessagePinned,
         use_modals,
     },
-    consume_material_theme, http, use_config,
+    consume_material_theme, use_config,
 };
 
 #[derive(PartialEq)]
@@ -32,8 +31,7 @@ impl Component for Channel {
     fn render(&self) -> impl IntoElement {
         let mut config = use_config();
         let radio = use_radio(AppChannel::UserId);
-        let current_room =
-            radio.slice_mut(AppChannel::CurrentRoom, |state| &mut state.current_room);
+        let room = consume_context::<Room>();
         let theme = consume_material_theme();
         let mut modals = use_modals();
 
@@ -119,7 +117,7 @@ impl Component for Channel {
                             _ => grid_3x3(),
                         },
                     })
-                    .child(label().text(channel_name).font_size(16).max_lines(1))
+                    .child(label().font_weight(600).font_size(16).max_lines(1).text(channel_name))
                     .maybe_child(channel_description.is_some().then(|| {
                         rect()
                             .height(Size::px(20.))
@@ -170,66 +168,14 @@ impl Component for Channel {
                                 StoatButton::new()
                                     .corner_radius(40.)
                                     .on_press({
-                                        let current_room = current_room.clone();
+                                        let id = channel.id().to_string();
+
                                         move |_| {
                                             spawn({
-                                                let id = channel.id().to_string();
-                                                let current_room = current_room.clone();
+                                                let id = id.clone();
+
                                                 async move {
-                                                    let http = http();
-                                                    if let Ok(resp) = http
-                                                        .join_call(
-                                                            &id,
-                                                            &v0::DataJoinCall {
-                                                                node: Some(
-                                                                    http.api_config
-                                                                        .features
-                                                                        .livekit
-                                                                        .nodes
-                                                                        .first()
-                                                                        .unwrap()
-                                                                        .name
-                                                                        .clone(),
-                                                                ),
-                                                                force_disconnect: Some(true),
-                                                                recipients: None,
-                                                            },
-                                                        )
-                                                        .await
-                                                    {
-                                                        let audio = PlatformAudio::new().unwrap();
-
-                                                        audio
-                                                            .set_playout_device(
-                                                                &audio
-                                                                    .playout_devices()
-                                                                    .next()
-                                                                    .unwrap()
-                                                                    .id,
-                                                            )
-                                                            .unwrap();
-                                                        audio
-                                                            .set_recording_device(
-                                                                &audio
-                                                                    .recording_devices()
-                                                                    .next()
-                                                                    .unwrap()
-                                                                    .id,
-                                                            )
-                                                            .unwrap();
-                                                        let mut options = RoomOptions::default();
-                                                        options.auto_subscribe = false;
-
-                                                        let (room, _) = Room::connect(
-                                                            &resp.url,
-                                                            &resp.token,
-                                                            options,
-                                                        )
-                                                        .await
-                                                        .unwrap();
-                                                        *current_room.clone().write() =
-                                                            Some((Arc::new(room), audio));
-                                                    };
+                                                    room.connect(&id).await;
                                                 }
                                             });
                                         }
@@ -342,16 +288,32 @@ impl Component for Channel {
                             .height(Size::Fill)
                             .width(Size::flex(1.))
                             .spacing(8.)
-                            .maybe_child(current_room.read().cloned().map(|(room, audio)| {
-                                rect()
-                                    .height(Size::flex(4.))
-                                    .width(Size::flex(1.))
-                                    .content(Content::Flex)
-                                    .corner_radius(28.)
-                                    .background(theme.md.secondary_container.as_argb_u32())
-                                    .padding(8.)
-                                    .child(RoomManager { room: room, audio })
-                            }))
+                            .maybe_child(if room.status() == VoiceConnectionStatus::Connecting {
+                                Some(
+                                    rect()
+                                        .height(Size::flex(4.))
+                                        .width(Size::flex(1.))
+                                        .center()
+                                        .corner_radius(28.)
+                                        .background(theme.md.secondary_container.as_argb_u32())
+                                        .child(CircularLoader::new().size(48.)),
+                                )
+                            } else if let Some(room) = room.read()
+                                && &room.name() == channel.id()
+                            {
+                                Some(
+                                    rect()
+                                        .height(Size::flex(4.))
+                                        .width(Size::flex(1.))
+                                        .content(Content::Flex)
+                                        .corner_radius(28.)
+                                        .background(theme.md.secondary_container.as_argb_u32())
+                                        .padding(8.)
+                                        .child(RoomManager { room: room }),
+                                )
+                            } else {
+                                None
+                            })
                             .child(
                                 rect()
                                     .height(Size::flex(6.))

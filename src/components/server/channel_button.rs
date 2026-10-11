@@ -11,8 +11,8 @@ use crate::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, UserCard,
         material::{
-            filled::{grid_3x3, mic_off, person_add_alt_1, settings},
-            outlined::headset_mic,
+            filled::{grid_3x3, person_add_alt_1, settings},
+            outlined::{camera_alt, headset_mic, mic_off, screen_share},
         },
         use_floating, use_modals,
     },
@@ -57,7 +57,7 @@ impl Component for ChannelButton {
         let muted = use_memo({
             let channel = channel.clone();
             let mutes = mutes.into_readable();
-            move || is_channel_muted(channel.read().id(), mutes.clone())
+            move || is_channel_muted(channel.read().id(), &mutes)
         });
 
         let unread_badge = use_memo({
@@ -192,6 +192,7 @@ impl Component for ChannelButton {
                                         .text(channel.read().name().unwrap().to_string())
                                         .text_overflow(TextOverflow::Ellipsis)
                                         .width(Size::flex(1.))
+                                        .font_weight(500)
                                         .max_lines(1),
                                 )
                                 .maybe_child(
@@ -311,7 +312,7 @@ impl Component for ChannelButton {
             )
             .maybe_child(voice_participants.filter(|v| !v.is_empty()).map(|voice_participants|
                 rect()
-                    .padding((4., 8., 4., 16.))
+                    .padding((4., 8., 4., 24.))
                     .children(voice_participants
                         .into_iter()
                         .map(|voice_state| {
@@ -406,11 +407,26 @@ impl Component for VoiceParticipant {
                                 ),
                         )
                     })
-                    .maybe_child(
-                        self.voice_state
-                            .is_publishing
-                            .not()
-                            .then(|| MaterialIcon::new(mic_off()).size(Size::px(16.))),
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(4.)
+                            .maybe_child(
+                                self.voice_state
+                                    .is_publishing
+                                    .not()
+                                    .then(|| MaterialIcon::new(mic_off()).size(Size::px(16.))),
+                            )
+                            .maybe_child(
+                                self.voice_state
+                                    .camera
+                                    .then(|| MaterialIcon::new(camera_alt()).size(Size::px(16.))),
+                            )
+                            .maybe_child(
+                                self.voice_state
+                                    .screensharing
+                                    .then(|| MaterialIcon::new(screen_share()).size(Size::px(16.))),
+                            ),
                     ),
             )
     }

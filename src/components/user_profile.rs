@@ -5,17 +5,9 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions,
-    components::{
-        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
-        file_image,
-        material::{filled::cancel, outlined::more_vert},
-        use_modals,
-    },
-    consume_material_theme, format_autumn_url, http, parse_fill,
-    theme::Theme,
-    user_permissions_query,
+    AppChannel, SizeExt, calculate_server_permissions, components::{
+        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu, file_image, material::{filled::cancel, outlined::more_vert}, stoat_scrollbar, use_modals,
+    }, consume_material_theme, format_autumn_url, http, parse_fill, theme::Theme, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -54,7 +46,7 @@ impl Component for UserProfile {
         });
 
         rect().background(0xBB000000).expanded().child(
-            ScrollView::new().expanded().child(
+            ScrollView::new().scrollbar(stoat_scrollbar).expanded().child(
                 rect()
                     .padding(80.)
                     .cross_align(Alignment::Center)
@@ -676,7 +668,7 @@ impl Component for ProfileRoles {
         card(
             "Roles",
             &theme,
-            ScrollView::new().children(roles.read().iter().map(|(role, color)| {
+            ScrollView::new().scrollbar(stoat_scrollbar).children(roles.read().iter().map(|(role, color)| {
                 rect()
                     .horizontal()
                     .main_align(Alignment::SpaceBetween)

@@ -10,14 +10,15 @@ pub mod state;
 pub mod stoat;
 pub mod theme;
 pub mod utils;
+pub mod voice;
 
-// pub use components::*;
 pub use config::*;
 pub use error::*;
 pub use state::*;
 pub use stoat::*;
 pub use theme::*;
 pub use utils::*;
+pub use voice::*;
 
 use crate::components::{HttpManager, MaterialThemeProvider, ModalManager, Root};
 

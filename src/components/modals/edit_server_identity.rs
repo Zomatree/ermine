@@ -2,12 +2,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, Tag,
+    AppChannel,
     components::{
-        Dialog, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonLayoutThemePartialExt,
-        file_image, material::outlined::clear, use_modals,
+        Dialog,  SingleLineEntry,
+        use_modals,
     },
-    consume_material_theme, format_error, http, prompt_image_upload, use_initial,
+    format_error, http,
 };
 
 #[derive(PartialEq)]
@@ -18,7 +18,6 @@ pub struct EditServerIdentity {
 
 impl Component for EditServerIdentity {
     fn render(&self) -> impl IntoElement {
-        let theme = consume_material_theme();
         let mut modals = use_modals();
         let radio = use_radio(AppChannel::Users);
 
@@ -28,7 +27,6 @@ impl Component for EditServerIdentity {
         });
         let member = radio.slice(AppChannel::Members, {
             let server = self.server.clone();
-            let user_id = self.user.clone();
 
             move |state| {
                 state

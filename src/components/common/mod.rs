@@ -15,6 +15,7 @@ pub mod server_icon;
 pub mod tooltip;
 pub mod user_mention;
 pub mod radio_button;
+pub mod scrollbar;
 
 pub use animated_image::*;
 pub use avatar::*;
@@ -33,3 +34,4 @@ pub use server_icon::*;
 pub use tooltip::*;
 pub use user_mention::*;
 pub use radio_button::*;
+pub use scrollbar::*;

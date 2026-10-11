@@ -5,12 +5,9 @@ use stoat_permissions::{ChannelPermission, UserPermission};
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions, calculate_user_permissions,
-    components::{
-        Dialog, GroupDMIcon, ServerIcon, SingleLineEntry, StoatButton,
-        StoatButtonLayoutThemePartialExt, checkbox::StoatCheckbox, file_image, use_modals,
-    },
-    consume_material_theme, http, user_permissions_query,
+    AppChannel, SizeExt, calculate_server_permissions, calculate_user_permissions, components::{
+        Dialog, GroupDMIcon, ServerIcon, SingleLineEntry, StoatButton, StoatButtonLayoutThemePartialExt, checkbox::StoatCheckbox, file_image, stoat_scrollbar, use_modals,
+    }, consume_material_theme, http, user_permissions_query,
 };
 
 #[derive(Clone)]
@@ -245,7 +242,7 @@ impl Component for InviteBot {
                                 ),
                             ),
                     )
-                    .child(ScrollView::new().max_height(Size::px(240.)).children(
+                    .child(ScrollView::new().scrollbar(stoat_scrollbar).max_height(Size::px(240.)).children(
                         filtered.read().iter().map({
                             let current_selection = selected.read();
 

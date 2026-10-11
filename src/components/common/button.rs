@@ -1,4 +1,12 @@
-use freya::prelude::*;
+use std::time::Duration;
+
+use freya::{
+    animation::{
+        AnimNum, AnimatedValue, OnChange, OnCreation,
+        use_animation_with_dependencies,
+    },
+    prelude::*,
+};
 
 use crate::{components::StoatTooltip, consume_material_theme};
 
@@ -126,21 +134,89 @@ impl Component for StoatButton {
             "stoat_button_layout"
         );
 
+        let anim = use_animation_with_dependencies(&self.enabled, |anim, enabled| {
+            anim.on_change(OnChange::Rerun);
+            anim.on_creation(OnCreation::Finish);
+
+            let anims = AnimNum::new(0., 1.)
+                .duration(Duration::from_secs_f32(0.1))
+                .ease(freya::animation::Ease::InOut);
+
+            if *enabled {
+                anims
+            } else {
+                anims.into_reversed()
+            }
+        });
+
+        // let anim = use_animation_with_dependencies(&(self.enabled, theme_color, theme_background), {
+        //     move |anim, (enabled, theme_color, theme_background)| {
+        //         anim.on_change(OnChange::Rerun);
+        //         anim.on_creation(OnCreation::Finish);
+
+        //         let color = AnimColor::new(
+        //             Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.38),
+        //             if theme_color == &Color::TRANSPARENT {
+        //                 theme.md.on_surface.as_argb_u32().into()
+        //             } else {
+        //                 theme_color.clone()
+        //             },
+        //         )
+        //         .duration(Duration::from_secs_f32(0.1))
+        //         .ease(freya::animation::Ease::Out);
+
+        //         let background = AnimColor::new(
+        //             Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.1),
+        //             theme_background.clone(),
+        //         )
+        //         .duration(Duration::from_secs_f32(0.1))
+        //         .ease(freya::animation::Ease::Out);
+
+        //         let anims = (color, background);
+
+        //         if *enabled {
+        //             anims
+        //         } else {
+        //             anims.into_reversed()
+        //         }
+        //     }
+        // });
+
         let enabled = self.enabled;
 
-        let color = if !enabled {
-            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.38)
-        } else if theme_colors.color == Color::TRANSPARENT {
-            theme.md.on_surface.as_argb_u32().into()
-        } else {
-            theme_colors.color
-        };
+        let percentage = anim.read().value();
 
-        let background = if !enabled {
-            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.1)
-        } else {
-            theme_colors.background
-        };
+        let color = Color::lerp(
+            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.38),
+            if theme_colors.color == Color::TRANSPARENT {
+                theme.md.on_surface.as_argb_u32().into()
+            } else {
+                theme_colors.color
+            },
+            percentage,
+        );
+
+        let background = Color::lerp(
+            Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.1),
+            theme_colors.background,
+            percentage,
+        );
+
+        // let (color, background) = anim.read().value();
+
+        // let color = if !enabled {
+        //     Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.38)
+        // } else if theme_colors.color == Color::TRANSPARENT {
+        //     theme.md.on_surface.as_argb_u32().into()
+        // } else {
+        //     theme_colors.color
+        // };
+
+        // let background = if !enabled {
+        //     Color::from(theme.md.on_surface.as_argb_u32()).with_af32(0.1)
+        // } else {
+        //     theme_colors.background
+        // };
 
         let button = rect()
             .overflow(Overflow::Clip)

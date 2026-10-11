@@ -2,9 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{FriendButton, FriendPage},
-    consume_material_theme,
+    AppChannel, components::{FriendButton, FriendPage, stoat_scrollbar}, consume_material_theme,
 };
 
 #[derive(PartialEq)]
@@ -175,6 +173,7 @@ impl Component for FriendsList {
                     .into_element(),
             }
         })
+        .scrollbar(stoat_scrollbar)
         .item_size(54.)
         .length(groups.read().len())
     }

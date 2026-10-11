@@ -4,15 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{
-        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
-        material::{
+    AppChannel, SizeExt, components::{
+        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt, material::{
             MaterialIcon,
             outlined::{group, home, sticky_note_2},
-        },
-    },
-    consume_material_theme, http,
+        }, stoat_scrollbar,
+    }, consume_material_theme, http,
 };
 
 #[derive(PartialEq)]
@@ -118,6 +115,7 @@ impl Component for DMList {
                 rect()
                     .padding((24., 16.0))
                     .font_size(16)
+                    .font_weight(600)
                     .child("Conversations"),
             )
             .child(
@@ -208,8 +206,9 @@ impl Component for DMList {
                     .child(
                         label()
                             .margin((28., 8., 8., 8.))
-                            .text("Direct Messages")
-                            .font_size(13),
+                            .font_weight(500)
+                            .font_size(13)
+                            .text("Direct Messages"),
                     )
                     .child(
                         VirtualScrollView::new({
@@ -223,6 +222,7 @@ impl Component for DMList {
                                     .into_element()
                             }
                         })
+                        .scrollbar(stoat_scrollbar)
                         .item_size(48.)
                         .length(channels.read().len()),
                     ),
@@ -281,7 +281,7 @@ impl Component for DMListNavButton {
                     .height(Size::px(42.))
                     .cross_align(Alignment::Center)
                     .content(Content::Flex)
-                    .font_size(15)
+
                     .color(theme.md.outline.as_argb_u32())
                     .maybe(self.selected, |btn| {
                         btn.background(theme.md.primary_container.as_argb_u32())
@@ -289,14 +289,20 @@ impl Component for DMListNavButton {
                     })
                     .width(Size::Fill)
                     .child(MaterialIcon::new(self.icon.clone()).size(Size::px(24.)))
-                    .child(label().width(Size::flex(1.)).text(self.title.clone()))
+                    .child(
+                        label()
+                            .width(Size::flex(1.))
+                            .font_weight(500)
+                            .font_size(15)
+                            .text(self.title.clone()),
+                    )
                     .maybe_child(self.secondary.clone().map(|text| {
                         rect()
                             .padding((4., 8.))
                             .color(theme.md.on_error.as_argb_u32())
                             .background(theme.md.error.as_argb_u32())
                             .corner_radius(12.)
-                            .child(label().font_size(11.).font_weight(500).text(text))
+                            .child(label().font_weight(500).font_size(11.).text(text))
                     })),
             )
     }
