@@ -111,7 +111,7 @@ impl Component for MessageContextMenu {
                                             let channel_id = channel_id.clone();
                                             floating.set(None);
 
-                                            spawn_forever(async move {
+                                            spawn_in_window(async move {
                                                 http()
                                                     .react_message(&channel_id, &message_id, &id)
                                                     .await
@@ -151,7 +151,7 @@ impl Component for MessageContextMenu {
                             let message_id = message_id.clone();
                             let channel_id = channel_id.clone();
 
-                            spawn_forever(async move {
+                            spawn_in_window(async move {
                                 http().pin_message(&channel_id, &message_id).await.unwrap();
                             });
                         }
@@ -172,7 +172,7 @@ impl Component for MessageContextMenu {
                             let message_id = message_id.clone();
                             let channel_id = channel_id.clone();
 
-                            spawn_forever(async move {
+                            spawn_in_window(async move {
                                 http()
                                     .unpin_message(&channel_id, &message_id)
                                     .await
@@ -199,7 +199,7 @@ impl Component for MessageContextMenu {
                                     let channel_id = channel_id.clone();
 
                                     if shift() {
-                                        spawn_forever(async move {
+                                        spawn_in_window(async move {
                                             http()
                                                 .delete_message(&channel_id, &message.message.id)
                                                 .await

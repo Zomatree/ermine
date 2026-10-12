@@ -233,7 +233,7 @@ impl Component for Session {
                                             move |ticket: v0::MFATicket| {
                                                 let session_id = session_id.clone();
 
-                                                spawn_forever(async move {
+                                                spawn_in_window(async move {
                                                     if http()
                                                         .revoke_session(ticket.token, &session_id)
                                                         .await

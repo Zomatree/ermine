@@ -5,7 +5,7 @@ use chumsky::{
     text::{digits, ident, int, keyword, whitespace},
 };
 use freya::prelude::*;
-use freya_engine::prelude::{RuntimeEffect, Shader};
+use freya_engine::prelude::{Paint, RuntimeEffect, Shader};
 
 // angle of 0. is down
 
@@ -265,15 +265,38 @@ impl ShaderProvider for Provider {
 const FAKE_SHADER: &str = "float4 main(vec2 inCoords) { return float4(0.0, 0.0, 0.0, 0.0); }";
 
 thread_local! {
-    static S: RuntimeEffect = RuntimeEffect::make_for_shader(FAKE_SHADER, None).unwrap();
+    static EFFECT: RuntimeEffect = RuntimeEffect::make_for_shader(FAKE_SHADER, None).unwrap();
 }
 
 fn generate_linear_shader(gradient: LinearGradient, direction: Direction) -> Fill {
-    let effect = S.with(|e| e.clone());
+    // Fill::Callback(RenderCallback::new(move |ctx| {
+    //     let angle = match &direction {
+    //         Direction::Angle(angle) => *angle,
+    //         Direction::Bottom => 0.,
+    //         Direction::BottomLeft => (ctx.size.width / ctx.size.height).atan() * (180. / PI),
+    //         Direction::Left => 90.,
+    //         Direction::TopLeft => 90. + ((ctx.size.height / ctx.size.width).atan() * (180. / PI)),
+    //         Direction::Top => 180.,
+    //         Direction::TopRight => 180. + ((ctx.size.height / ctx.size.width).atan() * (180. / PI)),
+    //         Direction::Right => 270.,
+    //         Direction::BottomRight => {
+    //             270. + ((ctx.size.width / ctx.size.height).atan() * (180. / PI))
+    //         }
+    //     };
+
+    //     let shader = gradient.clone().angle(angle).prepare_shader(Area {
+    //         origin: ctx.origin,
+    //         size: ctx.size
+    //     });
+
+    //     let mut paint = Paint::default();
+    //     paint.set_shader(shader);
+    //     ctx.canvas.draw_paint(&paint);
+    // }))
 
     Fill::Shader(Box::new(ShaderFill::from_provider(
         FAKE_SHADER,
-        effect,
+        EFFECT.with(|e| e.clone()),
         Provider(gradient, direction),
     )))
 }

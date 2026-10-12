@@ -126,7 +126,7 @@ impl Component for AnimatedImage {
 
                     let url = url.clone();
                     let asset_config = asset_config.clone();
-                    spawn_forever(async move {
+                    spawn_in_window(async move {
                         match tokio::task::spawn_blocking(move || {
                             let mut response = reqwest::blocking::get(url.clone()).unwrap();
 

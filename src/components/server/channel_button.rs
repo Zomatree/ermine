@@ -249,7 +249,7 @@ impl Component for ChannelButton {
 
                                                                     let channel_id = channel_id.clone();
 
-                                                                    spawn_forever(async move {
+                                                                    spawn_in_window(async move {
                                                                         match http().create_invite(&channel_id).await {
                                                                             Ok(
                                                                                 v0::Invite::Group { code, .. }

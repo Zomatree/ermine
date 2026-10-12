@@ -229,7 +229,7 @@ impl Component for MessageActions {
                                                     let channel_id = channel_id.clone();
                                                     floating.set(None);
 
-                                                    spawn_forever(async move {
+                                                    spawn_in_window(async move {
                                                         println!(
                                                             "{:?}",
                                                             http()

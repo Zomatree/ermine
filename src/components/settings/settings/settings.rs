@@ -406,7 +406,7 @@ impl Component for LogoutButton {
                 config.set(Config::default());
                 radio.set(AppState::new());
 
-                spawn_forever(async move {
+                spawn_in_window(async move {
                     http().logout().await.unwrap();
                 });
             })

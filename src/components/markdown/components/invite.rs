@@ -133,7 +133,7 @@ impl Component for Invite {
                                         let mut selected_channel = selected_channel.clone();
                                         let mut selection = selection.clone();
 
-                                        spawn_forever(async move {
+                                        spawn_in_window(async move {
                                             match http().join_invite(&id).await {
                                                 Ok(response) => match response {
                                                     v0::InviteJoinResponse::Server {

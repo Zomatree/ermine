@@ -104,7 +104,7 @@ impl Component for Textbox {
                     .unwrap();
 
                 stop_typing.take().map(|t| t.cancel());
-                stop_typing.set(Some(spawn_forever(async move {
+                stop_typing.set(Some(spawn_in_window(async move {
                     sleep(Duration::from_secs_f32(2.5)).await;
                     events
                         .send(ClientMessage::EndTyping {

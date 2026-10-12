@@ -104,7 +104,7 @@ impl Component for UserContextMenu {
                                 let mut selection = selection.clone();
                                 let mut selected_channel = selected_channel.clone();
 
-                                spawn_forever(async move {
+                                spawn_in_window(async move {
                                     if let Ok(channel) = http().open_dm(&user_id).await {
                                         selection.set(Selection::Home);
                                         selected_channel
@@ -320,7 +320,7 @@ impl Component for UserContextMenu {
                         move |_| {
                             let user_id = user_id.clone();
 
-                            spawn_forever(async move {
+                            spawn_in_window(async move {
                                 if is_blocked {
                                     http().unblock_user(&user_id).await
                                 } else {

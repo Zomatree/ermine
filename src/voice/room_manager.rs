@@ -349,7 +349,7 @@ impl Room {
 
         let track_id = Arc::new(Mutex::new(None));
 
-        spawn_forever({
+        spawn_in_window({
             let track_id = track_id.clone();
             let room = room.clone();
             let mut tx = self.screenshare_tx;
@@ -383,7 +383,7 @@ impl Room {
             }
         });
 
-        spawn_forever({
+        spawn_in_window({
             let room = room.clone();
 
             async move {
@@ -461,7 +461,7 @@ impl Room {
 
         let frame = cameras::next_frame(&camera, Duration::from_secs(2)).unwrap();
 
-        spawn_forever({
+        spawn_in_window({
             let room = room.clone();
 
             async move {

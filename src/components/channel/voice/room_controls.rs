@@ -185,7 +185,7 @@ impl Component for RoomControls {
                     .corner_radius(20.)
                     .on_press({
                         move |_| {
-                            spawn_forever(async move {
+                            spawn_in_window(async move {
                                 room.close().await;
                             });
                         }

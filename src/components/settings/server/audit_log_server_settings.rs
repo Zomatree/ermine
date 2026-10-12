@@ -217,7 +217,7 @@ impl Component for AuditLogServerSettings {
                         rect().child(CircularLoader::new()).on_sized(
                             move |e: Event<SizedEventData>| {
                                 if e.visible_area.origin.y
-                                    <= Platform::get().root_size.read().height
+                                    <= Platform::get().current_window().root_size.read().height
                                 {
                                     end_visible.set_if_modified_and_then(true, &fetch_audit_logs);
                                 } else {

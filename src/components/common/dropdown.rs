@@ -86,7 +86,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
         });
 
         use_side_effect(move || {
-            let platform = Platform::get();
+            let platform = Platform::get().current_window();
             let should_close = platform
                 .focused_accessibility_node
                 .read()
@@ -130,7 +130,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
 
         let offset_y = match (button_area(), list_size()) {
             (button, Some(list)) => {
-                let root_height = Platform::get().root_size.peek().height;
+                let root_height = Platform::get().current_window().root_size.peek().height;
                 let space_below = root_height - button.max_y();
                 let space_above = button.min_y();
                 let flips = list.height > space_below && list.height <= space_above;

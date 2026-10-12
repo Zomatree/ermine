@@ -38,7 +38,7 @@ impl Component for LogoutOtherSessions {
                             move |ticket: v0::MFATicket| {
                                 let callback = callback.clone();
 
-                                spawn_forever(async move {
+                                spawn_in_window(async move {
                                     if http()
                                         .revoke_all_sessions(ticket.token, false)
                                         .await

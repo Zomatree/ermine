@@ -122,7 +122,7 @@ impl Component for ChannelMessages {
 
         use_side_effect({
             let messages = messages.clone();
-            let platform = Platform::get();
+            let platform = Platform::get().current_window();
 
             move || {
                 let is_focused = (platform.is_app_focused)();
