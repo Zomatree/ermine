@@ -10,8 +10,8 @@ use crate::{
     AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
     components::{
         Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-        UserCard, UserContextMenu, file_image, material::filled::smart_toy, stoat_scrollbar,
-        use_floating,
+        UserCard, UserContextMenu, file_image, material::filled::smart_toy, stoat_label,
+        stoat_scrollbar, use_floating,
     },
     consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
     user_permissions_query,
@@ -44,6 +44,7 @@ pub struct MemberList {
 
 impl Component for MemberList {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Members);
         let station = use_radio_station();
 
@@ -255,11 +256,27 @@ impl Component for MemberList {
             }
         });
 
+        let online_count = use_memo({
+            let role_members = role_members.clone();
+
+            move || {
+                if exclude_offline {
+                    return None;
+                };
+
+                let count = role_members
+                    .read()
+                    .iter()
+                    .filter(|(_, _, online, _)| *online)
+                    .map(|(_, _, _, members)| members.len())
+                    .sum::<usize>();
+
+                Some(count)
+            }
+        });
+
         let elements = use_memo({
             let role_members = role_members.clone();
-            // let groups = groups.clone();
-            // let radio = radio.clone();
-            // let server_id = self.server.peek().id.clone();
 
             move || {
                 let mut elements = Vec::new();
@@ -285,23 +302,51 @@ impl Component for MemberList {
                     let element = elements.read()[item.index].clone();
 
                     match element {
-                        ListValue::Name(name, icon, count) => rect()
-                            .key(&name)
-                            .horizontal()
-                            .height(Size::px(42.))
-                            .cross_align(Alignment::End)
-                            .spacing(6.)
-                            .padding((0., 14.))
-                            .main_align(Alignment::End)
-                            .maybe_child(icon.map(|icon| {
-                                file_image(&icon)
-                                    .size(Size::px(16.))
-                                    .image_cover(ImageCover::Center)
-                                    .aspect_ratio(AspectRatio::Max)
-                                    .corner_radius(8.)
-                            }))
-                            .child(label().text(format!("{name} - {count}")).font_size(11.))
-                            .into_element(),
+                        ListValue::Name(name, icon, count) => {
+                            let container = rect()
+                                .padding((0., 14.))
+                                .height(Size::px(42.))
+                                .font_size(11.);
+
+                            let title = rect()
+                                .horizontal()
+                                .spacing(6.)
+                                .maybe_child(icon.map(|icon| {
+                                    file_image(&icon)
+                                        .size(Size::px(16.))
+                                        .image_cover(ImageCover::Center)
+                                        .aspect_ratio(AspectRatio::Max)
+                                        .corner_radius(8.)
+                                }))
+                                .child(stoat_label().text(format!("{name} - {count}")));
+
+                            if item.index == 0
+                                && let Some(online_count) = online_count()
+                            {
+                                container
+                                    .main_align(Alignment::SpaceBetween)
+                                    .child(
+                                        rect()
+                                            .horizontal()
+                                            .spacing(8.)
+                                            .cross_align(Alignment::Center)
+                                            .child(
+                                                rect()
+                                                    .size(Size::px(8.))
+                                                    .corner_radius(4.)
+                                                    .background(theme.stoat.presence_online),
+                                            )
+                                            .child(
+                                                stoat_label()
+                                                    .text(format!("{online_count} members online")),
+                                            ),
+                                    )
+                                    .child(title)
+                            } else {
+                                container.main_align(Alignment::End).child(title)
+                            }
+                            .into_element()
+                        }
                         ListValue::Member(user, member, is_online) => MemberListMember {
                             server: server.clone(),
                             member,

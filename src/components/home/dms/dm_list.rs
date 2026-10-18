@@ -6,12 +6,12 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SizeExt,
     components::{
-        DMButton, HomeSelection, StoatButton, StoatButtonLayoutThemePartialExt,
+        DMButton, HomeSelection, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
         material::{
             MaterialIcon,
-            outlined::{group, home, sticky_note_2},
+            outlined::{add, group, home, sticky_note_2},
         },
-        stoat_scrollbar,
+        stoat_scrollbar, use_modals,
     },
     consume_material_theme, http,
 };
@@ -23,6 +23,7 @@ pub struct DMList {
 
 impl Component for DMList {
     fn render(&self) -> impl IntoElement {
+        let mut modals = use_modals();
         let radio = use_radio(AppChannel::Channels);
         let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
             &mut state.selected_channel
@@ -208,11 +209,35 @@ impl Component for DMList {
             .child(
                 rect()
                     .child(
-                        label()
+                        rect()
+                            .horizontal()
+                            .width(Size::Fill)
+                            .main_align(Alignment::SpaceBetween)
+                            .cross_align(Alignment::Center)
                             .margin((28., 8., 8., 8.))
-                            .font_weight(500)
-                            .font_size(13)
-                            .text("Direct Messages"),
+                            .child(
+                                label()
+                                    .font_weight(500)
+                                    .font_size(13)
+                                    .text("Direct Messages"),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(10.)
+                                    .tooltip(
+                                        label()
+                                            .max_lines(1)
+                                            .text("Create a new group")
+                                            .font_size(11.),
+                                    )
+                                    .tooltip_position(AttachedPosition::Right)
+                                    .on_press({
+                                        move |_| {
+                                            modals.write().push_modal(ModalValue::CreateGroup);
+                                        }
+                                    })
+                                    .child(MaterialIcon::new(add()).size(Size::px(20.))),
+                            ),
                     )
                     .child(
                         VirtualScrollView::new({

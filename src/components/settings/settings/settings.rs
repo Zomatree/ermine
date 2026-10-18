@@ -5,12 +5,15 @@ use freya::{prelude::*, radio::use_radio};
 use crate::{
     AppChannel, AppState, Config, SettingsPage, SizeExt,
     components::{
-        AccountSettings, AppearanceSettings, Avatar, BotsSettings, MaterialIcon, ProfileSettings,
-        SessionsSettings, SourceCodeSettings, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, VoiceSettings,
+        Avatar, MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
         material::{
             filled::clear,
             outlined::{chevron_right, logout},
+        },
+        settings::settings::{
+            AccountSettings, AppearanceSettings, BotsSettings, ProfileSettings, SessionsSettings,
+            SourceCodeSettings, VoiceSettings,
         },
         stoat_scrollbar,
     },
@@ -343,6 +346,7 @@ impl Component for SettingsButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text(self.page.title()),
                     ),
@@ -398,6 +402,7 @@ impl Component for LogoutButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text("Log Out"),
                     ),

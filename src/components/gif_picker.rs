@@ -138,6 +138,7 @@ impl Component for GifPicker {
                     .horizontal()
                     .spacing(8.)
                     .cross_align(Alignment::Center)
+                    .font_size(16.)
                     .maybe_child((on_trending() || !query.read().is_empty()).then(|| {
                         StoatButton::new()
                             .corner_radius(20.)
@@ -158,10 +159,12 @@ impl Component for GifPicker {
                             .auto_focus(true)
                             .width(Size::Fill)
                             .placeholder("Search for GIFs...")
+                            .placeholder_color(theme.md.outline)
+                            .color(theme.md.on_surface)
                             .background(Color::TRANSPARENT)
-                            .border_fill(theme.md.outline.as_argb_u32())
+                            .border_fill(theme.md.outline)
                             .focus_background(Color::TRANSPARENT)
-                            .focus_border_fill(theme.md.primary.as_argb_u32())
+                            .focus_border_fill(theme.md.primary)
                             .corner_radius(4.)
                             .padding(16.),
                     ),

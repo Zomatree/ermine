@@ -6,11 +6,14 @@ use stoat_models::v0;
 use crate::{
     AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
     components::{
-        MaterialIcon, ModalValue, OverviewChannelSettings, PermissionsChannelSettings, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, WebhookChannelSettings,
+        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
         material::{
             filled::{chevron_right, clear},
             outlined::delete,
+        },
+        settings::channel::{
+            OverviewChannelSettings, PermissionsChannelSettings, WebhookChannelSettings,
         },
         stoat_scrollbar, use_modals,
     },
@@ -288,6 +291,7 @@ impl Component for ChannelSettingsButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text(self.page.title()),
                     ),
@@ -378,6 +382,7 @@ impl Component for DeleteChannelButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text("Delete Channel"),
                     ),

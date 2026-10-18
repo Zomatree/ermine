@@ -137,6 +137,7 @@ impl<T: Debug + Clone + PartialEq + 'static> Component for StoatInnerSegmentedBu
                             .color(color.as_argb_u32())
                             .background(background.as_argb_u32())
                             .center()
+                            .font_weight(600)
                             .child(self.child.clone()),
                     )
                     .on_press({

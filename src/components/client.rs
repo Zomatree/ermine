@@ -11,8 +11,9 @@ use tokio::time::sleep;
 use crate::{
     AppChannel, ConnectionState, Room, Selection, SizeExt,
     components::{
-        AttachmentController, ChannelSettings, Discover, FloatingManager, Home, MaterialIcon,
-        Server, ServerList, ServerSettings, Settings, UserProfile, material::filled::description,
+        AttachmentController, ChannelSettings, Discover, FloatingManager, FloatingVoiceContainer,
+        Home, MaterialIcon, Server, ServerList, ServerSettings, Settings, UserProfile,
+        material::filled::description,
     },
     consume_material_theme, map_readable,
 };
@@ -25,6 +26,8 @@ impl Component for Client {
         let theme = consume_material_theme();
         let radio = use_radio(AppChannel::Selection);
         let selected = radio.slice_current(|state| &state.selection);
+        let selected_channel =
+            radio.slice(AppChannel::SelectedChannel, |state| &state.selected_channel);
         let settings = radio.slice(AppChannel::SettingsPage, |state| &state.settings_page);
 
         let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
@@ -131,7 +134,7 @@ impl Component for Client {
             }
         });
 
-        use_hook(|| provide_context(Room::new()));
+        let room = consume_context::<Room>();
 
         rect()
             .child(
@@ -178,6 +181,22 @@ impl Component for Client {
                     )
                     .background(background)
             }))
+            .maybe_child(
+                room.read()
+                    .filter(|room| {
+                        selected_channel
+                            .read()
+                            .as_ref()
+                            .is_none_or(|(id, _)| &room.name() != id)
+                    })
+                    .map(|room| {
+                        rect()
+                            .position(Position::new_global())
+                            .layer(Layer::OverlayLevel(1))
+                            .size(Size::window_percent(100.))
+                            .child(FloatingVoiceContainer { room })
+                    }),
+            )
             .maybe_child(file_hover.read().then(|| {
                 rect()
                     .position(Position::new_global())

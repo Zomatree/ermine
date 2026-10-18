@@ -206,6 +206,7 @@ impl Component for DMDirectMessageButton {
                                     .text(text)
                                     .font_size(11)
                                     .max_lines(1)
+                                    .font_weight(500)
                                     .text_overflow(TextOverflow::Ellipsis)
                             }),
                     ),
@@ -326,7 +327,12 @@ impl Component for DMGroupButton {
                             .font_size(15)
                             .text(name),
                     )
-                    .child(label().text(format!("{users} Members")).font_size(11)),
+                    .child(
+                        label()
+                            .text(format!("{users} Members"))
+                            .font_size(11)
+                            .font_weight(500),
+                    ),
             )
     }
 }

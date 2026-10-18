@@ -145,6 +145,7 @@ impl Component for RoomManager {
             )
             .child(rect().width(Size::Fill).center().child(RoomControls {
                 room: self.room.clone(),
+                compact: false,
             }))
     }
 }

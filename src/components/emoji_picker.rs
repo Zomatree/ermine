@@ -132,15 +132,18 @@ impl Component for EmojiPicker {
             .child(
                 rect()
                     .padding((0., 8.))
+                    .font_size(16.)
                     .child(
                         Input::new(filter)
                             .auto_focus(true)
                             .width(Size::Fill)
                             .placeholder("Search for emojis...")
+                            .placeholder_color(theme.md.outline)
+                            .color(theme.md.on_surface)
                             .background(Color::TRANSPARENT)
-                            .border_fill(theme.md.outline.as_argb_u32())
+                            .border_fill(theme.md.outline)
                             .focus_background(Color::TRANSPARENT)
-                            .focus_border_fill(theme.md.primary.as_argb_u32())
+                            .focus_border_fill(theme.md.primary)
                             .corner_radius(4.)
                             .padding(16.)
                     )
@@ -201,6 +204,7 @@ impl Component for EmojiPicker {
                                                                 .parse::<Url>()
                                                                 .unwrap(),
                                                             )
+                                                            .key(&emoji.id)
                                                             .sampling_mode(SamplingMode::Trilinear)
                                                             .width(Size::px(32.))
                                                             .height(Size::px(32.))

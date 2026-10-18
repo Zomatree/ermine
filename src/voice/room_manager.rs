@@ -49,6 +49,7 @@ pub struct Room {
     room: State<Option<Arc<LivekitRoom>>>,
     audio: State<Option<PlatformAudio>>,
     screenshare_tx: State<Option<mpsc::Sender<CaptureEvent>>>,
+    channel_id: State<Option<String>>,
 }
 
 impl Room {
@@ -59,51 +60,73 @@ impl Room {
             room: State::create(None),
             audio: State::create(None),
             screenshare_tx: State::create(None),
+            channel_id: State::create(None),
+        }
+    }
+
+    pub fn get_audio(&self) -> PlatformAudio {
+        if let Some(audio) = self.audio.read().cloned() {
+            audio
+        } else {
+            let audio = PlatformAudio::new().unwrap();
+            audio
+                .set_playout_device(&audio.playout_devices().next().unwrap().id)
+                .unwrap();
+            audio
+                .set_recording_device(&audio.recording_devices().next().unwrap().id)
+                .unwrap();
+            self.audio.clone().set(Some(audio.clone()));
+            audio
         }
     }
 
     pub async fn connect(&self, channel_id: &str) {
-        let mut status = self.status;
+        let is_connected = self.room.read().is_some();
 
-        status.set(VoiceConnectionStatus::Connecting);
-
-        let http = http();
-
-        if let Ok(resp) = http
-            .join_call(
-                &channel_id,
-                &v0::DataJoinCall {
-                    node: Some(
-                        http.api_config
-                            .features
-                            .livekit
-                            .nodes
-                            .first()
-                            .unwrap()
-                            .name
-                            .clone(),
-                    ),
-                    force_disconnect: Some(true),
-                    recipients: None,
-                },
-            )
-            .await
+        if self.channel_id.read().as_deref() == Some(channel_id)
+            && (is_connected || self.status() == VoiceConnectionStatus::Connecting)
         {
-            self.inner_connect(&resp.url, &resp.token).await
+            return;
+        };
+
+        self.channel_id.clone().set(Some(channel_id.to_string()));
+
+        if is_connected {
+            self.close().await;
         } else {
-            status.set(VoiceConnectionStatus::Disconnected);
+            self.status.clone().set(VoiceConnectionStatus::Connecting);
+            let http = http();
+
+            if let Ok(resp) = http
+                .join_call(
+                    &channel_id,
+                    &v0::DataJoinCall {
+                        node: Some(
+                            http.api_config
+                                .features
+                                .livekit
+                                .nodes
+                                .first()
+                                .unwrap()
+                                .name
+                                .clone(),
+                        ),
+                        force_disconnect: Some(true),
+                        recipients: None,
+                    },
+                )
+                .await
+            {
+                self.inner_connect(&resp.url, &resp.token).await
+            } else {
+                self.status.clone().set(VoiceConnectionStatus::Disconnected);
+            }
         }
     }
 
     pub async fn inner_connect(&self, url: &str, token: &str) {
-        let audio = PlatformAudio::new().unwrap();
+        let audio = self.get_audio();
 
-        audio
-            .set_playout_device(&audio.playout_devices().next().unwrap().id)
-            .unwrap();
-        audio
-            .set_recording_device(&audio.recording_devices().next().unwrap().id)
-            .unwrap();
         let mut options = RoomOptions::default();
         options.auto_subscribe = false;
 
@@ -111,15 +134,19 @@ impl Room {
         let room = Arc::new(room);
 
         let config = self.config;
-        spawn({
+        spawn_in_window({
             let mut room_state = self.room;
             let mut connection_status = self.status;
-            let mut audio_state = self.audio;
+            let mut channel_id = self.channel_id;
+            let this = self.clone();
 
             async move {
                 while let Some(event) = events.recv().await {
-                    room_state.try_write();
                     log::debug!("Room Event: {event:?}");
+
+                    if !matches!(&event, RoomEvent::Disconnected { .. }) {
+                        room_state.try_write();
+                    };
 
                     match event {
                         RoomEvent::Connected {
@@ -128,7 +155,6 @@ impl Room {
                             let is_deafend = config.read().audio.deafened;
                             connection_status.set(VoiceConnectionStatus::Connected);
                             room_state.set(Some(room.clone()));
-                            audio_state.set(Some(audio.clone()));
 
                             for (_, tracks) in participants_with_tracks {
                                 for track in tracks {
@@ -144,13 +170,27 @@ impl Room {
                                     || !config.read().audio.deafened,
                             );
                         }
-                        RoomEvent::Disconnected { reason } => {
-                            log::debug!("Disconnecting from room ({reason:?})");
+                        RoomEvent::Disconnected { .. } => {
                             connection_status.set(VoiceConnectionStatus::Disconnected);
-                            room_state.set(None);
-                            audio_state.set(None);
 
+                            this.stop_screensharing();
                             let _ = audio.stop_recording();
+
+                            let current_channel_id = channel_id.read().cloned();
+
+                            if let Some(channel_id) = current_channel_id
+                                && channel_id != room.name()
+                            {
+                                spawn_in_window({
+                                    let this = this.clone();
+
+                                    async move {
+                                        this.connect(&channel_id).await;
+                                    }
+                                });
+                            } else {
+                                channel_id.set(None);
+                            }
                         }
                         _ => {}
                     };
@@ -374,11 +414,7 @@ impl Room {
                 tx.set(None);
 
                 if let Some(track_id) = track_id.lock().unwrap().take() {
-                    let _ = room
-                        .local_participant()
-                        .unpublish_track(&track_id)
-                        .await
-                        .unwrap();
+                    let _ = room.local_participant().unpublish_track(&track_id).await;
                 };
             }
         });
@@ -423,7 +459,7 @@ impl Room {
 
     pub fn stop_screensharing(&self) {
         if let Some(tx) = self.screenshare_tx.clone().take() {
-            tx.send(CaptureEvent::Terminate).unwrap();
+            let _ = tx.send(CaptureEvent::Terminate);
         };
     }
 
@@ -588,13 +624,26 @@ impl Room {
         });
     }
 
+    pub fn is_camera(&self) -> bool {
+        self.local_participant().is_some_and(|p| {
+            p.track_publications().values().any(|p| {
+                p.kind() == TrackKind::Video
+                    && p.source() == TrackSource::Camera
+                    && p.track().is_some()
+            })
+        })
+    }
+
     pub fn status(&self) -> VoiceConnectionStatus {
         (self.status)()
     }
 
+    pub fn is_channel(&self, id: &str) -> bool {
+        self.channel_id.read().as_ref().is_some_and(|a| a == id)
+    }
+
     pub async fn close(&self) {
-        if let Some(room) = self.read() {
-            self.stop_screensharing();
+        if let Some(room) = self.room.clone().take() {
             _ = room.close().await;
         }
     }

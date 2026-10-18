@@ -127,6 +127,7 @@ impl Component for StoatCheckbox {
                     .width(Size::Fill)
                     .horizontal()
                     .cross_align(Alignment::Center)
+                    .font_weight(500)
                     .children(self.children.clone()),
             )
     }

@@ -306,10 +306,9 @@ impl Component for Textbox {
             }
         };
 
-        let hide_send_button = *hide_send_button.read();
+        let hide_send_button = *hide_send_button.read() || !can_send_messages;
 
         rect()
-            // .width(Size::Fill)
             .content(Content::Flex)
             .font_size(14)
             .horizontal()

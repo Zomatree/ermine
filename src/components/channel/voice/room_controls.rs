@@ -20,6 +20,7 @@ use crate::{
 
 pub struct RoomControls {
     pub room: Arc<LivekitRoom>,
+    pub compact: bool,
 }
 
 impl PartialEq for RoomControls {
@@ -32,7 +33,8 @@ impl Component for RoomControls {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
         let room = consume_context::<Room>();
-        let is_camera = use_memo(|| false);
+
+        let btn_size = if self.compact { 32. } else { 40. };
 
         rect()
             .horizontal()
@@ -64,8 +66,8 @@ impl Component for RoomControls {
                             } else {
                                 theme.md.on_primary.as_argb_u32()
                             })
-                            .width(Size::px(40.))
-                            .height(Size::px(40.))
+                            .width(Size::px(btn_size))
+                            .height(Size::px(btn_size))
                             .center()
                             .child(
                                 MaterialIcon::new(if is_muted { mic_off() } else { mic() })
@@ -95,8 +97,8 @@ impl Component for RoomControls {
                             } else {
                                 theme.md.on_primary.as_argb_u32()
                             })
-                            .width(Size::px(40.))
-                            .height(Size::px(40.))
+                            .width(Size::px(btn_size))
+                            .height(Size::px(btn_size))
                             .center()
                             .child(
                                 MaterialIcon::new(if is_deafened {
@@ -112,14 +114,12 @@ impl Component for RoomControls {
                 StoatButton::new()
                     .corner_radius(20.)
                     .on_press({
-                        // let room = room.clone();
-
                         move |_| {
                             room.start_camera();
                         }
                     })
                     .child({
-                        let is_camera = is_camera();
+                        let is_camera = room.is_camera();
 
                         rect()
                             .background(if !is_camera {
@@ -132,8 +132,8 @@ impl Component for RoomControls {
                             } else {
                                 theme.md.on_primary.as_argb_u32()
                             })
-                            .width(Size::px(40.))
-                            .height(Size::px(40.))
+                            .width(Size::px(btn_size))
+                            .height(Size::px(btn_size))
                             .center()
                             .child(
                                 MaterialIcon::new(if !is_camera {
@@ -167,8 +167,8 @@ impl Component for RoomControls {
                             } else {
                                 theme.md.on_primary.as_argb_u32()
                             })
-                            .width(Size::px(40.))
-                            .height(Size::px(40.))
+                            .width(Size::px(btn_size))
+                            .height(Size::px(btn_size))
                             .center()
                             .child(
                                 MaterialIcon::new(if !is_screenshare {
@@ -194,8 +194,8 @@ impl Component for RoomControls {
                         rect()
                             .background(theme.md.error.as_argb_u32())
                             .color(theme.md.on_error.as_argb_u32())
-                            .width(Size::px(56.))
-                            .height(Size::px(40.))
+                            .width(Size::px(if self.compact { 48. } else { 56. }))
+                            .height(Size::px(btn_size))
                             .center()
                             .child(
                                 MaterialIcon::new(call_end())

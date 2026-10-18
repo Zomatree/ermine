@@ -12,8 +12,8 @@ use tokio::{
 };
 
 use crate::{
-    AppChannel, ConnectionState, SettingsState, components, consume_material_theme, http, state,
-    use_changed_with_previous, use_config,
+    AppChannel, ConnectionState, Room, SettingsState, components, consume_material_theme, http,
+    state, use_changed_with_previous, use_config,
     websocket::{self, Event, LocalEvent},
 };
 
@@ -25,6 +25,7 @@ impl Component for App {
         let station = use_radio_station();
         let config = use_config();
         let theme = consume_material_theme();
+        use_hook(|| provide_context(Room::new()));
 
         let (_msg_s, msg_r) = use_hook(|| {
             let (s, r) = mpsc::unbounded_channel();

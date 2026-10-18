@@ -24,7 +24,7 @@ use crate::{
 pub struct SystemMessage {
     pub message: MessageModel,
     pub system: v0::SystemMessage,
-    pub server_id: Option<String>,
+    pub server: Option<Readable<v0::Server>>,
 }
 
 impl Component for SystemMessage {
@@ -84,83 +84,41 @@ impl Component for SystemMessage {
                 match self.system.clone() {
                     v0::SystemMessage::Text { content } => paragraph().span(content),
                     v0::SystemMessage::UserAdded { id, by } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" has been added by ")
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        }),
+                        .child(UserMention::new(by, self.server.clone())),
                     v0::SystemMessage::UserRemove { id, by } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" has been removed by ")
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        }),
+                        .child(UserMention::new(by, self.server.clone())),
                     v0::SystemMessage::UserJoined { id } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" joined the server"),
                     v0::SystemMessage::UserLeft { id } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" left the server"),
                     v0::SystemMessage::UserKicked { id } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" has been kicked from the server"),
                     v0::SystemMessage::UserBanned { id } => paragraph()
-                        .child(UserMention {
-                            user_id: id,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(id, self.server.clone()))
                         .span(" has been banned from the server"),
                     v0::SystemMessage::ChannelRenamed { name, by } => paragraph()
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(by, self.server.clone()))
                         .span(" updated the group name to ")
                         .span(Span::new(name).font_weight(FontWeight::BOLD)),
                     v0::SystemMessage::ChannelDescriptionChanged { by } => paragraph()
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(by, self.server.clone()))
                         .span(" updated the group description"),
                     v0::SystemMessage::ChannelIconChanged { by } => paragraph()
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(by, self.server.clone()))
                         .span(" updated the group icon"),
                     v0::SystemMessage::ChannelOwnershipChanged { from, to } => paragraph()
-                        .child(UserMention {
-                            user_id: from,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(from, self.server.clone()))
                         .span(" transferred group ownership to ")
-                        .child(UserMention {
-                            user_id: to,
-                            server_id: self.server_id.clone(),
-                        }),
+                        .child(UserMention::new(to, self.server.clone())),
                     v0::SystemMessage::MessagePinned { id, by } => paragraph()
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(by, self.server.clone()))
                         .span(" pinned ")
                         .child(MessageMention {
                             channel_id: self.message.message.channel.clone(),
@@ -168,10 +126,7 @@ impl Component for SystemMessage {
                             font_size: 14.,
                         }),
                     v0::SystemMessage::MessageUnpinned { id, by } => paragraph()
-                        .child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        })
+                        .child(UserMention::new(by, self.server.clone()))
                         .span(" unpinned ")
                         .child(MessageMention {
                             channel_id: self.message.message.channel.clone(),
@@ -179,10 +134,7 @@ impl Component for SystemMessage {
                             font_size: 14.,
                         }),
                     v0::SystemMessage::CallStarted { by, finished_at } => {
-                        let p = paragraph().child(UserMention {
-                            user_id: by,
-                            server_id: self.server_id.clone(),
-                        });
+                        let p = paragraph().child(UserMention::new(by, self.server.clone()));
 
                         if let Some(timestamp) = finished_at {
                             let start = Timestamp::try_from(

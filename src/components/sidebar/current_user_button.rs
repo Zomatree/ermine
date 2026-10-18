@@ -1,6 +1,3 @@
-use std::marker::PhantomData;
-
-use euclid::{Point2D, Size2D};
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
@@ -78,16 +75,8 @@ impl Component for CurrentUserButton {
                         let pos = e.global_location();
 
                         let new_area = euclid::Rect {
-                            origin: Point2D {
-                                x: area.origin.x as f64,
-                                y: area.origin.y as f64,
-                                _unit: PhantomData::<()>,
-                            },
-                            size: Size2D {
-                                width: area.size.width as f64,
-                                height: area.size.height as f64,
-                                _unit: PhantomData::<()>,
-                            },
+                            origin: area.origin.to_f64(),
+                            size: area.size.to_f64(),
                         };
 
                         if !new_area.contains(pos) {
@@ -102,42 +91,37 @@ impl Component for CurrentUserButton {
                                 let user = current_user.read();
 
                                 StoatButton::new().child(
-                                    rect()
-                                        .padding((8., 15.))
-                                        // .color(0xffe3e1e9)
-                                        .width(Size::Fill)
-                                        .child(
-                                            rect()
-                                                .horizontal()
-                                                .spacing(8.)
-                                                .child(Avatar::new(
-                                                    current_user.clone().into_readable(),
-                                                    None,
-                                                    32.,
-                                                ))
-                                                .child(
-                                                    rect()
-                                                        .child(
-                                                            label()
-                                                                .text(
-                                                                    user.display_name
-                                                                        .as_ref()
-                                                                        .unwrap_or(&user.username)
-                                                                        .clone(),
-                                                                )
-                                                                .font_size(14),
-                                                        )
-                                                        .child(
-                                                            label()
-                                                                .text(format!(
-                                                                    "{}#{}",
-                                                                    &user.username,
-                                                                    &user.discriminator
-                                                                ))
-                                                                .font_size(12),
-                                                        ),
-                                                ),
-                                        ),
+                                    rect().padding((8., 15.)).width(Size::Fill).child(
+                                        rect()
+                                            .horizontal()
+                                            .spacing(8.)
+                                            .child(Avatar::new(
+                                                current_user.clone().into_readable(),
+                                                None,
+                                                32.,
+                                            ))
+                                            .child(
+                                                rect()
+                                                    .child(
+                                                        label()
+                                                            .text(
+                                                                user.display_name
+                                                                    .as_ref()
+                                                                    .unwrap_or(&user.username)
+                                                                    .clone(),
+                                                            )
+                                                            .font_size(14),
+                                                    )
+                                                    .child(
+                                                        label()
+                                                            .text(format!(
+                                                                "{}#{}",
+                                                                &user.username, &user.discriminator
+                                                            ))
+                                                            .font_size(12),
+                                                    ),
+                                            ),
+                                    ),
                                 )
                             })
                             .child(seperator(&theme))

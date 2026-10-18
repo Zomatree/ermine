@@ -16,12 +16,12 @@ use crate::{
         StoatButtonLayoutThemePartialExt,
         modals::{
             AddFriend, BanMember, ChannelDescription, CreateBot, CreateCategory, CreateChannel,
-            CreateJoinServer, CreateRole, CreateServer, CreateWebhook, DeleteBot, DeleteCategory,
-            DeleteChannel, DeleteInvite, DeleteMessage, DeleteWebhook, EditApi,
-            EditOwnServerIdentity, EditRoles, EditServerIdentity, ErrorModal, ImageViewer,
-            InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup, LeaveServer,
-            LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory, ResetBotToken,
-            ServerInfo, TimeoutMember,
+            CreateGroup, CreateGroupServer, CreateJoinServer, CreateRole, CreateServer,
+            CreateWebhook, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage,
+            DeleteWebhook, EditApi, EditOwnServerIdentity, EditRoles, EditServerIdentity,
+            ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup,
+            LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory,
+            ResetBotToken, ServerInfo, TimeoutMember,
         },
     },
     consume_material_theme,
@@ -140,6 +140,8 @@ pub enum ModalValue {
     CreateCategory {
         server: String,
     },
+    CreateGroup,
+    CreateGroupServer,
     Error {
         error: Error,
     },
@@ -557,6 +559,10 @@ impl Component for Modal {
                                     }
                                     ModalValue::CreateCategory { server } => {
                                         CreateCategory { server }.into_element()
+                                    }
+                                    ModalValue::CreateGroup => CreateGroup {}.into_element(),
+                                    ModalValue::CreateGroupServer => {
+                                        CreateGroupServer {}.into_element()
                                     }
                                 }),
                         ),

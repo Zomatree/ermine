@@ -16,16 +16,17 @@ use stoat_models::v0::{
     AllMemberResponse, AuditLogQueryResponse, BanListResult, BotWithUserResponse,
     BulkMessageResponse, Channel, ChannelUnread, CreateServerLegacyResponse,
     CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataCreateBot, DataCreateEmoji,
-    DataCreateRole, DataCreateServer, DataCreateServerChannel, DataDefaultChannelPermissions,
-    DataEditBot, DataEditChannel, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer,
-    DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch,
-    DataMessageSend, DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission,
-    Emoji, FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
-    InviteResponse, MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse,
-    NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers,
-    OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete,
-    OptionsUnreact, OwnedBotsResponse, PublicBot, ResponseWebhook, Role, Server, ServerBan,
-    SessionInfo, User, UserProfile, UserSettings, Webhook,
+    DataCreateGroup, DataCreateRole, DataCreateServer, DataCreateServerChannel,
+    DataDefaultChannelPermissions, DataEditBot, DataEditChannel, DataEditMessage, DataEditRole,
+    DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
+    DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions,
+    DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite,
+    InviteBotDestination, InviteJoinResponse, InviteResponse, MFAResponse, MFATicket, Member,
+    Message, MultiFactorStatus, MutualResponse, NewRoleResponse, OptionsAuditLogQuery,
+    OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings,
+    OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, OwnedBotsResponse, PublicBot,
+    ResponseWebhook, Role, Server, ServerBan, SessionInfo, User, UserProfile, UserSettings,
+    Webhook,
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
@@ -993,6 +994,13 @@ impl HttpClient {
 
     pub async fn unblock_user(&self, user_id: &str) -> Result<User> {
         self.request(Method::DELETE, format!("/users/{user_id}/block"))
+            .response()
+            .await
+    }
+
+    pub async fn create_group(&self, data: &DataCreateGroup) -> Result<Channel> {
+        self.request(Method::POST, format!("/channels/create"))
+            .body(data)
             .response()
             .await
     }

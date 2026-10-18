@@ -12,7 +12,8 @@ use crate::{
         material::{filled::smart_toy, outlined::timer_off},
         use_floating,
     },
-    consume_material_theme, member_display_color, member_role_icon, user_permissions_query,
+    consume_material_theme, get_channel_server, member_display_color, member_role_icon,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -28,36 +29,24 @@ impl Component for Message {
 
         let theme = consume_material_theme();
 
-        let server_id = use_hook({
-            move || {
-                if let Some(member) = &self.message.member {
-                    Some(member.read().id.server.clone())
-                } else {
-                    None
-                }
-            }
-        });
+        let server_id =
+            use_hook({ move || get_channel_server(&self.channel.read()).map(|id| id.to_string()) });
 
-        let server = use_memo({
-            let server_id = server_id.clone();
-
-            move || {
-                if let Some(server_id) = &server_id {
-                    radio.read().servers.get(server_id).cloned()
-                } else {
-                    None
-                }
-            }
+        let server = server_id.clone().map(|id| {
+            radio
+                .slice_current(move |state| state.servers.get(&id).unwrap())
+                .into_readable()
         });
 
         let role_color = use_memo({
             let member = self.message.member.clone();
+            let server = server.clone();
 
             move || {
                 if let Some(member) = &member
-                    && let Some(server) = &*server.read()
+                    && let Some(server) = &server
                 {
-                    member_display_color(&member.read(), server)
+                    member_display_color(&member.read(), &server.read())
                 } else {
                     None
                 }
@@ -66,12 +55,13 @@ impl Component for Message {
 
         let role_icon = use_memo({
             let member = self.message.member.clone();
+            let server = server.clone();
 
             move || {
                 if let Some(member) = &member
-                    && let Some(server) = &*server.read()
+                    && let Some(server) = &server
                 {
-                    member_role_icon(&member.read(), server)
+                    member_role_icon(&member.read(), &server.read())
                 } else {
                     None
                 }
@@ -141,7 +131,7 @@ impl Component for Message {
             SystemMessage {
                 message: self.message.clone(),
                 system,
-                server_id: server_id.clone(),
+                server,
             }
             .into_element()
         } else {
@@ -180,21 +170,23 @@ impl Component for Message {
                                         .on_secondary_down({
                                             let user = self.message.user.clone();
                                             let server = server.clone();
+                                            let server_id = server_id.clone();
                                             let radio = radio.clone();
 
                                             move |e: Event<PressEventData>| {
                                                 e.stop_propagation();
 
                                                 let user = user.read().clone();
-                                                let server = server.read().clone();
+                                                let server_id = server_id.clone();
+                                                let server = server.clone();
                                                 let radio = radio.clone();
 
                                                 spawn(async move {
                                                     let mut query = user_permissions_query(radio)
                                                         .user(user.clone());
 
-                                                    if let Some(server) = server.clone() {
-                                                        query = query.server(server);
+                                                    if let Some(server) = &server {
+                                                        query = query.server(server.read().clone());
                                                     };
 
                                                     let permissions =
@@ -203,7 +195,7 @@ impl Component for Message {
                                                     ContextMenu::open(Menu::new().key(&user.id).child(
                                                         UserContextMenu {
                                                             user_id: user.id.clone(),
-                                                            server_id: server.map(|s| s.id),
+                                                            server_id,
                                                             permissions,
                                                         },
                                                     ));

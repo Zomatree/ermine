@@ -5,7 +5,7 @@ use chumsky::{
     text::{digits, ident, int, keyword, whitespace},
 };
 use freya::prelude::*;
-use freya_engine::prelude::{Paint, RuntimeEffect, Shader};
+use freya_engine::prelude::{RuntimeEffect, Shader};
 
 // angle of 0. is down
 

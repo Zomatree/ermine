@@ -911,7 +911,7 @@ pub async fn update_state(
                     channel,
                     data.clone(),
                     (
-                        (name, (Channel::TextChannel)),
+                        (name, (Channel::TextChannel, Channel::Group)),
                         (owner, (Channel::Group)),
                         optional(description, (Channel::Group, Channel::TextChannel)),
                         optional(icon, (Channel::Group, Channel::TextChannel)),

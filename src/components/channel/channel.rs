@@ -3,21 +3,23 @@ use std::borrow::Cow;
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
 use stoat_models::v0;
+use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, Room, SizeExt, VoiceConnectionStatus,
+    AppChannel, ChannelSettingsPage, Room, SizeExt, VoiceConnectionStatus,
+    calculate_channel_permissions,
     components::{
         AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
         MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, RoomManager,
         StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
             filled::{alternate_email, grid_3x3, phone},
-            outlined::{group, push_pin, sticky_note_2},
+            outlined::{group, push_pin, settings, sticky_note_2},
         },
         message_pinned::MessagePinned,
         use_modals,
     },
-    consume_material_theme, use_config,
+    consume_material_theme, use_config, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -30,7 +32,12 @@ pub struct Channel {
 impl Component for Channel {
     fn render(&self) -> impl IntoElement {
         let mut config = use_config();
+
         let radio = use_radio(AppChannel::UserId);
+        let mut channel_settings = radio.slice_mut(AppChannel::ChannelSettingsPage, |state| {
+            &mut state.channel_settings_page
+        });
+
         let room = consume_context::<Room>();
         let theme = consume_material_theme();
         let mut modals = use_modals();
@@ -97,6 +104,22 @@ impl Component for Channel {
                 )
             } else {
                 None
+            }
+        });
+
+        let mut permissions = use_state(|| PermissionValue::from_raw(0));
+
+        use_side_effect({
+            let channel = self.channel.clone();
+
+            move || {
+                let channel = channel.read().clone();
+
+                let mut query = user_permissions_query(radio.clone()).channel(channel);
+
+                spawn(async move {
+                    permissions.set(calculate_channel_permissions(&mut query).await);
+                });
             }
         });
 
@@ -177,7 +200,7 @@ impl Component for Channel {
                                         let id = channel.id().to_string();
 
                                         move |_| {
-                                            spawn({
+                                            spawn_in_window({
                                                 let id = id.clone();
 
                                                 async move {
@@ -194,6 +217,44 @@ impl Component for Channel {
                                             .center()
                                             .color(theme.md.on_surface_variant.as_argb_u32())
                                             .child(MaterialIcon::new(phone()).size(Size::px(24.))),
+                                    ),
+                            )
+                        }),
+                    )
+                    .maybe_child(
+                        (matches!(
+                            &channel,
+                            v0::Channel::Group { .. } | v0::Channel::TextChannel { .. }
+                        ) && (permissions()
+                            .has_channel_permission(ChannelPermission::ManageChannel)
+                            || permissions()
+                                .has_channel_permission(ChannelPermission::ManagePermissions)))
+                        .then(|| {
+                            StoatTooltip::new(
+                                label().font_size(11.).max_lines(1).text("Channel Settings"),
+                            )
+                            .position(AttachedPosition::Bottom)
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(40.)
+                                    .on_press({
+                                        let id = channel.id().to_string();
+
+                                        move |_| {
+                                            *channel_settings.write() =
+                                                Some((id.clone(), ChannelSettingsPage::default()));
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .horizontal()
+                                            .height(Size::px(40.))
+                                            .padding((0., 8.))
+                                            .center()
+                                            .color(theme.md.on_surface_variant.as_argb_u32())
+                                            .child(
+                                                MaterialIcon::new(settings()).size(Size::px(24.)),
+                                            ),
                                     ),
                             )
                         }),
@@ -294,29 +355,35 @@ impl Component for Channel {
                             .height(Size::Fill)
                             .width(Size::flex(1.))
                             .spacing(8.)
-                            .maybe_child(if room.status() == VoiceConnectionStatus::Connecting {
-                                Some(
-                                    rect()
-                                        .height(Size::flex(4.))
-                                        .width(Size::flex(1.))
-                                        .center()
-                                        .corner_radius(28.)
-                                        .background(theme.md.secondary_container.as_argb_u32())
-                                        .child(CircularLoader::new().size(48.)),
-                                )
-                            } else if let Some(room) = room.read()
-                                && &room.name() == channel.id()
-                            {
-                                Some(
-                                    rect()
-                                        .height(Size::flex(4.))
-                                        .width(Size::flex(1.))
-                                        .content(Content::Flex)
-                                        .corner_radius(28.)
-                                        .background(theme.md.secondary_container.as_argb_u32())
-                                        .padding(8.)
-                                        .child(RoomManager { room: room }),
-                                )
+                            .maybe_child(if room.is_channel(channel.id()) {
+                                if room.status() == VoiceConnectionStatus::Connecting {
+                                    Some(
+                                        rect()
+                                            .height(Size::flex(4.))
+                                            .width(Size::flex(1.))
+                                            .center()
+                                            .corner_radius(28.)
+                                            .background(theme.md.secondary_container.as_argb_u32())
+                                            .child(
+                                                CircularLoader::new()
+                                                    .size(48.)
+                                                    .primary_color(theme.md.primary.as_argb_u32()),
+                                            ),
+                                    )
+                                } else if let Some(room) = room.read() {
+                                    Some(
+                                        rect()
+                                            .height(Size::flex(4.))
+                                            .width(Size::flex(1.))
+                                            .content(Content::Flex)
+                                            .corner_radius(28.)
+                                            .background(theme.md.secondary_container.as_argb_u32())
+                                            .padding(8.)
+                                            .child(RoomManager { room: room }),
+                                    )
+                                } else {
+                                    None
+                                }
                             } else {
                                 None
                             })

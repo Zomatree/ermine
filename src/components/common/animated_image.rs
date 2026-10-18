@@ -1,13 +1,18 @@
 use std::{
     hash::{DefaultHasher, Hash, Hasher},
     rc::Rc,
+    sync::LazyLock,
 };
 
 use freya::{elements::image::ImageData, prelude::*};
 use freya_components::gif_viewer::{GifSource, GifViewer};
 use mimetype_detector::IMAGE_GIF;
+use tokio::sync::Semaphore;
 
-use crate::components::{ModalValue, use_modals};
+use crate::{
+    components::{ModalValue, use_modals},
+    http,
+};
 
 #[derive(PartialEq)]
 pub struct AnimatedImage {
@@ -107,6 +112,8 @@ impl AnimatedImage {
     }
 }
 
+static SEMAPHORE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(10));
+
 impl Component for AnimatedImage {
     fn render(&self) -> impl IntoElement {
         let mut modals = use_modals();
@@ -122,45 +129,37 @@ impl Component for AnimatedImage {
                     asset_cacher.read_asset(asset_config),
                     Some(Asset::Pending) | Some(Asset::Error(_))
                 ) {
-                    asset_cacher.update_asset(asset_config.clone(), Asset::Loading);
-
                     let url = url.clone();
                     let asset_config = asset_config.clone();
-                    spawn_in_window(async move {
-                        match tokio::task::spawn_blocking(move || {
-                            let mut response = reqwest::blocking::get(url.clone()).unwrap();
 
-                            if response.status().is_redirection() {
-                                let location = response
-                                    .headers()
-                                    .get("location")
-                                    .unwrap()
-                                    .to_str()
-                                    .unwrap();
-                                let mut url = url.clone();
-                                url.set_path(location);
-                                response = reqwest::blocking::get(url.clone()).unwrap();
-                            };
+                    spawn(async move {
+                        asset_cacher.update_asset(asset_config.clone(), Asset::Loading);
+                        let client = http().inner;
 
-                            let bytes = response.bytes().unwrap();
+                        let lock = SEMAPHORE.acquire().await.unwrap();
+                        let mut response = client.get(url.clone()).send().await.unwrap();
 
-                            let mime = mimetype_detector::detect(&bytes);
+                        if response.status().is_redirection() {
+                            let location = response
+                                .headers()
+                                .get("location")
+                                .unwrap()
+                                .to_str()
+                                .unwrap();
+                            let mut url = url;
+                            url.set_path(location);
+                            response = client.get(url).send().await.unwrap();
+                        };
 
-                            Some((bytes, mime.is(IMAGE_GIF)))
-                        })
-                        .await
-                        {
-                            Ok(Some((bytes, is_gif))) => {
-                                asset_cacher.update_asset(
-                                    asset_config,
-                                    Asset::Cached(Rc::new((bytes, is_gif))),
-                                );
-                            }
-                            Err(_) | Ok(None) => {
-                                asset_cacher
-                                    .update_asset(asset_config, Asset::Error("todo".to_string()));
-                            }
-                        }
+                        let bytes = response.bytes().await.unwrap();
+                        drop(lock);
+
+                        let mime = mimetype_detector::detect(&bytes);
+
+                        asset_cacher.update_asset(
+                            asset_config,
+                            Asset::Cached(Rc::new((bytes, mime.is(IMAGE_GIF)))),
+                        );
                     });
                 }
             },
@@ -197,11 +196,13 @@ impl Component for AnimatedImage {
                     })
                     .child(if is_gif {
                         GifViewer::new(GifSource::Bytes(id, bytes))
+                            .key(id)
                             .layout(self.layout.clone())
                             .image_data(self.image_data.clone())
                             .into_element()
                     } else {
                         ImageViewer::new(ImageSource::Bytes(id, bytes))
+                            .key(id)
                             .decode_mode(self.decode_mode)
                             .layout(self.layout.clone())
                             .image_data(self.image_data.clone())
@@ -223,5 +224,9 @@ impl Component for AnimatedImage {
                 .into_element(),
             Asset::Error(_) => rect().child("error").into_element(),
         }
+    }
+
+    fn render_key(&self) -> DiffKey {
+        self.key.clone()
     }
 }

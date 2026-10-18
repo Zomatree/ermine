@@ -186,6 +186,8 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                     .child(
                                         label()
                                             .font_size(12.)
+                                            .line_height(1.5)
+                                            .text_height(TextHeightBehavior::All)
                                             .color(theme.md.on_surface_variant.as_argb_u32())
                                             .text(self.title.clone()),
                                     )

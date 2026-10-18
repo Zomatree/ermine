@@ -46,8 +46,6 @@ impl Component for Friends {
             .filter(|r| r.status == v0::RelationshipStatus::Incoming)
             .count();
 
-        println!("{incoming_friend_count}");
-
         rect()
             .child(
                 rect()

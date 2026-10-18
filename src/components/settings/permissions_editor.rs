@@ -319,7 +319,7 @@ impl Component for PermissionOverriteSwitchOverride {
                     .width(Size::px(36.))
                     .height(Size::px(36.))
                     .position(Position::new_absolute().left(0.).top(0.))
-                    .background(theme.md.on_surface.as_argb_u32())
+                    .background(theme.md.on_surface)
                     .opacity(0.08)
             }))
     }

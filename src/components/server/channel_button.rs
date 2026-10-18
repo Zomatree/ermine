@@ -5,7 +5,7 @@ use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge, SizeExt,
+    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
     calculate_channel_permissions,
     components::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
@@ -30,6 +30,7 @@ impl Component for ChannelButton {
         let theme = consume_material_theme();
         let mut config = use_consume::<State<Config>>();
         let mut modals = use_modals();
+        let room = consume_context::<Room>();
 
         let mut radio = use_radio(AppChannel::SelectedChannel);
         let selected = radio.slice_current(|state| &state.selected_channel);
@@ -96,12 +97,14 @@ impl Component for ChannelButton {
             }
         });
 
+        let is_current_voice = room.is_channel(channel.read().id());
+
         let color = if muted() && !selected {
             theme.md.outline_variant
-        } else if unread_badge.read().is_some() {
-            theme.md.on_surface
         } else if selected {
             theme.md.on_primary_container
+        } else if unread_badge.read().is_some() || is_current_voice {
+            theme.md.on_surface
         } else {
             theme.md.outline
         }
@@ -184,7 +187,7 @@ impl Component for ChannelButton {
                                             grid_3x3()
                                         },
                                     )
-                                    .color(color)
+                                    .color(if is_current_voice { theme.md.primary.as_argb_u32() } else { color })
                                     .size(Size::px(24.)),
                                 )
                                 .child(

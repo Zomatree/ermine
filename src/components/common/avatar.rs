@@ -1,7 +1,7 @@
 use freya::prelude::*;
 use stoat_models::v0;
 
-use crate::{components::file_image, consume_material_theme, http};
+use crate::{SizeExt, components::file_image, consume_material_theme, http};
 
 #[derive(PartialEq)]
 pub struct Avatar {
@@ -45,13 +45,12 @@ impl Component for Avatar {
             .or_else(|| self.user.read().avatar.as_ref().map(file_image));
 
         rect()
-            .width(Size::px(self.size))
-            .height(Size::px(self.size))
+            .size(Size::px(self.size))
             .child(if let Some(image) = image {
                 image
                     .aspect_ratio(AspectRatio::Max)
                     .image_cover(ImageCover::Center)
-                    .expanded()
+                    .size(Size::px(self.size))
                     .corner_radius(self.size)
                     .overflow(Overflow::Clip)
                     .selectable(self.selectable)
@@ -64,7 +63,7 @@ impl Component for Avatar {
                         .unwrap(),
                 )
                 .sampling_mode(SamplingMode::Trilinear)
-                .expanded()
+                .size(Size::px(self.size))
                 .corner_radius(self.size)
                 .overflow(Overflow::Clip)
                 .into_element()

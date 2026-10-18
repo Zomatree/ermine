@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Ermine"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "arboard",
  "async-trait",
@@ -4145,10 +4145,10 @@ checksum = "ffbee8634e0d45d258acb448e7eaab3fce7a0a467395d4d9f228e3c1f01fb2e4"
 [[package]]
 name = "material-colors"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a5bf6a9d1cf6319a36cebc589b9a681a6b1c699e162f27c020877783579cc7"
+source = "git+https://github.com/Zomatree/material-colors.git?rev=525a6b4#525a6b445c91a24ae93448a8f613d8626e784d33"
 dependencies = [
  "ahash 0.8.12",
+ "freya-core",
  "indexmap",
  "serde",
 ]
@@ -6868,7 +6868,7 @@ dependencies = [
 [[package]]
 name = "serde_qs"
 version = "1.1.3"
-source = "git+https://github.com/Zomatree/serde_qs.git?rev=b7497ee180401babefdf4701f5074710edc1a27b#b7497ee180401babefdf4701f5074710edc1a27b"
+source = "git+https://github.com/Zomatree/serde_qs.git?rev=b7497ee#b7497ee180401babefdf4701f5074710edc1a27b"
 dependencies = [
  "itoa",
  "percent-encoding",

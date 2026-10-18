@@ -244,7 +244,9 @@ impl Component for StoatButton {
                             }
                             _ => {}
                         },
-                        PressEventData::Touch(_) | PressEventData::Keyboard(_) | PressEventData::Accessibility(_) => {
+                        PressEventData::Touch(_)
+                        | PressEventData::Keyboard(_)
+                        | PressEventData::Accessibility(_) => {
                             if let Some(handler) = &on_press {
                                 handler.call(e);
                             }

@@ -6,12 +6,15 @@ use stoat_models::v0;
 use crate::{
     AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
     components::{
-        AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings,
-        InviteServerSettings, MaterialIcon, OverviewServerSettings, RoleServerSettings,
-        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
+        MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+        StoatButtonLayoutThemePartialExt,
         material::{
             filled::{chevron_right, clear},
             outlined::delete,
+        },
+        settings::server::{
+            AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings,
+            InviteServerSettings, OverviewServerSettings, RoleServerSettings,
         },
         stoat_scrollbar,
     },
@@ -284,6 +287,7 @@ impl Component for ServerSettingsButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text(self.page.title()),
                     ),
@@ -345,6 +349,7 @@ impl Component for DeleteServerButton {
                     .child(
                         label()
                             .font_size(15)
+                            .font_weight(500)
                             .margin((0., 0., 2., 0.))
                             .text("Delete Server"),
                     ),

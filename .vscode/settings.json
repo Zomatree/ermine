@@ -11,5 +11,6 @@
     "rust-analyzer.server.extraEnv": {
         "RUSTUP_TOOLCHAIN": "stable"
     },
-    "color-highlight.useARGB": true
+    "color-highlight.useARGB": true,
+    "rust-analyzer.cargo.features": "all"
 }

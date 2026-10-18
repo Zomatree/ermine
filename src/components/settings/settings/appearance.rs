@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 use ulid::Ulid;
@@ -6,7 +8,7 @@ use crate::{
     AppChannel, ThemeScheme, ThemeSet, ThemeVariant,
     components::{
         Dropdown, Message, MessageModel, StoatColorPicker, StoatSegmentedButton,
-        checkbox::StoatCheckbox,
+        checkbox::StoatCheckbox, stoat_label,
     },
     consume_material_theme, use_config,
 };
@@ -78,11 +80,12 @@ impl Component for AppearanceSettings {
                             scheme,
                             vec![ThemeScheme::Light, ThemeScheme::Dark],
                             |scheme| {
-                                match scheme {
-                                    ThemeScheme::Light => "Light",
-                                    ThemeScheme::Dark => "Dark",
-                                }
-                                .into_element()
+                                stoat_label()
+                                    .text(match scheme {
+                                        ThemeScheme::Light => "Light",
+                                        ThemeScheme::Dark => "Dark",
+                                    })
+                                    .into_element()
                             },
                         )
                         .height(40.),
@@ -127,14 +130,15 @@ impl Component for AppearanceSettings {
                         contrast,
                         vec![-1.0, 0.0, 0.5, 1.0],
                         |contrast| {
-                            match contrast {
-                                -1.0 => "Reduced",
-                                0.0 => "Normal",
-                                0.5 => "More Contrast",
-                                1.0 => "High Contrast",
-                                _ => unreachable!(),
-                            }
-                            .into_element()
+                            stoat_label()
+                                .text(match contrast {
+                                    -1.0 => "Reduced",
+                                    0.0 => "Normal",
+                                    0.5 => "More Contrast",
+                                    1.0 => "High Contrast",
+                                    _ => unreachable!(),
+                                })
+                                .into_element()
                         },
                     ))
                     .child(
@@ -150,12 +154,11 @@ impl Component for AppearanceSettings {
                                 ThemeVariant::FruitSalad,
                             ],
                             |variant| {
-                                paragraph()
-                                    // .width(Size::Inner)
+                                stoat_label()
                                     .max_lines(1)
                                     .text_overflow(TextOverflow::Ellipsis)
                                     .font_size(10.)
-                                    .span(match variant {
+                                    .text(match variant {
                                         ThemeVariant::Monochrome => "Monochrome",
                                         ThemeVariant::Neutral => "Neutral",
                                         ThemeVariant::TonalSpot => "Tonal Spot",
@@ -265,7 +268,12 @@ impl Component for AppearanceSettings {
                         plain: true,
                     })
             })
-            .child(label().text("Message Group Spacing").font_size(12.))
+            .child(
+                label()
+                    .text("Message Group Spacing")
+                    .font_size(12.)
+                    .font_weight(500),
+            )
             .child(
                 rect()
                     .horizontal()
@@ -299,23 +307,29 @@ impl Component for AppearanceSettings {
                 code_theme,
                 theme_set.themes.keys().cloned().collect(),
                 |theme| {
-                    match theme.as_str() {
-                        "OneHalfDark" => "One Half (dark)",
-                        "OneHalfLight" => "One Half (light)",
-                        "CatppuccinMacchiato" => "Catppuccin Macchiato (dark)",
-                        "base16-ocean.dark" => "Base16 Ocean (dark)",
-                        "base16-eighties.dark" => "Base16 Eighties (dark)",
-                        "base16-mocha.dark" => "Base16 Mocha (dark)",
-                        "base16-ocean.light" => "Base16 Ocean (light)",
-                        "InspiredGitHub" => "Github (light)",
-                        "Solarized (dark)" => "Solarized (dark)",
-                        "Solarized (light)" => "Solarized (light)",
-                        name => name,
-                    }
-                    .into_element()
+                    stoat_label()
+                        .text(match theme.as_str() {
+                            "OneHalfDark" => "One Half (dark)".into(),
+                            "OneHalfLight" => "One Half (light)".into(),
+                            "CatppuccinMacchiato" => "Catppuccin Macchiato (dark)".into(),
+                            "base16-ocean.dark" => "Base16 Ocean (dark)".into(),
+                            "base16-eighties.dark" => "Base16 Eighties (dark)".into(),
+                            "base16-mocha.dark" => "Base16 Mocha (dark)".into(),
+                            "base16-ocean.light" => "Base16 Ocean (light)".into(),
+                            "InspiredGitHub" => "Github (light)".into(),
+                            "Solarized (dark)" => "Solarized (dark)".into(),
+                            "Solarized (light)" => "Solarized (light)".into(),
+                            _ => Cow::Owned(theme.clone()),
+                        })
+                        .into_element()
                 },
             ))
-            .child(label().text("Chat Input").font_size(14.).font_weight(600))
+            .child(
+                stoat_label()
+                    .text("Chat Input")
+                    .font_size(14.)
+                    .font_weight(600),
+            )
             .child(StoatCheckbox::new(hide_send_button).child("Hide send message button"))
     }
 }
