@@ -322,6 +322,7 @@ impl Component for SelectedBotsSettings {
                         public: None,
                         analytics: None,
                         interactions_url: None,
+                        default_permissions: None,
                         remove: vec![field],
                     })
                     .await
@@ -579,6 +580,7 @@ impl Component for SelectedBotsSettings {
                                                             public: None,
                                                             analytics: None,
                                                             interactions_url: None,
+                                                            default_permissions: None,
                                                             remove: Vec::new(),
                                                         };
 

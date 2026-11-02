@@ -18,21 +18,21 @@ use crate::{
 
 #[derive(PartialEq)]
 pub struct StoatCheckbox {
-    value: Writable<bool>,
+    value: WritableSetter<bool>,
     children: Vec<Element>,
 }
 
 impl StoatCheckbox {
-    pub fn new(value: impl IntoWritable<bool>) -> Self {
+    pub fn new(value: impl Into<WritableSetter<bool>>) -> Self {
         Self {
-            value: value.into_writable(),
+            value: value.into(),
             children: Vec::new(),
         }
     }
 }
 
 impl ChildrenExt for StoatCheckbox {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }
@@ -79,8 +79,8 @@ impl Component for StoatCheckbox {
                 move |_| {
                     a11y_id.request_focus();
 
-                    let mut v = value.write();
-                    *v = !*v;
+                    let v = *value.read();
+                    value.set(!v);
                 }
             })
             .on_pointer_over(move |_| {

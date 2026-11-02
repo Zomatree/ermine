@@ -16,7 +16,7 @@ impl HttpManager {
 }
 
 impl ChildrenExt for HttpManager {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }

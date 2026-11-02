@@ -348,19 +348,18 @@ impl Component for Channel {
                     .width(Size::Fill)
                     .horizontal()
                     .content(Content::Flex)
-                    .child(
-                        rect()
+                    .child({
+                        let is_current_room = room.is_channel(channel.id());
+                        let is_connecting = room.status() == VoiceConnectionStatus::Connecting;
+
+                        ResizableContainer::new()
                             .margin((0., 8., 8., 8.))
-                            .content(Content::Flex)
-                            .height(Size::Fill)
                             .width(Size::flex(1.))
-                            .spacing(8.)
-                            .maybe_child(if room.is_channel(channel.id()) {
-                                if room.status() == VoiceConnectionStatus::Connecting {
+                            .panel(
+                                if is_current_room && is_connecting {
                                     Some(
                                         rect()
-                                            .height(Size::flex(4.))
-                                            .width(Size::flex(1.))
+                                            .expanded()
                                             .center()
                                             .corner_radius(28.)
                                             .background(theme.md.secondary_container.as_argb_u32())
@@ -370,11 +369,10 @@ impl Component for Channel {
                                                     .primary_color(theme.md.primary.as_argb_u32()),
                                             ),
                                     )
-                                } else if let Some(room) = room.read() {
+                                } else if is_current_room && let Some(room) = room.read() {
                                     Some(
                                         rect()
-                                            .height(Size::flex(4.))
-                                            .width(Size::flex(1.))
+                                            .expanded()
                                             .content(Content::Flex)
                                             .corner_radius(28.)
                                             .background(theme.md.secondary_container.as_argb_u32())
@@ -384,35 +382,51 @@ impl Component for Channel {
                                 } else {
                                     None
                                 }
-                            } else {
-                                None
-                            })
-                            .child(
-                                rect()
-                                    .height(Size::flex(6.))
-                                    .width(Size::Fill)
-                                    .content(Content::Flex)
-                                    .corner_radius(28.)
-                                    .background(theme.md.surface_container_lowest.as_argb_u32())
-                                    .overflow(Overflow::Clip)
-                                    .child(
-                                        rect()
-                                            .height(Size::flex(1.))
-                                            .main_align(Alignment::End)
-                                            .child(ChannelMessages {
-                                                replies,
-                                                channel: self.channel.clone(),
-                                                server: self.server.clone(),
-                                                jump_message: self.jump_message.clone(),
-                                            }),
-                                    )
-                                    .child(MessageInput {
-                                        channel: self.channel.clone(),
-                                        replies,
-                                        attachments,
-                                    }),
-                            ),
-                    )
+                                .map(|el| {
+                                    ResizablePanel::new(PanelSize::percent(40.))
+                                        .key(0)
+                                        .child(el.margin((0., 0., 4., 0.)))
+                                }),
+                            )
+                            .panel(
+                                ResizablePanel::new(PanelSize::percent(60.)).key(1).child(
+                                    rect()
+                                        .expanded()
+                                        .content(Content::Flex)
+                                        .corner_radius(28.)
+                                        .background(theme.md.surface_container_lowest.as_argb_u32())
+                                        // .overflow(Overflow::Clip)
+                                        .margin((
+                                            if is_current_room
+                                                && (is_connecting || room.is_connected())
+                                            {
+                                                4.
+                                            } else {
+                                                0.
+                                            },
+                                            0.,
+                                            0.,
+                                            0.,
+                                        ))
+                                        .child(
+                                            rect()
+                                                .height(Size::flex(1.))
+                                                .main_align(Alignment::End)
+                                                .child(ChannelMessages {
+                                                    replies,
+                                                    channel: self.channel.clone(),
+                                                    server: self.server.clone(),
+                                                    jump_message: self.jump_message.clone(),
+                                                }),
+                                        )
+                                        .child(MessageInput {
+                                            channel: self.channel.clone(),
+                                            replies,
+                                            attachments,
+                                        }),
+                                ),
+                            )
+                    })
                     .maybe_child(
                         search_query
                             .read()

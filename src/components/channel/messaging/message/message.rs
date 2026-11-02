@@ -30,7 +30,7 @@ impl Component for Message {
         let theme = consume_material_theme();
 
         let server_id =
-            use_hook({ move || get_channel_server(&self.channel.read()).map(|id| id.to_string()) });
+            use_hook(move || get_channel_server(&self.channel.read()).map(|id| id.to_string()));
 
         let server = server_id.clone().map(|id| {
             radio
@@ -115,15 +115,29 @@ impl Component for Message {
             let floating = floating.clone();
             let user = self.message.user.clone();
             let member = self.message.member.clone();
+            let server = server.clone();
 
             move || {
-                floating.clone().set(Some(
-                    UserCard {
-                        user: user.clone(),
-                        member: member.clone(),
-                    }
-                    .into_element(),
-                ));
+                let user = user.read().clone();
+                let member = member.as_ref().map(|m| m.read().clone());
+                let server = server.as_ref().map(|s| s.read().clone());
+
+                spawn(async move {
+                    let mut query = user_permissions_query(radio.clone())
+                        .user(user.clone())
+                        .member(member.clone())
+                        .server(server);
+                    let permissions = calculate_server_permissions(&mut query).await;
+
+                    floating.clone().set(Some(
+                        UserCard {
+                            user: user.into_readable(),
+                            member: member.map(|m| m.into_readable()),
+                            permissions,
+                        }
+                        .into_element(),
+                    ));
+                });
             }
         };
 
@@ -227,10 +241,8 @@ impl Component for Message {
                                                     .font_weight(500)
                                                     .map(
                                                         role_color.read().clone(),
-                                                        |mut this, color| {
-                                                            this.get_text_style_data().color =
-                                                                Some(color);
-                                                            this
+                                                        |this, color| {
+                                                            this.color(color)
                                                         },
                                                     )
                                                     .line_height(1.5)

@@ -51,7 +51,7 @@ impl SingleLineEntry {
 }
 
 impl LayoutExt for SingleLineEntry {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }

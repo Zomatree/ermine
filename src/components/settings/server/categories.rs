@@ -120,16 +120,18 @@ impl Component for CategoryServerSettings {
 #[derive(PartialEq)]
 struct DragChannel {
     pub id: String,
-    pub channel: Option<v0::Channel>,
 }
 
 impl Component for DragChannel {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
-        let name = self
-            .channel
-            .as_ref()
+        let radio = use_radio(AppChannel::Channels);
+        let state = radio.read();
+
+        let channel = state.channels.get(&self.id);
+
+        let name = channel
             .and_then(|c| c.name())
             .unwrap_or("Unknown Channel")
             .to_string();
@@ -148,7 +150,7 @@ impl Component for DragChannel {
             .child(
                 MaterialIcon::new(
                     if matches!(
-                        &self.channel,
+                        &channel,
                         Some(v0::Channel::TextChannel { voice: Some(_), .. })
                     ) {
                         headset_mic()
@@ -170,8 +172,8 @@ struct DragCategory {
     pub category: v0::Category,
     pub server: Readable<v0::Server>,
 
-    pub selected_chan: State<Option<(String, Option<v0::Channel>)>>,
-    pub hovered_chan: State<Option<(usize, usize, (String, Option<v0::Channel>))>>,
+    pub selected_chan: State<Option<String>>,
+    pub hovered_chan: State<Option<(usize, usize, String)>>,
     pub size_chan: State<Size2D>,
 }
 
@@ -179,10 +181,6 @@ impl Component for DragCategory {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
         let mut modals = use_modals();
-        let radio = use_radio(AppChannel::Channels);
-        let channels = radio.slice_current(|state| &state.channels);
-
-        let channels = channels.read();
 
         let id = self.category.id.clone();
         let new_name = self.state.into_writable().map(
@@ -307,8 +305,6 @@ impl Component for DragCategory {
                             .chain(once("".to_string()))
                             .enumerate()
                             .map(|(i, id)| {
-                                let channel = channels.get(&id).cloned();
-
                                 rect()
                                     .on_pointer_down(|e: Event<PointerEventData>| {
                                         e.stop_propagation()
@@ -378,13 +374,13 @@ impl Component for DragCategory {
                                                         .hovered_chan
                                                         .read()
                                                         .as_ref()
-                                                        .is_none_or(|(_, _, (v, _))| {
+                                                        .is_none_or(|(_, _, v)| {
                                                             v != &id
                                                                 || self
                                                                     .selected_chan
                                                                     .read()
                                                                     .as_ref()
-                                                                    .is_none_or(|(id, _)| id != v)
+                                                                    .is_none_or(|id| id != v)
                                                         })
                                                     {
                                                         rect()
@@ -393,7 +389,6 @@ impl Component for DragCategory {
                                                             )
                                                             .child(DragChannel {
                                                                 id: id.clone(),
-                                                                channel: channel.clone(),
                                                             })
                                                             .into_element()
                                                     } else {
@@ -410,7 +405,6 @@ impl Component for DragCategory {
                                                         rect()
                                                             .on_sized({
                                                                 let id = id.clone();
-                                                                let channel = channel.clone();
                                                                 let mut selected_chan =
                                                                     self.selected_chan;
                                                                 let mut hovered_chan =
@@ -423,17 +417,11 @@ impl Component for DragCategory {
                                                                         .is_some();
 
                                                                     if !is_dragging {
-                                                                        selected_chan.set(Some((
-                                                                            id.clone(),
-                                                                            channel.clone(),
-                                                                        )));
+                                                                        selected_chan.set(Some(id.clone()));
                                                                         hovered_chan.set(Some((
                                                                             pos,
                                                                             i,
-                                                                            (
-                                                                                id.clone(),
-                                                                                channel.clone(),
-                                                                            ),
+                                                                            id.clone(),
                                                                         )));
                                                                     }
                                                                 }
@@ -442,7 +430,6 @@ impl Component for DragCategory {
                                                                 values: self.values,
                                                                 state: self.state,
                                                                 id: id.clone(),
-                                                                channel: channel.clone(),
                                                                 size: self.size_chan,
                                                                 selected: self.selected_chan,
                                                             }),
@@ -480,13 +467,13 @@ impl Component for DragCategory {
                                                         if to_len == i || to_len == 0 {
                                                             s[pos]
                                                                 .channels
-                                                                .push(current.2.0.clone());
+                                                                .push(current.2.clone());
                                                             hovered_chan
                                                                 .set(Some((pos, i, selected)));
                                                         } else {
                                                             s[pos]
                                                                 .channels
-                                                                .insert(i, current.2.0.clone());
+                                                                .insert(i, current.2.clone());
                                                             hovered_chan
                                                                 .set(Some((pos, i, selected)));
                                                         }
@@ -698,8 +685,8 @@ struct DraggedCategory {
     pub size: State<Size2D>,
     pub selected: State<Option<v0::Category>>,
 
-    pub selected_chan: State<Option<(String, Option<v0::Channel>)>>,
-    pub hovered_chan: State<Option<(usize, usize, (String, Option<v0::Channel>))>>,
+    pub selected_chan: State<Option<String>>,
+    pub hovered_chan: State<Option<(usize, usize, String)>>,
     pub size_chan: State<Size2D>,
 }
 
@@ -741,9 +728,8 @@ struct DraggedChannel {
     pub values: State<Vec<v0::Category>>,
     pub state: State<Vec<v0::Category>>,
     pub id: String,
-    pub channel: Option<v0::Channel>,
     pub size: State<Size2D>,
-    pub selected: State<Option<(String, Option<v0::Channel>)>>,
+    pub selected: State<Option<String>>,
 }
 
 impl Component for DraggedChannel {
@@ -758,15 +744,15 @@ impl Component for DraggedChannel {
             values.set(state.read().cloned());
         });
 
-        let (id, channel) = self
+        let id = self
             .selected
             .read()
             .cloned()
-            .unwrap_or_else(|| (self.id.clone(), self.channel.clone()));
+            .unwrap_or_else(|| self.id.clone());
 
         rect()
             .cursor(CursorIcon::Pointer)
             .on_sized(move |area: Event<SizedEventData>| size.set_if_modified(area.area.size))
-            .child(DragChannel { id, channel })
+            .child(DragChannel { id })
     }
 }

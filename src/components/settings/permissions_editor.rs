@@ -10,6 +10,7 @@ use crate::{
             filled::{check, clear},
             outlined::remove,
         },
+        stoat_label,
     },
     consume_material_theme,
 };
@@ -107,37 +108,39 @@ struct PermissionToggle {
 impl Component for PermissionToggle {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
-        let toggle = use_state(|| (*self.value.read() & self.bit) == self.bit);
 
-        use_side_effect({
-            let mut value = self.value.clone();
-            let bit = self.bit;
-            move || {
-                let mut v = value.write();
+        StoatCheckbox::new(WritableSetter::new(
+            (*self.value.read() & self.bit) == self.bit,
+            {
+                let mut value = self.value.clone();
+                let bit = self.bit;
 
-                if toggle() {
-                    *v |= bit;
-                } else {
-                    *v ^= bit;
+                move |toggle| {
+                    let mut v = value.write();
+
+                    if toggle {
+                        *v |= bit;
+                    } else {
+                        *v ^= bit;
+                    }
                 }
-            }
-        });
-
-        StoatCheckbox::new(toggle).child(
+            },
+        ))
+        .child(
             rect()
-                .padding((10., 0.))
+                .padding((10., 0., 10., 8.))
                 .child(
-                    label()
+                    stoat_label()
                         .font_size(16.)
-                        .line_height(1.5)
                         .font_weight(550)
                         .text(self.title),
                 )
                 .child(
-                    label()
+                    stoat_label()
                         .color(theme.md.on_surface_variant.as_argb_u32())
                         .font_size(14.)
                         .line_height(1.25)
+                        .font_weight(500)
                         .text(self.description),
                 ),
         )
@@ -175,17 +178,17 @@ impl Component for PermissionOverrite {
                     .width(Size::flex(1.))
                     .padding((10., 0.))
                     .child(
-                        label()
+                        stoat_label()
                             .font_size(16.)
-                            .line_height(1.5)
                             .font_weight(550)
                             .text(self.title),
                     )
                     .child(
-                        label()
+                        stoat_label()
                             .color(theme.md.on_surface_variant.as_argb_u32())
                             .font_size(14.)
                             .line_height(1.25)
+                            .font_weight(500)
                             .text(self.description),
                     ),
             )

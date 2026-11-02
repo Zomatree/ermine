@@ -2,9 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
+    AppChannel, calculate_server_permissions,
     components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, use_floating},
-    consume_material_theme, member_display_color,
+    consume_material_theme, member_display_color, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -25,7 +25,7 @@ impl UserMention {
 }
 
 impl TextStyleExt for UserMention {
-    fn get_text_style_data(&mut self) -> &mut TextStyleData {
+    fn text_style_data_mut(&mut self) -> &mut TextStyleData {
         &mut self.text_style
     }
 }
@@ -90,15 +90,26 @@ impl Component for UserMention {
             .on_press({
                 let user = user.cloned();
                 let member = member.clone();
+                let server = self.server.clone();
+
                 move |_| {
                     if let Some(user) = user.clone() {
-                        floating.set(Some(
-                            UserCard {
-                                user: user.into_readable(),
-                                member: member.read().cloned().map(|m| m.into_readable()),
-                            }
-                            .into_element(),
-                        ));
+                        let member = member.read().cloned().map(|m| m.into_readable());
+                        let server = server.as_ref().map(|s| s.read().clone());
+
+                        spawn(async move {
+                            let mut query = user_permissions_query(radio.clone()).server(server);
+                            let permissions = calculate_server_permissions(&mut query).await;
+
+                            floating.set(Some(
+                                UserCard {
+                                    user: user.into_readable(),
+                                    member,
+                                    permissions,
+                                }
+                                .into_element(),
+                            ));
+                        });
                     };
                 }
             })

@@ -52,15 +52,15 @@ impl PermissionQuery {
     }
 
     /// Use server
-    pub fn server(mut self, server: Server) -> Self {
-        self.server = Some(server);
+    pub fn server(mut self, server: impl Into<Option<Server>>) -> Self {
+        self.server = server.into();
 
         self
     }
 
     /// Use member
-    pub fn member(mut self, member: Member) -> Self {
-        self.member = Some(member);
+    pub fn member(mut self, member: impl Into<Option<Member>>) -> Self {
+        self.member = member.into();
 
         self
     }

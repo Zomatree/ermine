@@ -131,21 +131,19 @@ impl Component for RoleToggle {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
-        let active = use_reactive(&self.selected);
-
-        use_side_effect({
+        StoatCheckbox::new(WritableSetter::new(self.selected, {
             let mut roles = self.roles;
             let id = self.role.id.clone();
-            move || {
-                if active() {
+
+            move |active| {
+                if active {
                     roles.write().insert(id.clone());
                 } else {
                     roles.write().remove(&id);
                 }
             }
-        });
-
-        StoatCheckbox::new(active).child(
+        }))
+        .child(
             rect()
                 .horizontal()
                 .width(Size::Fill)

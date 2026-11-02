@@ -58,9 +58,11 @@ impl Component for Server {
                         }
                     })
                     .child(
-                        rect()
-                            .padding(4.)
-                            .child(MaterialIcon::new(settings()).size(Size::px(24.))),
+                        rect().padding(4.).child(
+                            MaterialIcon::new(settings())
+                                .color(theme.md.on_surface_variant)
+                                .size(Size::px(24.)),
+                        ),
                     ),
             )
             .into_element();

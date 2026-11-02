@@ -33,7 +33,7 @@ impl RadioButton {
 }
 
 impl ChildrenExt for RadioButton {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }

@@ -41,22 +41,12 @@ pub struct StoatFeatures {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct BuildInformation {
-    pub commit_sha: String,
-    pub commit_timestamp: String,
-    pub semver: String,
-    pub origin_url: String,
-    pub timestamp: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct StoatConfig {
     pub revolt: String,
     pub features: StoatFeatures,
     pub ws: String,
     pub app: String,
     pub vapid: String,
-    pub build: BuildInformation,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]

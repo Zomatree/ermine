@@ -8,7 +8,7 @@ where
     /// Set the element's height and width. See [`Size`].
     fn size(mut self, size: impl Into<Size>) -> Self {
         let size = size.into();
-        let layout = self.get_layout();
+        let layout = self.layout_mut();
 
         layout.layout.width = size.clone();
         layout.layout.height = size;

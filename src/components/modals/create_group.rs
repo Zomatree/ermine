@@ -152,24 +152,23 @@ impl Component for CreateGroupItem {
     fn render(&self) -> impl IntoElement {
         let users = self.users.read();
         let user = &users[self.idx];
-        let is_selected = use_state(|| self.selected.read().contains(&user.id));
 
-        use_side_effect({
-            let id = user.id.clone();
-            let mut selected = self.selected;
+        StoatCheckbox::new(WritableSetter::new(
+            self.selected.read().contains(&user.id).into_readable(),
+            {
+                let id = user.id.clone();
+                let mut selected = self.selected;
 
-            move || {
-                let is_selected = is_selected();
-
-                if is_selected {
-                    selected.write().insert(id.clone());
-                } else {
-                    selected.write().remove(&id);
+                move |is_selected| {
+                    if is_selected {
+                        selected.write().insert(id.clone());
+                    } else {
+                        selected.write().remove(&id);
+                    }
                 }
-            }
-        });
-
-        StoatCheckbox::new(is_selected).child(
+            },
+        ))
+        .child(
             rect()
                 .horizontal()
                 .spacing(8.)

@@ -638,6 +638,10 @@ impl Room {
         (self.status)()
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.room.read().is_some()
+    }
+
     pub fn is_channel(&self, id: &str) -> bool {
         self.channel_id.read().as_ref().is_some_and(|a| a == id)
     }

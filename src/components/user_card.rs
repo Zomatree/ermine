@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
+use stoat_permissions::PermissionValue;
 
 use crate::{
     AppChannel,
@@ -16,6 +17,7 @@ use crate::{
 pub struct UserCard {
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
+    pub permissions: PermissionValue,
 }
 
 impl Component for UserCard {
@@ -84,6 +86,7 @@ impl Component for UserCard {
                         .child(ProfileButtons {
                             user: self.user.clone(),
                             member: self.member.clone(),
+                            permissions: self.permissions,
                             close: Rc::new(move || floating.clone().set(None)),
                         })
                         .maybe_child({

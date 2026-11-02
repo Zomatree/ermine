@@ -45,6 +45,9 @@ impl Component for InviteServerSettings {
                             server: _,
                             creator,
                             channel,
+                            max_uses: _, // TODO
+                            uses: _,     // TODO
+                            expires: _,  // TODO
                         } = invite
                         {
                             invites.write().push(Invite {

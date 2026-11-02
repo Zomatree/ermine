@@ -62,21 +62,23 @@ impl Component for MaterialIcon {
                         this.color(color).fill(color)
                     }),
             )
-            .on_styled(move |event: Event<StyledEventData>| {
-                let color = event.text_style.color.as_color().unwrap_or(Color::BLACK);
-                inherited_color.set_if_modified(Some(color));
+            .maybe(self.color.is_none(), |this| {
+                this.on_styled(move |event: Event<StyledEventData>| {
+                    let color = event.text_style.color.as_color().unwrap_or(Color::BLACK);
+                    inherited_color.set_if_modified(Some(color));
+                })
             })
     }
 }
 
 impl KeyExt for MaterialIcon {
-    fn write_key(&mut self) -> &mut DiffKey {
+    fn key_mut(&mut self) -> &mut DiffKey {
         &mut self.key
     }
 }
 
 impl LayoutExt for MaterialIcon {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }
@@ -85,31 +87,31 @@ impl ContainerSizeExt for MaterialIcon {}
 impl ContainerPositionExt for MaterialIcon {}
 
 impl ImageExt for MaterialIcon {
-    fn get_image_data(&mut self) -> &mut ImageData {
+    fn image_data_mut(&mut self) -> &mut ImageData {
         &mut self.image_data
     }
 }
 
 impl AccessibilityExt for MaterialIcon {
-    fn get_accessibility_data(&mut self) -> &mut AccessibilityData {
+    fn accessibility_data_mut(&mut self) -> &mut AccessibilityData {
         &mut self.accessibility
     }
 }
 
 impl EffectExt for MaterialIcon {
-    fn get_effect(&mut self) -> &mut EffectData {
+    fn effect_mut(&mut self) -> &mut EffectData {
         &mut self.effect
     }
 }
 
 impl EventHandlersExt for MaterialIcon {
-    fn get_event_handlers(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
+    fn event_handlers_mut(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
         &mut self.event_handlers
     }
 }
 
 impl StyleExt for MaterialIcon {
-    fn get_style(&mut self) -> &mut StyleState {
+    fn style_mut(&mut self) -> &mut StyleState {
         &mut self.style
     }
 }

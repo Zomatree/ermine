@@ -4,13 +4,14 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt,
+    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
     components::{
         Avatar, MarkdownViewer, MaterialIcon, MessageModel, UserCard,
         material::filled::description, use_floating,
     },
     http, map_optional_readable, member_display_color,
     types::Tag,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -273,15 +274,28 @@ impl Component for MessageReply {
                                 .on_press({
                                     let user = self.message.user.clone();
                                     let member = self.message.member.clone();
+                                    let server = server.clone();
 
                                     move |_| {
-                                        floating.clone().set(Some(
-                                            UserCard {
-                                                user: user.clone(),
-                                                member: member.clone(),
-                                            }
-                                            .into_element(),
-                                        ));
+                                        let user = user.clone();
+                                        let member = member.clone();
+                                        let server = server.as_ref().map(|s| s.read().clone());
+
+                                        spawn(async move {
+                                            let mut query = user_permissions_query(radio.clone())
+                                                .server(server);
+                                            let permissions =
+                                                calculate_server_permissions(&mut query).await;
+
+                                            floating.clone().set(Some(
+                                                UserCard {
+                                                    user,
+                                                    member,
+                                                    permissions,
+                                                }
+                                                .into_element(),
+                                            ));
+                                        });
                                     }
                                 })
                                 .child(Avatar::new(user.clone().into_readable(), None, 14.))

@@ -117,6 +117,15 @@ fn update_freya_theme(theme: &mut freya::prelude::Theme, material: &Theme) {
             expanded_cross_gap: Preference::Specific(1.),
         },
     );
+
+    theme.set(
+        "resizable_handle",
+        ResizableHandleThemePreference {
+            background: Preference::Specific(Color::TRANSPARENT),
+            hover_background: Preference::Specific(material.md.surface_container_highest.into()),
+            corner_radius: Preference::Specific((6.).into()),
+        },
+    );
 }
 
 #[derive(PartialEq)]
@@ -133,7 +142,7 @@ impl MaterialThemeProvider {
 }
 
 impl ChildrenExt for MaterialThemeProvider {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }

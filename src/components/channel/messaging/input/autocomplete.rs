@@ -455,30 +455,32 @@ impl Component for Autocomplete {
 
                                         let role = server.roles.get(role).unwrap();
 
-                                        let mut color =
-                                            rect().margin(6.).corner_radius(6.).size(Size::px(12.));
-
-                                        color.get_style().background = role
-                                            .colour
-                                            .as_deref()
-                                            .and_then(parse_fill)
-                                            .unwrap_or_else(|| {
-                                                Fill::Color(
-                                                    theme
-                                                        .md
-                                                        .surface_container_highest
-                                                        .as_argb_u32()
-                                                        .into(),
-                                                )
-                                            });
-
                                         rect()
                                             .horizontal()
                                             .cross_align(Alignment::Center)
                                             .padding((4., 16.))
                                             .spacing(8.)
                                             .width(Size::Fill)
-                                            .child(color)
+                                            .child(
+                                                rect()
+                                                    .margin(6.)
+                                                    .corner_radius(6.)
+                                                    .size(Size::px(12.))
+                                                    .background(
+                                                        role.colour
+                                                            .as_deref()
+                                                            .and_then(parse_fill)
+                                                            .unwrap_or_else(|| {
+                                                                Fill::Color(
+                                                                    theme
+                                                                        .md
+                                                                        .surface_container_highest
+                                                                        .as_argb_u32()
+                                                                        .into(),
+                                                                )
+                                                            }),
+                                                    ),
+                                            )
                                             .child(label().font_size(14.).text(role.name.clone()))
                                     }
                                     AutocompleteEntry::Role(

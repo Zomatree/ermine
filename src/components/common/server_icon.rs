@@ -1,7 +1,11 @@
 use freya::prelude::*;
 use stoat_models::v0;
 
-use crate::{SizeExt, components::file_image, consume_material_theme};
+use crate::{
+    SizeExt,
+    components::{file_image, stoat_label},
+    consume_material_theme,
+};
 
 #[derive(PartialEq)]
 pub struct ServerIcon {
@@ -60,11 +64,13 @@ impl Component for ServerIcon {
                 .font_size((12. / 32.) * self.size)
                 .corner_radius(self.corner_radius)
                 .child(
-                    self.name
-                        .split_whitespace()
-                        .take(2)
-                        .map(|word| &word[0..1])
-                        .collect::<String>(),
+                    stoat_label().font_weight(600).text(
+                        self.name
+                            .split_whitespace()
+                            .take(2)
+                            .map(|word| &word[0..1])
+                            .collect::<String>(),
+                    ),
                 )
                 .into_element(),
         }

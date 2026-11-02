@@ -3,7 +3,7 @@ use freya::{prelude::*, radio::use_radio};
 use crate::{
     AppChannel, ServerSettingsPage,
     components::{
-        ContextMenuButton, ModalValue,
+        ContextMenuButton, ContextMenuDivider, ModalValue,
         material::outlined::{badge, face, logout, settings},
         use_modals,
     },
@@ -34,16 +34,6 @@ impl Component for ServerContextMenu {
         rect()
             .content(Content::Fit)
             .child(
-                ContextMenuButton::new(settings(), "Open Server Settings").on_press({
-                    let server_id = self.server_id.clone();
-
-                    move |_| {
-                        *server_settings.write() =
-                            Some((server_id.clone(), ServerSettingsPage::default()));
-                    }
-                }),
-            )
-            .child(
                 ContextMenuButton::new(face(), "Edit Your Identity").on_press({
                     let server_id = self.server_id.clone();
 
@@ -56,6 +46,17 @@ impl Component for ServerContextMenu {
                     }
                 }),
             )
+            .child(
+                ContextMenuButton::new(settings(), "Open Server Settings").on_press({
+                    let server_id = self.server_id.clone();
+
+                    move |_| {
+                        *server_settings.write() =
+                            Some((server_id.clone(), ServerSettingsPage::default()));
+                    }
+                }),
+            )
+            .child(ContextMenuDivider)
             .maybe_child((&server.read().owner != &*user_id.read()).then(|| {
                 ContextMenuButton::new(logout(), "Leave Server")
                     .danger()

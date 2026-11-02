@@ -22,7 +22,7 @@ impl<T, B: Fn(&T) -> Element + 'static> Reorder<T, B> {
 }
 
 impl<T, B> LayoutExt for Reorder<T, B> {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }

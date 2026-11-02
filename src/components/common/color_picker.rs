@@ -6,21 +6,19 @@ use freya::{
     prelude::*,
 };
 
-use crate::{
-    SizeExt,
-    components::{MaterialIcon, material::outlined::color_lens},
-    consume_material_theme,
-};
-
 #[derive(Clone, PartialEq)]
 pub struct StoatColorPicker {
     value: Color,
     on_change: EventHandler<Color>,
+
+    children: Vec<Element>,
+    layout: LayoutData,
+
     key: DiffKey,
 }
 
 impl KeyExt for StoatColorPicker {
-    fn write_key(&mut self) -> &mut DiffKey {
+    fn key_mut(&mut self) -> &mut DiffKey {
         &mut self.key
     }
 }
@@ -30,10 +28,26 @@ impl StoatColorPicker {
         Self {
             value,
             on_change: on_change.into(),
+            children: Vec::new(),
+            layout: LayoutData::default(),
             key: DiffKey::None,
         }
     }
 }
+
+impl ChildrenExt for StoatColorPicker {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
+        &mut self.children
+    }
+}
+
+impl LayoutExt for StoatColorPicker {
+    fn layout_mut(&mut self) -> &mut LayoutData {
+        &mut self.layout
+    }
+}
+
+impl ContainerExt for StoatColorPicker {}
 
 #[derive(Clone, Copy, PartialEq, Default)]
 enum DragTarget {
@@ -50,18 +64,12 @@ impl Component for StoatColorPicker {
         let mut dragging = use_state(DragTarget::default);
         let mut area = use_state(Area::default);
         let mut hue_area = use_state(Area::default);
-        let theme = consume_material_theme();
 
         let is_open = open();
 
         let preview = rect()
-            .width(Size::px(56.))
-            .height(Size::px(56.))
-            .corner_radius(16.)
-            .background(theme.md.primary.as_argb_u32())
-            .color(theme.md.on_primary.as_argb_u32())
-            .center()
-            .child(MaterialIcon::new(color_lens()).size(Size::px(24.)))
+            .cursor(CursorIcon::Pointer)
+            .children(self.children.clone())
             .on_press(move |_| {
                 open.toggle();
             });
@@ -277,6 +285,7 @@ impl Component for StoatColorPicker {
             });
 
         rect()
+            .layout(self.layout.clone())
             .horizontal()
             .child(preview)
             .maybe_child((opacity > 0.).then(|| {

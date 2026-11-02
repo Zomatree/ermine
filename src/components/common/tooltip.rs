@@ -1,8 +1,5 @@
 use freya::{
-    animation::{
-        AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, ReadAnimatedValue,
-        use_animation,
-    },
+    animation::{AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, use_animation},
     prelude::*,
 };
 
@@ -16,19 +13,19 @@ pub struct StoatTooltip {
 }
 
 impl KeyExt for StoatTooltip {
-    fn write_key(&mut self) -> &mut DiffKey {
+    fn key_mut(&mut self) -> &mut DiffKey {
         &mut self.key
     }
 }
 
 impl LayoutExt for StoatTooltip {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }
 
 impl ChildrenExt for StoatTooltip {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }
@@ -58,23 +55,19 @@ impl Component for StoatTooltip {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Finish);
 
-            let scale = AnimNum::new(0.8, 1.)
-                .time(350)
-                .ease(Ease::Out)
-                .function(Function::Expo);
             let opacity = AnimNum::new(0., 1.)
                 .time(350)
                 .ease(Ease::Out)
                 .function(Function::Expo);
 
             if is_hovering() {
-                (scale, opacity)
+                opacity
             } else {
-                (scale.into_reversed(), opacity.into_reversed())
+                opacity.into_reversed()
             }
         });
 
-        let (scale, opacity) = animation.read().value();
+        let opacity = animation.read().value();
 
         let on_pointer_over = move |_| {
             is_hovering.set(true);
@@ -103,7 +96,7 @@ impl Component for StoatTooltip {
                 Attached::new(rect().children(self.children.clone()))
                     .position(self.position)
                     .maybe_child(is_visible.then(|| {
-                        rect().opacity(opacity).scale(scale).padding(padding).child(
+                        rect().opacity(opacity).padding(padding).child(
                             rect()
                                 .interactive(Interactive::No)
                                 .padding(8.)

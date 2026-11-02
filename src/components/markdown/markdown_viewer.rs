@@ -102,13 +102,13 @@ impl MarkdownViewer {
 }
 
 impl KeyExt for MarkdownViewer {
-    fn write_key(&mut self) -> &mut DiffKey {
+    fn key_mut(&mut self) -> &mut DiffKey {
         &mut self.key
     }
 }
 
 impl LayoutExt for MarkdownViewer {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }
@@ -116,13 +116,13 @@ impl LayoutExt for MarkdownViewer {
 impl ContainerExt for MarkdownViewer {}
 
 impl AccessibilityExt for MarkdownViewer {
-    fn get_accessibility_data(&mut self) -> &mut AccessibilityData {
+    fn accessibility_data_mut(&mut self) -> &mut AccessibilityData {
         &mut self.accessibility
     }
 }
 
 impl EventHandlersExt for MarkdownViewer {
-    fn get_event_handlers(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
+    fn event_handlers_mut(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
         &mut self.event_handlers
     }
 }

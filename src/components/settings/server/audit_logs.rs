@@ -12,6 +12,7 @@ use crate::{
             },
             outlined::{chevron_right, expand_more},
         },
+        stoat_label,
     },
     consume_material_theme, http,
 };
@@ -151,7 +152,7 @@ impl Component for AuditLogServerSettings {
                             move |action| {
                                 label()
                                     .text(match action {
-                                        None => "Empty",
+                                        None => "All Actions",
                                         Some("MessageDelete") => "Message Delete",
                                         Some("MessageBulkDelete") => "Message Bulk Delete",
                                         Some("MessagePin") => "Message Pin",
@@ -562,17 +563,20 @@ impl Component for AuditLogEntry {
                             )
                             .child(Avatar::new(user.clone(), None, 36.))
                             .child(
-                                rect().width(Size::flex(1.)).child(text).child(
-                                    label()
-                                        .font_size(12.)
-                                        .color(theme.md.on_surface_variant.as_argb_u32())
-                                        .text(format!(
-                                            "{:02}/{:02}/{}",
-                                            datetime.day(),
-                                            datetime.month(),
-                                            datetime.year()
-                                        )),
-                                ),
+                                rect()
+                                    .width(Size::flex(1.))
+                                    .child(stoat_label().font_weight(500).text(text))
+                                    .child(
+                                        label()
+                                            .font_size(12.)
+                                            .color(theme.md.on_surface_variant.as_argb_u32())
+                                            .text(format!(
+                                                "{:02}/{:02}/{}",
+                                                datetime.day(),
+                                                datetime.month(),
+                                                datetime.year()
+                                            )),
+                                    ),
                             )
                             .child(
                                 MaterialIcon::new(if is_expanded {

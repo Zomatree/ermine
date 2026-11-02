@@ -8,6 +8,7 @@ mod channel;
 mod channel_list;
 mod message;
 mod server;
+mod server_folder;
 mod user;
 
 pub use category::*;
@@ -15,6 +16,7 @@ pub use channel::*;
 pub use channel_list::*;
 pub use message::*;
 pub use server::*;
+pub use server_folder::*;
 pub use user::*;
 
 use crate::{

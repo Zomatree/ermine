@@ -3,6 +3,7 @@ use std::{rc::Rc, time::SystemTime};
 use freya::{prelude::*, radio::use_radio};
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
+use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
     AppChannel, SizeExt, calculate_server_permissions,
@@ -10,10 +11,13 @@ use crate::{
         Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
         file_image,
-        material::{filled::cancel, outlined::more_vert},
+        material::{
+            filled::{cancel, edit},
+            outlined::more_vert,
+        },
         stoat_scrollbar, use_modals,
     },
-    consume_material_theme, format_autumn_url, http, parse_fill,
+    consume_material_theme, format_autumn_url, http, is_inferior, parse_fill,
     theme::Theme,
     user_permissions_query,
 };
@@ -22,6 +26,7 @@ use crate::{
 pub struct UserProfile {
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
+    pub permissions: PermissionValue,
 }
 
 impl Component for UserProfile {
@@ -88,6 +93,7 @@ impl Component for UserProfile {
                                         .child(ProfileButtons {
                                             user: self.user.clone(),
                                             member: self.member.clone(),
+                                            permissions: self.permissions,
                                             close: Rc::new(close_profile),
                                         })
                                         .child({
@@ -282,12 +288,15 @@ impl Component for ProfileBanner {
 pub struct ProfileButtons {
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
+    pub permissions: PermissionValue,
     pub close: Rc<dyn Fn()>,
 }
 
 impl PartialEq for ProfileButtons {
     fn eq(&self, other: &Self) -> bool {
-        self.user == other.user && self.member == other.member
+        self.user == other.user
+            && self.member == other.member
+            && self.permissions == other.permissions
     }
 }
 
@@ -298,8 +307,12 @@ impl Component for ProfileButtons {
         let mut modals = use_modals();
 
         let user = self.user.read();
+        let current_user_id =
+            radio.slice(AppChannel::UserId, |state| state.user_id.as_ref().unwrap());
+        let members = radio.slice(AppChannel::Members, |state| &state.members);
+        let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
 
-        let (main_action, secondary_action): (
+        let (main_action, mut secondary_action): (
             Option<(&str, Rc<dyn Fn()>)>,
             Option<(Bytes, Rc<dyn Fn()>)>,
         ) = if user.bot.is_some() {
@@ -401,6 +414,71 @@ impl Component for ProfileButtons {
             }
         };
 
+        if secondary_action.is_none()
+            && let Some(member) = &self.member
+        {
+            let member = member.read();
+            let current_user_id = current_user_id.read();
+
+            if &user.id == &*current_user_id {
+                if self
+                    .permissions
+                    .has_channel_permission(ChannelPermission::ChangeNickname)
+                {
+                    secondary_action = Some((
+                        edit(),
+                        Rc::new({
+                            let server_id = member.id.server.clone();
+                            let close = self.close.clone();
+
+                            move || {
+                                modals.clone().write().push_modal(
+                                    ModalValue::EditOwnServerIdentity {
+                                        server: server_id.clone(),
+                                    },
+                                );
+
+                                close();
+                            }
+                        }),
+                    ))
+                }
+            } else if self
+                .permissions
+                .has_channel_permission(ChannelPermission::ManageNicknames)
+                && is_inferior(
+                    &members
+                        .read()
+                        .get(&member.id.server)
+                        .unwrap()
+                        .get(&*current_user_id)
+                        .unwrap(),
+                    &member,
+                    servers.read().get(&member.id.server).unwrap(),
+                )
+            {
+                secondary_action = Some((
+                    edit(),
+                    Rc::new({
+                        let id = member.id.clone();
+                        let close = self.close.clone();
+
+                        move || {
+                            modals
+                                .clone()
+                                .write()
+                                .push_modal(ModalValue::EditServerIdentity {
+                                    user: id.user.clone(),
+                                    server: id.server.clone(),
+                                });
+
+                            close();
+                        }
+                    }),
+                ))
+            }
+        }
+
         rect()
             .horizontal()
             .width(Size::Fill)
@@ -408,7 +486,6 @@ impl Component for ProfileButtons {
             .spacing(8.)
             .maybe_child(main_action.map(|(title, callback)| {
                 StoatButton::new()
-                    // .key(DiffKey::new_rc(&callback))
                     .on_press(move |_| callback())
                     .child(
                         rect()
@@ -437,7 +514,11 @@ impl Component for ProfileButtons {
                             .height(Size::px(40.))
                             .padding((0., 8.))
                             .center()
-                            .child(MaterialIcon::new(icon).size(Size::px(24.))),
+                            .child(
+                                MaterialIcon::new(icon)
+                                    .size(Size::px(16.))
+                                    .color(theme.md.on_surface_variant),
+                            ),
                     )
             }))
             .child(
@@ -480,7 +561,11 @@ impl Component for ProfileButtons {
                             .height(Size::px(40.))
                             .padding((0., 8.))
                             .center()
-                            .child(MaterialIcon::new(more_vert()).size(Size::px(24.))),
+                            .child(
+                                MaterialIcon::new(more_vert())
+                                    .size(Size::px(24.))
+                                    .color(theme.md.on_surface_variant),
+                            ),
                     ),
             )
     }
@@ -688,16 +773,13 @@ impl Component for ProfileRoles {
                         .cross_align(Alignment::Center)
                         .width(Size::Fill)
                         .child(label().text(role.name.clone()).font_size(12.))
-                        .child({
-                            let mut rect = rect()
+                        .child(
+                            rect()
                                 .width(Size::px(8.))
                                 .height(Size::px(8.))
-                                .corner_radius(8.);
-
-                            rect.get_style().background = color.clone();
-
-                            rect
-                        })
+                                .corner_radius(8.)
+                                .background(color.clone()),
+                        )
                         .into_element()
                 })),
         )

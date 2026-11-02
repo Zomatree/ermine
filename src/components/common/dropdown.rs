@@ -48,7 +48,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element> Dropdown<T, B> {
 }
 
 impl<T: PartialEq + 'static, B> LayoutExt for Dropdown<T, B> {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }
@@ -263,7 +263,7 @@ impl<T> DropdownItem<T> {
 }
 
 impl<T> ChildrenExt for DropdownItem<T> {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }

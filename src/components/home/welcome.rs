@@ -169,7 +169,7 @@ impl WelcomeButton {
 }
 
 impl LayoutExt for WelcomeButton {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }

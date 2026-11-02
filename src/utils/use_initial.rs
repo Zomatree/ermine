@@ -95,6 +95,12 @@ impl<T: 'static> IntoReadable<T> for Initial<T> {
     }
 }
 
+// impl<T: 'static> IntoWritableSetter<T> for Initial<T> {
+//     fn into_writable_setter(self) -> WritableSetter<T> {
+//         self.current.into_writable_setter()
+//     }
+// }
+
 impl<T: 'static> Into<Writable<T>> for Initial<T> {
     fn into(self) -> Writable<T> {
         self.into_writable()
@@ -104,6 +110,12 @@ impl<T: 'static> Into<Writable<T>> for Initial<T> {
 impl<T: 'static> Into<Readable<T>> for Initial<T> {
     fn into(self) -> Readable<T> {
         self.into_readable()
+    }
+}
+
+impl<T: 'static> Into<WritableSetter<T>> for Initial<T> {
+    fn into(self) -> WritableSetter<T> {
+        self.into_writable().into_writable_setter()
     }
 }
 

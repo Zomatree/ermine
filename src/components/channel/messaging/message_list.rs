@@ -41,7 +41,7 @@ impl MessageList {
 }
 
 impl ChildrenExt for MessageList {
-    fn get_children(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Element> {
         &mut self.children
     }
 }

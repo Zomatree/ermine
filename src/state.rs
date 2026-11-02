@@ -178,6 +178,8 @@ impl ChannelSettingsPage {
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq)]
 pub struct OrderingSettings {
     pub servers: Option<Vec<String>>,
+    #[serde(rename = "serverSidebar")]
+    pub server_sidebar: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
@@ -208,6 +210,16 @@ pub enum NotificationBadge {
     Mentions(usize),
 }
 
+impl NotificationBadge {
+    pub fn mention_count(&self) -> Option<usize> {
+        if let Self::Mentions(count) = self {
+            Some(*count)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ErmineSettings {
     #[serde(default)]
@@ -232,11 +244,28 @@ impl Default for ErmineSettings {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct ServerFolder {
+    pub id: String,
+    pub name: String,
+    pub colour: Option<String>,
+    #[serde(default)]
+    pub collapsed: bool,
+    pub servers: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
+pub struct ServerFoldersSettings {
+    #[serde(default)]
+    pub folders: Vec<ServerFolder>,
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct SettingsState {
     pub ordering: Option<OrderingSettings>,
     pub notifications: Option<NotificationsSettings>,
     pub ermine: Option<ErmineSettings>,
+    pub server_folders: Option<ServerFoldersSettings>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -545,6 +574,14 @@ pub fn update_settings(settings: UserSettings, mut station: AppStation) {
                         .write_channel(AppChannel::Settings("ermine"))
                         .settings
                         .ermine = Some(value)
+                }
+            }
+            "server-folders" => {
+                if let Ok(value) = Ok::<_, ()>(serde_json::from_str(&payload).unwrap()) {
+                    station
+                        .write_channel(AppChannel::Settings("server-folders"))
+                        .settings
+                        .server_folders = Some(value)
                 }
             }
             _ => {}

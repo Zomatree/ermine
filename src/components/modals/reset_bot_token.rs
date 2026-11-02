@@ -43,6 +43,7 @@ impl Component for ResetBotToken {
                             public: None,
                             analytics: None,
                             interactions_url: None,
+                            default_permissions: None,
                             remove: vec![v0::FieldsBot::Token],
                         }).await {
                             callback.call(response);

@@ -41,7 +41,7 @@ impl Component for DMList {
                 .count()
         });
 
-        let saved_messages = use_memo({
+        let saved_messages = use_side_effect_value({
             let radio = radio.clone();
 
             move || {
@@ -54,7 +54,7 @@ impl Component for DMList {
             }
         });
 
-        let channels = use_memo(move || {
+        let channels = use_side_effect_value(move || {
             let mut channels = radio
                 .read()
                 .channels

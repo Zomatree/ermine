@@ -19,7 +19,7 @@ impl Emoji {
 }
 
 impl LayoutExt for Emoji {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }

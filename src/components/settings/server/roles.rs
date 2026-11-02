@@ -5,17 +5,18 @@ use stoat_permissions::{DataPermissionsValue, Override};
 use crate::{
     AppChannel, SelectedRole, ServerSettingsPage, SizeExt, Tag,
     components::{
-        MaterialIcon, ModalValue, PermissionsEditor, Reorder, SingleLineEntry, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatColorPicker,
+        ColorPickerPallete, MaterialIcon, ModalValue, PermissionsEditor, Reorder, SingleLineEntry,
+        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
         checkbox::StoatCheckbox,
         file_image,
         material::{
             filled::{chevron_right, clear},
             outlined::{drag_indicator, group_add, public},
         },
-        permission_values, use_modals,
+        permission_values, stoat_label, use_modals,
     },
-    consume_material_theme, http, parse_fill, prompt_image_upload, use_initial,
+    consume_material_theme, generate_theme, http, parse_fill, prompt_image_upload, use_config,
+    use_initial,
 };
 
 #[derive(PartialEq)]
@@ -403,20 +404,7 @@ impl Component for SelectedRoleServerSettings {
 
         let mut name = use_initial(move || current_role.name.clone());
 
-        let mut color = use_initial(move || {
-            current_role
-                .colour
-                .as_deref()
-                .and_then(parse_fill)
-                .and_then(|f| {
-                    if let Fill::Color(c) = f {
-                        Some(c)
-                    } else {
-                        None
-                    }
-                })
-        });
-
+        let mut color = use_initial(move || current_role.colour.as_deref().and_then(parse_fill));
         let mut hoist = use_initial(move || current_role.hoist);
 
         let mut overrides = use_initial(move || current_role.permissions);
@@ -463,13 +451,90 @@ impl Component for SelectedRoleServerSettings {
             }
         };
 
+        let config = use_config();
+
+        let themes = use_hook(|| {
+            let config = config.read();
+
+            let theme = generate_theme(
+                config.theme.theme_source,
+                config.theme.variant.into(),
+                config.theme.contrast,
+            );
+
+            [theme.schemes.light, theme.schemes.dark]
+        });
+
         rect()
             .spacing(15.)
             .child(SingleLineEntry::new("Role Name", name))
-            .child(rect().horizontal().child(StoatColorPicker::new(
-                color.read().cloned().unwrap_or(Color::WHITE),
-                move |c| color.set(Some(c)),
-            )))
+            .child(
+                rect()
+                    .content(Content::wrap_spacing(15.))
+                    .spacing(15.)
+                    .horizontal()
+                    .child(
+                        rect()
+                            .spacing(8.)
+                            .child(label().text("Role Colour").font_size(12.))
+                            .child(ColorPickerPallete::new(
+                                color.read().clone(),
+                                WritableSetter::new(
+                                    color.read().as_ref().and_then(|f| f.as_color()),
+                                    move |c: Option<Color>| {
+                                        color.set(c.map(Into::into));
+                                    },
+                                ),
+                            )),
+                    )
+                    .child(
+                        rect()
+                            .spacing(8.)
+                            .child(label().text("Preview").font_size(12.))
+                            .children(themes.iter().map(|theme| {
+                                rect()
+                                    .width(Size::px(220.))
+                                    .height(Size::px(78.))
+                                    .main_align(Alignment::Center)
+                                    .padding((8., 12.))
+                                    .corner_radius(12.)
+                                    .border(Border::new().width(1.).fill(theme.outline_variant))
+                                    .background(theme.surface_container_lowest)
+                                    .color(theme.on_surface)
+                                    .child(
+                                        rect()
+                                            .horizontal()
+                                            .cross_align(Alignment::Center)
+                                            .spacing(8.)
+                                            .child(
+                                                rect()
+                                                    .size(Size::px(28.))
+                                                    .corner_radius(14.)
+                                                    .background(theme.surface_container_highest),
+                                            )
+                                            .child(
+                                                rect()
+                                                    .child(
+                                                        stoat_label()
+                                                            .line_height(1.25)
+                                                            .font_size(14.)
+                                                            .font_weight(600)
+                                                            .text("Admin")
+                                                            .color(
+                                                                color
+                                                                    .read()
+                                                                    .cloned()
+                                                                    .unwrap_or_else(|| {
+                                                                        theme.on_surface.into()
+                                                                    }),
+                                                            ),
+                                                    )
+                                                    .child(stoat_label().text("Stoat rocks!")),
+                                            ),
+                                    )
+                            })),
+                    ),
+            )
             .child(label().text("Role Icon").font_size(12.))
             .child(
                 rect()
@@ -574,17 +639,24 @@ impl Component for SelectedRoleServerSettings {
 
                                     spawn({
                                         async move {
-                                            let payload = v0::DataEditRole {
+                                            let mut payload = v0::DataEditRole {
                                                 name: name.get_if_different(),
-                                                colour: color
-                                                    .get_if_different()
-                                                    .flatten()
-                                                    .map(|c| c.to_hex_string()),
+                                                colour: None,
                                                 hoist: hoist.get_if_different(),
                                                 icon: None,
                                                 rank: None,
                                                 remove: Vec::new(),
                                             };
+
+                                            if let Some(fill) = color.get_if_different() {
+                                                if let Some(fill) = fill
+                                                    && let Some(color) = fill.as_color()
+                                                {
+                                                    payload.colour = Some(color.to_hex_string())
+                                                } else {
+                                                    payload.remove.push(v0::FieldsRole::Colour);
+                                                }
+                                            }
 
                                             if edit_role(payload).await.is_some() {
                                                 name.apply();

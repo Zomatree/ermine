@@ -56,13 +56,13 @@ impl AnimatedImage {
 }
 
 impl KeyExt for AnimatedImage {
-    fn write_key(&mut self) -> &mut DiffKey {
+    fn key_mut(&mut self) -> &mut DiffKey {
         &mut self.key
     }
 }
 
 impl LayoutExt for AnimatedImage {
-    fn get_layout(&mut self) -> &mut LayoutData {
+    fn layout_mut(&mut self) -> &mut LayoutData {
         &mut self.layout
     }
 }
@@ -73,19 +73,19 @@ impl ContainerPositionExt for AnimatedImage {}
 impl ContainerConstraintsExt for AnimatedImage {}
 
 impl ImageExt for AnimatedImage {
-    fn get_image_data(&mut self) -> &mut ImageData {
+    fn image_data_mut(&mut self) -> &mut ImageData {
         &mut self.image_data
     }
 }
 
 impl AccessibilityExt for AnimatedImage {
-    fn get_accessibility_data(&mut self) -> &mut AccessibilityData {
+    fn accessibility_data_mut(&mut self) -> &mut AccessibilityData {
         &mut self.accessibility
     }
 }
 
 impl EffectExt for AnimatedImage {
-    fn get_effect(&mut self) -> &mut EffectData {
+    fn effect_mut(&mut self) -> &mut EffectData {
         &mut self.effect
     }
 }

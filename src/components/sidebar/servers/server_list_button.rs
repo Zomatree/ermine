@@ -91,7 +91,7 @@ impl Component for ServerListButton {
             32.
         } else if hovering() {
             16.
-        } else if *badge.read() == Some(NotificationBadge::Unread) {
+        } else if badge.read().is_some() {
             8.
         } else {
             0.
@@ -183,17 +183,8 @@ impl Component for ServerListButton {
                                             }),
                                     )
                                     .maybe_child(
-                                        badge
-                                            .read()
-                                            .as_ref()
-                                            .and_then(|badge| {
-                                                if let NotificationBadge::Mentions(count) = badge {
-                                                    Some(count)
-                                                } else {
-                                                    None
-                                                }
-                                            })
-                                            .map(|count| {
+                                        badge().and_then(|badge| badge.mention_count()).map(
+                                            |count| {
                                                 rect()
                                                     .position(
                                                         Position::new_absolute().right(0.).top(0.),
@@ -207,12 +198,13 @@ impl Component for ServerListButton {
                                                     .color(theme.md.on_error.as_argb_u32())
                                                     .font_size(8.)
                                                     .font_weight(FontWeight::SEMI_BOLD)
-                                                    .child(if *count <= 9 {
+                                                    .child(if count <= 9 {
                                                         count.to_string()
                                                     } else {
                                                         "+".to_string()
                                                     })
-                                            }),
+                                            },
+                                        ),
                                     ),
                             ),
                     ),

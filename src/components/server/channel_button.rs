@@ -6,7 +6,7 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
     AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
-    calculate_channel_permissions,
+    calculate_channel_permissions, calculate_server_permissions,
     components::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, UserCard,
@@ -364,16 +364,29 @@ impl Component for VoiceParticipant {
             .on_press({
                 let user = user.clone();
                 let member = member.clone();
+                let server = self.server.clone();
 
                 move |_| {
                     if let Some(user) = user.clone() {
-                        floating.set(Some(
-                            UserCard {
-                                user: user.into_readable(),
-                                member: member.clone().map(|m| m.into_readable()),
-                            }
-                            .into_element(),
-                        ));
+                        let member = member.clone();
+                        let server = server.read().clone();
+
+                        spawn(async move {
+                            let mut query = user_permissions_query(radio.clone())
+                                .user(user.clone())
+                                .member(member.clone())
+                                .server(server);
+                            let permissions = calculate_server_permissions(&mut query).await;
+
+                            floating.set(Some(
+                                UserCard {
+                                    user: user.into_readable(),
+                                    member: member.clone().map(|m| m.into_readable()),
+                                    permissions,
+                                }
+                                .into_element(),
+                            ));
+                        });
                     };
                 }
             })

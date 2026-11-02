@@ -1,7 +1,7 @@
-pub mod floating_manager;
-pub mod http_manager;
-pub mod material_theme_manager;
+pub mod floating;
+pub mod http;
+pub mod material_theme;
 
-pub use floating_manager::*;
-pub use http_manager::*;
-pub use material_theme_manager::*;
+pub use floating::*;
+pub use http::*;
+pub use material_theme::*;

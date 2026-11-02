@@ -5,7 +5,7 @@ use chumsky::{
     text::{digits, ident, int, keyword, whitespace},
 };
 use freya::prelude::*;
-use freya_engine::prelude::{RuntimeEffect, Shader};
+use freya_engine::prelude::{Colors, Gradient, Interpolation, Paint, SkColor4f, TileMode, shaders};
 
 // angle of 0. is down
 
@@ -59,14 +59,14 @@ fn direction_parser<'a>() -> impl Parser<'a, &'a str, Direction> {
     just("to")
         .ignore_then(direction.clone().then(direction.or_not()))
         .map(|(a, b)| match (a, b) {
-            ("bottom", None) => Direction::Bottom,
-            ("bottom", Some("left")) | ("left", Some("bottom")) => Direction::BottomLeft,
-            ("left", None) => Direction::Left,
-            ("top", Some("left")) | ("left", Some("top")) => Direction::TopLeft,
-            ("top", None) => Direction::Top,
-            ("top", Some("right")) | ("right", Some("top")) => Direction::TopRight,
-            ("right", None) => Direction::Right,
-            ("bottom", Some("right")) | ("right", Some("bottom")) => Direction::BottomRight,
+            ("bottom", None) => Direction::BOTTOM,
+            ("bottom", Some("left")) | ("left", Some("bottom")) => Direction::BOTTOM_LEFT,
+            ("left", None) => Direction::LEFT,
+            ("top", Some("left")) | ("left", Some("top")) => Direction::TOP_LEFT,
+            ("top", None) => Direction::TOP,
+            ("top", Some("right")) | ("right", Some("top")) => Direction::TOP_RIGHT,
+            ("right", None) => Direction::RIGHT,
+            ("bottom", Some("right")) | ("right", Some("bottom")) => Direction::BOTTOM_RIGHT,
             _ => unreachable!(),
         })
 }
@@ -197,21 +197,21 @@ fn linear_gradient_parser<'a>() -> impl Parser<'a, &'a str, Fill> {
                 .delimited_by(just('('), just(')')),
         )
         .map(|(angle, stops)| {
-            let mut gradient = LinearGradient::new().angle(0.);
+            let mut gradient = Vec::new();
 
             if stops.iter().all(|(_, p)| p.is_some()) {
                 for (color, percentage) in stops {
-                    gradient = gradient.stop((color, percentage.unwrap()))
+                    gradient.push((color, percentage.unwrap() / 100.))
                 }
             } else {
-                let incr = 100. / (stops.len() - 1) as f32;
+                let incr = 1. / (stops.len() - 1) as f32;
 
                 for (i, (color, _)) in stops.into_iter().enumerate() {
-                    gradient = gradient.stop((color, incr * i as f32))
+                    gradient.push((color, incr * i as f32))
                 }
             }
 
-            generate_linear_shader(gradient, angle.unwrap_or_else(|| Direction::Bottom))
+            generate_linear_shader(gradient, angle.unwrap_or_else(|| Direction::BOTTOM))
         })
         .boxed()
 }
@@ -228,47 +228,128 @@ pub fn parse_fill(input: &str) -> Option<Fill> {
 }
 
 #[derive(Debug, Copy, Clone)]
-enum Direction {
-    Angle(f32),
-    Bottom,
+enum Corner {
     BottomLeft,
-    Left,
     TopLeft,
-    Top,
     TopRight,
-    Right,
     BottomRight,
 }
 
-struct Provider(LinearGradient, Direction);
+#[derive(Debug, Copy, Clone)]
+enum Direction {
+    Angle(f32),
+    Corner(Corner),
+}
 
-impl ShaderProvider for Provider {
-    fn prepare_shader(&self, _effect: &RuntimeEffect, bounds: Area) -> Option<Shader> {
-        let angle = match &self.1 {
-            Direction::Angle(angle) => *angle,
-            Direction::Bottom => 0.,
-            Direction::BottomLeft => (bounds.width() / bounds.height()).atan() * (180. / PI),
-            Direction::Left => 90.,
-            Direction::TopLeft => 90. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
-            Direction::Top => 180.,
-            Direction::TopRight => 180. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
-            Direction::Right => 270.,
-            Direction::BottomRight => {
-                270. + ((bounds.width() / bounds.height()).atan() * (180. / PI))
+impl Direction {
+    const BOTTOM: Self = Self::Angle(0.);
+    const BOTTOM_LEFT: Self = Self::Corner(Corner::BottomLeft);
+    const LEFT: Self = Self::Angle(90.);
+    const TOP_LEFT: Self = Self::Corner(Corner::TopLeft);
+    const TOP: Self = Self::Angle(180.);
+    const TOP_RIGHT: Self = Self::Corner(Corner::TopRight);
+    const RIGHT: Self = Self::Angle(270.);
+    const BOTTOM_RIGHT: Self = Self::Corner(Corner::BottomRight);
+}
+
+// struct Provider(LinearGradient, Direction);
+
+// impl ShaderProvider for Provider {
+//     fn prepare_shader(&self, _effect: &RuntimeEffect, bounds: Area) -> Option<Shader> {
+//         let angle = match &self.1 {
+//             Direction::Angle(angle) => *angle,
+//             Direction::Bottom => 0.,
+//             Direction::BottomLeft => (bounds.width() / bounds.height()).atan() * (180. / PI),
+//             Direction::Left => 90.,
+//             Direction::TopLeft => 90. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
+//             Direction::Top => 180.,
+//             Direction::TopRight => 180. + ((bounds.height() / bounds.width()).atan() * (180. / PI)),
+//             Direction::Right => 270.,
+//             Direction::BottomRight => {
+//                 270. + ((bounds.width() / bounds.height()).atan() * (180. / PI))
+//             }
+//         };
+
+//         self.0.clone().angle(angle).prepare_shader(bounds)
+//     }
+// }
+
+// const FAKE_SHADER: &str = "float4 main(vec2 inCoords) { return float4(0.0, 0.0, 0.0, 0.0); }";
+
+// thread_local! {
+//     static EFFECT: RuntimeEffect = RuntimeEffect::make_for_shader(FAKE_SHADER, None).unwrap();
+// }
+
+fn generate_linear_shader(gradient: Vec<(Color, f32)>, direction: Direction) -> Fill {
+    Fill::Callback(RenderCallback::new(move |ctx| {
+        let angle = match direction {
+            Direction::Angle(angle) => {
+                let rad = ((angle + 180.) % 360.).to_radians();
+                (rad.sin(), -rad.cos())
             }
+            Direction::Corner(corner) => match corner {
+                Corner::BottomLeft => (-ctx.size.height, ctx.size.width),
+                Corner::TopLeft => (-ctx.size.height, -ctx.size.width),
+                Corner::TopRight => (ctx.size.height, -ctx.size.width),
+                Corner::BottomRight => (ctx.size.height, ctx.size.width),
+            },
         };
 
-        self.0.clone().angle(angle).prepare_shader(bounds)
-    }
-}
+        let length = (angle.0 * angle.0 + angle.1 * angle.1).sqrt();
+        let direction = (angle.0 / length, angle.1 / length);
 
-const FAKE_SHADER: &str = "float4 main(vec2 inCoords) { return float4(0.0, 0.0, 0.0, 0.0); }";
+        let grad_line_length =
+            (ctx.size.width * direction.0).abs() + (ctx.size.height * direction.1).abs();
+        let half_grad_line = (
+            direction.0 * (grad_line_length / 2.),
+            direction.1 * (grad_line_length / 2.),
+        );
+        let center = (ctx.size.width / 2., ctx.size.height / 2.);
+        let start = (center.0 - half_grad_line.0, center.1 - half_grad_line.1);
+        let end = (center.0 + half_grad_line.0, center.1 + half_grad_line.1);
 
-thread_local! {
-    static EFFECT: RuntimeEffect = RuntimeEffect::make_for_shader(FAKE_SHADER, None).unwrap();
-}
+        let colors = gradient
+            .iter()
+            .map(|stop| SkColor4f::from(stop.0))
+            .collect::<Vec<_>>();
+        let offsets = gradient.iter().map(|stop| stop.1).collect::<Vec<_>>();
 
-fn generate_linear_shader(gradient: LinearGradient, direction: Direction) -> Fill {
+        let grad_colors = Colors::new(&colors[..], Some(&offsets[..]), TileMode::Clamp, None);
+        let grad = Gradient::new(grad_colors, Interpolation::default());
+
+        let shader = shaders::linear_gradient((start, end), &grad, None);
+
+        let mut paint = Paint::default();
+        paint.set_shader(shader);
+        ctx.set_paint(&paint);
+    }))
+    // match direction {
+    //     Direction::Angle(angle) => gradient.angle(angle).into(),
+    //     Direction::Corner(corner) => Fill::Callback(RenderCallback::new(
+    //         move |ctx: &mut FillRenderContext<'_>| {
+    //             let width = ctx.size.width;
+    //             let height = ctx.size.height;
+
+    //             let angle = match &corner {
+    //                 Corner::BottomLeft => (width / height).atan().to_degrees(),
+    //                 Corner::TopLeft => 90. + ((height / width).atan().to_degrees()),
+    //                 Corner::TopRight => 180. + ((height / width).atan().to_degrees()),
+    //                 Corner::BottomRight => 270. + ((width / height).atan().to_degrees()),
+    //             };
+
+    //             println!("{angle:?} {gradient:?}");
+
+    //             let shader = gradient.clone().angle(angle).prepare_shader(Area {
+    //                 origin: Point2D::zero(),
+    //                 size: ctx.size,
+    //             });
+
+    //             let mut paint = Paint::default();
+    //             paint.set_shader(shader);
+    //             ctx.set_paint(&paint);
+    //         },
+    //     )),
+    // }
     // Fill::Callback(RenderCallback::new(move |ctx| {
     //     let angle = match &direction {
     //         Direction::Angle(angle) => *angle,
@@ -294,9 +375,9 @@ fn generate_linear_shader(gradient: LinearGradient, direction: Direction) -> Fil
     //     ctx.canvas.draw_paint(&paint);
     // }))
 
-    Fill::Shader(Box::new(ShaderFill::from_provider(
-        FAKE_SHADER,
-        EFFECT.with(|e| e.clone()),
-        Provider(gradient, direction),
-    )))
+    // Fill::Shader(Box::new(ShaderFill::from_provider(
+    //     FAKE_SHADER,
+    //     EFFECT.with(|e| e.clone()),
+    //     Provider(gradient, direction),
+    // )))
 }

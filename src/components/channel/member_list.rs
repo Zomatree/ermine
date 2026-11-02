@@ -318,7 +318,11 @@ impl Component for MemberList {
                                         .aspect_ratio(AspectRatio::Max)
                                         .corner_radius(8.)
                                 }))
-                                .child(stoat_label().text(format!("{name} - {count}")));
+                                .child(
+                                    stoat_label()
+                                        .font_weight(500)
+                                        .text(format!("{name} - {count}")),
+                                );
 
                             if item.index == 0
                                 && let Some(online_count) = online_count()
@@ -338,6 +342,7 @@ impl Component for MemberList {
                                             )
                                             .child(
                                                 stoat_label()
+                                                    .font_weight(500)
                                                     .text(format!("{online_count} members online")),
                                             ),
                                     )
@@ -420,15 +425,27 @@ impl Component for MemberListMember {
                     .on_press({
                         let user = self.user.clone();
                         let member = self.member.clone();
+                        let server = self.server.clone();
 
                         move |_| {
-                            floating.clone().set(Some(
-                                UserCard {
-                                    user: user.clone(),
-                                    member: member.read().map(|m| m.clone().into_readable()),
-                                }
-                                .into_element(),
-                            ));
+                            let user = user.clone();
+                            let member = member.read().map(|m| m.clone().into_readable());
+                            let server = server.read().clone();
+
+                            spawn(async move {
+                                let mut query =
+                                    user_permissions_query(radio.clone()).server(server);
+                                let permissions = calculate_server_permissions(&mut query).await;
+
+                                floating.clone().set(Some(
+                                    UserCard {
+                                        user,
+                                        member,
+                                        permissions,
+                                    }
+                                    .into_element(),
+                                ))
+                            });
                         }
                     })
                     .child(
@@ -482,19 +499,16 @@ impl Component for MemberListMember {
                                             .spacing(4.)
                                             .cross_align(Alignment::Center)
                                             .child(
-                                                label()
+                                                stoat_label()
                                                     .text(display_name.read().clone())
                                                     .map(
                                                         role_color.read().clone(),
-                                                        |mut this, color| {
-                                                            this.get_text_style_data().color =
-                                                                Some(color);
-                                                            this
-                                                        },
+                                                        |this, color| this.color(color),
                                                     )
                                                     .font_size(14)
                                                     .max_lines(1)
                                                     .font_weight(500)
+                                                    .line_height(1.25)
                                                     .text_overflow(TextOverflow::Ellipsis),
                                             )
                                             .maybe_child(is_bot.then(|| {
@@ -542,7 +556,7 @@ impl Component for MemberListMember {
                                                 )
                                                 .position(AttachedPosition::Top)
                                                 .child(
-                                                    label()
+                                                    stoat_label()
                                                         .text(text)
                                                         .font_size(11)
                                                         .max_lines(1)

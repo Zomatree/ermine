@@ -5,10 +5,10 @@ use stoat_models::v0;
 use ulid::Ulid;
 
 use crate::{
-    AppChannel, ThemeScheme, ThemeSet, ThemeVariant,
+    AppChannel, SizeExt, ThemeScheme, ThemeSet, ThemeVariant,
     components::{
-        Dropdown, Message, MessageModel, StoatColorPicker, StoatSegmentedButton,
-        checkbox::StoatCheckbox, stoat_label,
+        Dropdown, MaterialIcon, Message, MessageModel, StoatColorPicker, StoatSegmentedButton,
+        checkbox::StoatCheckbox, material::outlined::color_lens, stoat_label,
     },
     consume_material_theme, use_config,
 };
@@ -96,12 +96,24 @@ impl Component for AppearanceSettings {
                             .width(Size::Fill)
                             .center()
                             .spacing(8.)
-                            .child(StoatColorPicker::new(
-                                Color::new(config.read().theme.theme_source | (0xFF << 24)),
-                                move |c: Color| {
-                                    source.set(c);
-                                },
-                            ))
+                            .child(
+                                StoatColorPicker::new(
+                                    Color::new(config.read().theme.theme_source | (0xFF << 24)),
+                                    move |c: Color| {
+                                        source.set(c);
+                                    },
+                                )
+                                .child(
+                                    rect()
+                                        .width(Size::px(56.))
+                                        .height(Size::px(56.))
+                                        .corner_radius(16.)
+                                        .background(theme.md.primary)
+                                        .color(theme.md.on_primary)
+                                        .center()
+                                        .child(MaterialIcon::new(color_lens()).size(Size::px(24.))),
+                                ),
+                            )
                             .child(
                                 rect().child(
                                     StoatSegmentedButton::new(

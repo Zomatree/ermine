@@ -18,10 +18,10 @@ use crate::{
             AddFriend, BanMember, ChannelDescription, CreateBot, CreateCategory, CreateChannel,
             CreateGroup, CreateGroupServer, CreateJoinServer, CreateRole, CreateServer,
             CreateWebhook, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage,
-            DeleteWebhook, EditApi, EditOwnServerIdentity, EditRoles, EditServerIdentity,
-            ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup,
-            LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory,
-            ResetBotToken, ServerInfo, TimeoutMember,
+            DeleteWebhook, EditApi, EditOwnServerIdentity, EditRoles, EditServerFolder,
+            EditServerIdentity, ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer,
+            KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
+            RemoveTimeoutMember, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember,
         },
     },
     consume_material_theme,
@@ -142,6 +142,9 @@ pub enum ModalValue {
     },
     CreateGroup,
     CreateGroupServer,
+    EditServerFolder {
+        folder: String,
+    },
     Error {
         error: Error,
     },
@@ -332,6 +335,10 @@ impl PartialEq for ModalValue {
                 Self::CreateCategory { server: l_server },
                 Self::CreateCategory { server: r_server },
             ) => l_server == r_server,
+            (
+                Self::EditServerFolder { folder: l_folder },
+                Self::EditServerFolder { folder: r_folder },
+            ) => l_folder == r_folder,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -564,6 +571,9 @@ impl Component for Modal {
                                     ModalValue::CreateGroupServer => {
                                         CreateGroupServer {}.into_element()
                                     }
+                                    ModalValue::EditServerFolder { folder } => {
+                                        EditServerFolder { folder }.into_element()
+                                    }
                                 }),
                         ),
                 ),
@@ -719,7 +729,9 @@ impl Component for Dialog {
                                             .padding((0., 16.))
                                             .height(Size::px(40.))
                                             .center()
-                                            .child(label().font_size(14.).text(title)),
+                                            .child(
+                                                label().font_size(14.).font_weight(500).text(title),
+                                            ),
                                     )
                                     .into_element()
                             }),
