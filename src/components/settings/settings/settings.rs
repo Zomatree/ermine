@@ -1,6 +1,12 @@
 use std::mem::discriminant;
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{
+    animation::{
+        AnimNum, OnChange, OnCreation, ReadAnimatedValue, use_animation_with_dependencies,
+    },
+    prelude::*,
+    radio::use_radio,
+};
 
 use crate::{
     AppChannel, AppState, Config, SettingsPage, SizeExt,
@@ -17,7 +23,7 @@ use crate::{
         },
         stoat_scrollbar,
     },
-    consume_material_theme, http,
+    consume_material_theme, http, settings_func,
     theme::Theme,
     use_config,
 };
@@ -42,6 +48,18 @@ impl Component for Settings {
 
         let fullscreen = (window_size.read().width() != 0. && window_size.read().width() <= 1000.)
             || (window_size.read().height() != 0. && window_size.read().height() <= 500.);
+
+        let anim = use_animation_with_dependencies(&*current_page.read(), |anim, _| {
+            anim.on_creation(OnCreation::Finish);
+            anim.on_change(OnChange::Rerun);
+
+            (
+                AnimNum::new(0., 1.).function(settings_func()).time(200),
+                AnimNum::new(50., 0.).function(settings_func()).time(200),
+            )
+        });
+
+        let (opacity, offset) = anim.read().value();
 
         rect()
             .expanded()
@@ -199,7 +217,7 @@ impl Component for Settings {
                                                     ))
                                                     .maybe_child(selected_bot.map(|(_id, name)| label().text(name)))
                                                 })
-                                                .child(match page {
+                                                .child(rect().offset_y(offset).opacity(opacity).child(match page {
                                                     SettingsPage::Account => {
                                                         AccountSettings {}.into_element()
                                                     }
@@ -233,7 +251,7 @@ impl Component for Settings {
                                                     SettingsPage::Donate => {
                                                         "Coming soon!".into_element()
                                                     }
-                                                })
+                                                }))
                                         }),
                                     )),
                             )
@@ -294,6 +312,7 @@ impl Component for MyAccountButton {
                     .child(Avatar::new(current_user.clone(), None, 32.))
                     .child(
                         rect()
+                            .font_weight(500)
                             .child(
                                 label()
                                     .text({

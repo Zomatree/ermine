@@ -6,7 +6,8 @@ use stoat_models::v0;
 use crate::{
     AppChannel, NotificationBadge, SizeExt, calculate_channel_permissions,
     components::{
-        Avatar, ChannelContextMenu, StoatButton, StoatButtonLayoutThemePartialExt, file_image,
+        Avatar, ChannelContextMenu, MarkdownViewer, StoatButton, StoatButtonLayoutThemePartialExt,
+        file_image,
     },
     consume_material_theme, get_unread_badge, user_permissions_query,
 };
@@ -202,8 +203,7 @@ impl Component for DMDirectMessageButton {
                                     }))
                             })
                             .map(|text| {
-                                label()
-                                    .text(text)
+                                MarkdownViewer::new(text, None)
                                     .font_size(11)
                                     .max_lines(1)
                                     .font_weight(500)
@@ -222,9 +222,9 @@ pub struct GroupDMIcon {
 }
 
 impl GroupDMIcon {
-    pub fn new(channel: Readable<v0::Channel>) -> Self {
+    pub fn new(channel: impl Into<Readable<v0::Channel>>) -> Self {
         Self {
-            channel,
+            channel: channel.into(),
             size: 32.,
             invert: false,
         }

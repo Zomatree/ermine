@@ -1,9 +1,5 @@
-use std::time::Duration;
-
 use freya::{
-    animation::{
-        AnimNum, AnimatedValue, Ease, OnChange, OnCreation, use_animation_with_dependencies,
-    },
+    animation::{AnimNum, AnimatedValue, OnChange, OnCreation, use_animation_with_dependencies},
     prelude::*,
 };
 
@@ -13,7 +9,7 @@ use crate::{
         MaterialIcon,
         material::filled::{check_box, check_box_outline_blank},
     },
-    consume_material_theme,
+    consume_material_theme, medium_func,
 };
 
 #[derive(PartialEq)]
@@ -49,9 +45,7 @@ impl Component for StoatCheckbox {
                 anim.on_creation(OnCreation::Finish);
                 anim.on_change(OnChange::Rerun);
 
-                let opacity = AnimNum::new(0., 1.)
-                    .duration(Duration::from_millis(150))
-                    .ease(Ease::Out);
+                let opacity = AnimNum::new(0., 1.).time(200).function(medium_func());
 
                 if *value {
                     opacity

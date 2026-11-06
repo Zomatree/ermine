@@ -34,6 +34,7 @@ impl Component for MFA {
             .title(label().line_height(1.5).text("Confirm action"))
             .body(
                 rect()
+                    .spacing(8.)
                     .child(label().text("Please confirm using a selected method."))
                     .child(
                         SingleLineEntry::new(

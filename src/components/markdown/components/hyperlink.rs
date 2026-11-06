@@ -58,7 +58,7 @@ impl Component for Hyperlink {
                             .span(
                                 self.span
                                     .clone()
-                                    .color(theme.md.primary.as_argb_u32())
+                                    .color(theme.md.primary)
                                     .text_decoration(if hover() {
                                         TextDecoration::Underline
                                     } else {

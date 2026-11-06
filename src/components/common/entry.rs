@@ -8,13 +8,14 @@ use freya::{
     prelude::*,
 };
 
-use crate::consume_material_theme;
+use crate::{components::stoat_label, consume_material_theme};
 
 #[derive(PartialEq)]
 pub struct SingleLineEntry {
     value: Writable<String>,
     title: Cow<'static, str>,
     placeholder: Option<Cow<'static, str>>,
+    max_length: Option<usize>,
     on_submit: Option<EventHandler<String>>,
     mode: InputMode,
     layout: LayoutData,
@@ -26,6 +27,7 @@ impl SingleLineEntry {
             value: value.into_writable(),
             title: title.into(),
             placeholder: None,
+            max_length: None,
             on_submit: None,
             mode: InputMode::Shown,
             layout: LayoutData::default(),
@@ -44,8 +46,20 @@ impl SingleLineEntry {
         self
     }
 
+    pub fn password(mut self) -> Self {
+        self.mode = InputMode::Hidden('•');
+
+        self
+    }
+
     pub fn on_submit(mut self, on_submit: impl Into<EventHandler<String>>) -> Self {
         self.on_submit = Some(on_submit.into());
+        self
+    }
+
+    pub fn max_length(mut self, length: usize) -> Self {
+        self.max_length = Some(length);
+
         self
     }
 }
@@ -120,56 +134,74 @@ impl Component for SingleLineEntry {
         let (title_scale, title_top) = title_animation.read().value();
         let (title_color, placeholder_color) = color_animation.read().value();
 
-        rect()
-            .layout(self.layout.clone())
-            .corner_radius(CornerRadius::new_symmetric(4., 0.))
-            .background(theme.md.surface_container_highest.as_argb_u32())
-            .child(
-                rect()
-                    .padding((2., 16.))
-                    .center()
-                    .font_size(16.)
-                    .child(
-                        Input::new(self.value.clone())
-                            .padding((22., 14., 6., 0.))
-                            .a11y_id(a11y_id)
-                            .color(theme.md.on_surface.as_argb_u32())
-                            .placeholder_color(placeholder_color)
-                            .map(self.on_submit.clone(), |this, on_submit| {
-                                this.on_submit(on_submit)
-                            })
-                            .map(self.placeholder.clone(), |this, placeholder| {
-                                this.placeholder(placeholder)
-                            })
-                            .mode(self.mode.clone())
-                            .width(Size::Fill)
-                            .flat()
-                            .background(Color::TRANSPARENT)
-                            .focus_background(Color::TRANSPARENT)
-                            .focus_border_fill(Color::TRANSPARENT),
-                    )
-                    .child(
-                        rect()
-                            .child(
-                                label()
-                                    .text(self.title.clone())
-                                    .text_align(TextAlign::Start)
-                                    .max_lines(1)
-                                    .color(title_color)
-                                    .font_size(16),
-                            )
-                            .position(Position::new_absolute().top(title_top))
-                            .transform_origin(TransformOrigin::top_left())
-                            .scale(title_scale)
-                            .layer(1),
-                    ),
-            )
-            .child(
-                rect()
-                    .width(Size::percent(100.))
-                    .height(Size::px(1.))
-                    .background(title_color)
-                    .layer(1),
-            )
+        rect().layout(self.layout.clone()).child(
+            rect()
+                .corner_radius(CornerRadius::new_symmetric(4., 0.))
+                .background(theme.md.surface_container_highest.as_argb_u32())
+                .child(
+                    rect()
+                        .padding((2., 16.))
+                        .center()
+                        .font_size(16.)
+                        .child(
+                            Input::new(self.value.clone())
+                                .padding((22., 14., 6., 0.))
+                                .a11y_id(a11y_id)
+                                .color(theme.md.on_surface.as_argb_u32())
+                                .placeholder_color(placeholder_color)
+                                .map(self.on_submit.clone(), |this, on_submit| {
+                                    this.on_submit(on_submit)
+                                })
+                                .map(self.placeholder.clone(), |this, placeholder| {
+                                    this.placeholder(placeholder)
+                                })
+                                .on_validate({
+                                    let max_length = self.max_length;
+                                    move |validator: InputValidator| {
+                                        if let Some(max_length) = max_length {
+                                            if validator.text().len() > max_length {
+                                                validator.set_valid(false);
+                                            }
+                                        }
+                                    }
+                                })
+                                .mode(self.mode.clone())
+                                .width(Size::Fill)
+                                .flat()
+                                .background(Color::TRANSPARENT)
+                                .focus_background(Color::TRANSPARENT)
+                                .focus_border_fill(Color::TRANSPARENT),
+                        )
+                        .child(
+                            rect()
+                                .child(
+                                    label()
+                                        .text(self.title.clone())
+                                        .text_align(TextAlign::Start)
+                                        .max_lines(1)
+                                        .color(title_color)
+                                        .font_size(16),
+                                )
+                                .position(Position::new_absolute().top(title_top))
+                                .transform_origin(TransformOrigin::top_left())
+                                .scale(title_scale)
+                                .layer(1),
+                        ),
+                )
+                .child(
+                    rect()
+                        .width(Size::percent(100.))
+                        .height(Size::px(1.))
+                        .background(title_color)
+                        .layer(1),
+                ),
+        ).maybe_child(self.max_length.map(|max_length| {
+            rect().width(Size::Fill)
+            .padding((4., 16.))
+            .cross_align(Alignment::End)
+            .color(theme.md.on_surface_variant)
+            .font_size(12.)
+            .child(stoat_label().text(format!("{}/{max_length}", self.value.read().len())))
+        }))
     }
 }

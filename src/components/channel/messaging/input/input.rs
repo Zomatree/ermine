@@ -7,7 +7,6 @@ use freya::{
 use indexmap::IndexMap;
 use rfd::AsyncFileDialog;
 use stoat_models::v0;
-use tokio::sync::oneshot;
 
 use crate::{
     components::{
@@ -151,15 +150,7 @@ impl AttachmentController {
     pub async fn add(&self, path: PathBuf) {
         let filename = path.file_name().unwrap().to_str().unwrap().to_string();
 
-        let (tx, rx) = oneshot::channel();
-
-        std::thread::spawn(move || {
-            let contents = std::fs::read(path).unwrap();
-
-            tx.send(Bytes::from(contents))
-        });
-
-        let contents = rx.await.unwrap();
+        let contents = Bytes::from(tokio::fs::read(path).await.unwrap());
 
         let id = rand::random();
 

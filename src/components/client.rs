@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use freya::{
-    animation::{AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, use_animation},
+    animation::{AnimNum, AnimatedValue, OnChange, OnCreation, ReadAnimatedValue, use_animation},
     prelude::*,
     radio::use_radio,
 };
@@ -13,9 +13,9 @@ use crate::{
     components::{
         AttachmentController, ChannelSettings, Discover, FloatingManager, FloatingVoiceContainer,
         Home, MaterialIcon, Server, ServerList, ServerSettings, Settings, UserProfile,
-        material::filled::description,
+        material::filled::description, stoat_label,
     },
-    consume_material_theme, map_readable, user_permissions_query,
+    consume_material_theme, map_readable, settings_func, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -54,19 +54,20 @@ impl Component for Client {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Finish);
 
-            let opacity = AnimNum::new(0., 1.)
-                .time(350)
-                .ease(Ease::Out)
-                .function(Function::Expo);
+            let opacity = AnimNum::new(0., 1.).time(200).function(settings_func());
+
+            let scale = AnimNum::new(1.1, 1.).time(200).function(settings_func());
+
+            let anim = (opacity, scale);
 
             if show_settings() {
-                opacity
+                anim
             } else {
-                opacity.into_reversed()
+                anim.into_reversed()
             }
         });
 
-        let settings_opacity = settings_animation.read().value();
+        let (settings_opacity, settings_scale) = settings_animation.read().value();
 
         let show_server_settings = use_reactive(&server_settings.read().is_some());
 
@@ -74,19 +75,21 @@ impl Component for Client {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Finish);
 
-            let opacity = AnimNum::new(0., 1.)
-                .time(350)
-                .ease(Ease::Out)
-                .function(Function::Expo);
+            let opacity = AnimNum::new(0., 1.).time(200).function(settings_func());
+
+            let scale = AnimNum::new(1.1, 1.).time(200).function(settings_func());
+
+            let anim = (opacity, scale);
 
             if show_server_settings() {
-                opacity
+                anim
             } else {
-                opacity.into_reversed()
+                anim.into_reversed()
             }
         });
 
-        let server_settings_opacity = server_settings_animation.read().value();
+        let (server_settings_opacity, server_settings_scale) =
+            server_settings_animation.read().value();
 
         let show_channel_settings = use_reactive(&channel_settings.read().is_some());
 
@@ -94,19 +97,21 @@ impl Component for Client {
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Finish);
 
-            let opacity = AnimNum::new(0., 1.)
-                .time(350)
-                .ease(Ease::Out)
-                .function(Function::Expo);
+            let opacity = AnimNum::new(0., 1.).time(200).function(settings_func());
+
+            let scale = AnimNum::new(1.1, 1.).time(200).function(settings_func());
+
+            let anim = (opacity, scale);
 
             if show_channel_settings() {
-                opacity
+                anim
             } else {
-                opacity.into_reversed()
+                anim.into_reversed()
             }
         });
 
-        let channel_settings_opacity = channel_settings_animation.read().value();
+        let (channel_settings_opacity, channel_settings_scale) =
+            channel_settings_animation.read().value();
 
         use_side_effect({
             let connection_state = connection_state.clone();
@@ -199,11 +204,11 @@ impl Component for Client {
             .maybe_child(show_connection_state_banner.read().then(|| {
                 let connection_state = connection_state.read();
 
-                let (color, background, text) = match *connection_state {
-                    ConnectionState::Disconnected => (0xff90909a, 0xff292a2f, "Disconnected"),
-                    ConnectionState::Connected => (0xffdde1ff, 0xff384379, "Connected"),
-                    ConnectionState::Reconnecting => (0xff90909a, 0xff292a2f, "Reconnecting"),
-                    ConnectionState::Reconnected => (0xffdde1ff, 0xff384379, "Reconnected"),
+                let text = match *connection_state {
+                    ConnectionState::Disconnected => "Disconnected",
+                    ConnectionState::Connected => "Connected",
+                    ConnectionState::Reconnecting => "Reconnecting",
+                    ConnectionState::Reconnected => "Reconnected",
                 };
 
                 rect()
@@ -212,14 +217,14 @@ impl Component for Client {
                     .width(Size::window_percent(100.))
                     .height(Size::px(30.))
                     .center()
+                    .background(theme.md.primary_container)
+                    .color(theme.md.on_primary_container)
                     .child(
-                        label()
+                        stoat_label()
                             .text(text)
                             .font_size(16.)
-                            .color(color)
                             .font_weight(FontWeight::SEMI_BOLD),
                     )
-                    .background(background)
             }))
             .maybe_child(
                 room.read()
@@ -287,6 +292,7 @@ impl Component for Client {
                     .height(Size::window_percent(100.))
                     .layer(Layer::OverlayLevel(3))
                     .opacity(settings_opacity)
+                    .scale(settings_scale)
                     .child(Settings {})
                     .into_element()
             }))
@@ -303,6 +309,7 @@ impl Component for Client {
                             .height(Size::window_percent(100.))
                             .layer(Layer::OverlayLevel(4))
                             .opacity(server_settings_opacity)
+                            .scale(server_settings_scale)
                             .child(ServerSettings {
                                 server: map_readable::<HashMap<String, v0::Server>, _>(
                                     servers.into_readable(),
@@ -325,6 +332,7 @@ impl Component for Client {
                             .height(Size::window_percent(100.))
                             .layer(Layer::OverlayLevel(5))
                             .opacity(channel_settings_opacity)
+                            .scale(channel_settings_scale)
                             .child(ChannelSettings {
                                 channel: map_readable::<HashMap<String, v0::Channel>, _>(
                                     channels.into_readable(),

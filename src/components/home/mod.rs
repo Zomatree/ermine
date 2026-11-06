@@ -1,7 +1,7 @@
-pub mod dms;
-pub mod friends;
-pub mod home;
-pub mod welcome;
+mod dms;
+mod friends;
+mod home;
+mod welcome;
 
 pub use dms::*;
 pub use friends::*;

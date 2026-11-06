@@ -498,12 +498,6 @@ pub enum ClientMessage {
     Ping { data: Ping },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Account {
-    pub id: String,
-    pub email: String,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct CategoriesQueryParams {
     pub locale: String,
@@ -549,4 +543,10 @@ pub struct TrendingQueryParams {
     pub locale: String,
     pub limit: Option<u32>,
     pub position: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DataChangeUsername {
+    pub username: String,
+    pub password: String,
 }

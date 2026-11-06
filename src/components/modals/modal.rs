@@ -15,13 +15,14 @@ use crate::{
         MessageModel, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
         modals::{
-            AddFriend, BanMember, ChannelDescription, CreateBot, CreateCategory, CreateChannel,
-            CreateGroup, CreateGroupServer, CreateJoinServer, CreateRole, CreateServer,
-            CreateWebhook, DeleteBot, DeleteCategory, DeleteChannel, DeleteInvite, DeleteMessage,
-            DeleteWebhook, EditApi, EditOwnServerIdentity, EditRoles, EditServerFolder,
-            EditServerIdentity, ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer,
-            KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA, OpenLink,
-            RemoveTimeoutMember, RenameCategory, ResetBotToken, ServerInfo, TimeoutMember,
+            AddFriend, BanMember, ChangeEmail, ChangePassword, ChangeUsername, ChannelDescription,
+            CreateBot, CreateCategory, CreateChannel, CreateGroup, CreateGroupServer,
+            CreateJoinServer, CreateRole, CreateServer, CreateWebhook, DeleteBot, DeleteCategory,
+            DeleteChannel, DeleteInvite, DeleteMessage, DeleteWebhook, EditApi,
+            EditOwnServerIdentity, EditRoles, EditServerFolder, EditServerIdentity, EnableTotp,
+            ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup,
+            LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory,
+            ResetBotToken, ServerInfo, TimeoutMember, ViewRecoveryCodes,
         },
     },
     consume_material_theme,
@@ -144,6 +145,16 @@ pub enum ModalValue {
     CreateGroupServer,
     EditServerFolder {
         folder: String,
+    },
+    ChangeUsername,
+    ChangeEmail,
+    ChangePassword,
+    ViewRecoveryCodes {
+        codes: Vec<String>,
+    },
+    EnableTotp {
+        secret: String,
+        callback: EventHandler<()>,
     },
     Error {
         error: Error,
@@ -339,6 +350,14 @@ impl PartialEq for ModalValue {
                 Self::EditServerFolder { folder: l_folder },
                 Self::EditServerFolder { folder: r_folder },
             ) => l_folder == r_folder,
+            (
+                Self::EnableTotp {
+                    secret: l_secret, ..
+                },
+                Self::EnableTotp {
+                    secret: r_secret, ..
+                },
+            ) => l_secret == r_secret,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -573,6 +592,15 @@ impl Component for Modal {
                                     }
                                     ModalValue::EditServerFolder { folder } => {
                                         EditServerFolder { folder }.into_element()
+                                    }
+                                    ModalValue::ChangeUsername => ChangeUsername {}.into_element(),
+                                    ModalValue::ChangeEmail => ChangeEmail {}.into_element(),
+                                    ModalValue::ChangePassword => ChangePassword {}.into_element(),
+                                    ModalValue::ViewRecoveryCodes { codes } => {
+                                        ViewRecoveryCodes { codes }.into_element()
+                                    }
+                                    ModalValue::EnableTotp { secret, callback } => {
+                                        EnableTotp { secret, callback }.into_element()
                                     }
                                 }),
                         ),

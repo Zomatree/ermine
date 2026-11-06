@@ -1,6 +1,7 @@
 use std::{rc::Rc, time::SystemTime};
 
 use freya::{prelude::*, radio::use_radio};
+use itertools::Itertools;
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
@@ -8,14 +9,14 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use crate::{
     AppChannel, SizeExt, calculate_server_permissions,
     components::{
-        Avatar, MarkdownViewer, MaterialIcon, ModalValue, StoatButton,
+        Avatar, GroupDMIcon, MarkdownViewer, MaterialIcon, ModalValue, ServerIcon, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
         file_image,
         material::{
             filled::{cancel, edit},
             outlined::more_vert,
         },
-        stoat_scrollbar, use_modals,
+        stoat_label, stoat_scrollbar, use_modals,
     },
     consume_material_theme, format_autumn_url, http, is_inferior, parse_fill,
     theme::Theme,
@@ -41,14 +42,14 @@ impl Component for UserProfile {
             move || user.read().clone()
         });
 
-        let profile = use_state(|| None);
+        let mut profile = use_state(|| None);
+        let mut mutuals = use_state(|| None);
 
         use_future({
             let user_id = self.user.peek().id.clone();
 
             move || {
                 let user_id = user_id.clone();
-                let mut profile = profile.clone();
 
                 async move {
                     if let Ok(user_profile) = http().fetch_user_profile(&user_id).await {
@@ -57,6 +58,91 @@ impl Component for UserProfile {
                 }
             }
         });
+
+        use_future({
+            let user_id = self.user.peek().id.clone();
+
+            move || {
+                let user_id = user_id.clone();
+
+                async move {
+                    if let Ok(response) = http().fetch_user_mutuals(&user_id).await {
+                        mutuals.set(Some(response));
+                    }
+                }
+            }
+        });
+
+        let mut tiles = Vec::new();
+
+        let user_ref = user.read();
+        let member_ref = self.member.as_ref().map(|m| m.read());
+
+        if let Some(text) = user_ref.status.as_ref().and_then(|s| s.text.clone()) {
+            tiles.push(ProfileStatus { text, member: self.member.clone() }.into_element());
+        }
+
+        if user_ref.badges != 0 {
+            tiles.push(
+                ProfileBadges {
+                    badges: user_ref.badges,
+                }
+                .into_element(),
+            )
+        }
+
+        tiles.push(
+            ProfileJoined {
+                user: user.into_readable(),
+                member: self.member.clone(),
+            }
+            .into_element(),
+        );
+
+        if let Some(member) = &self.member
+            && member_ref.as_ref().is_some_and(|m| !m.roles.is_empty())
+        {
+            tiles.push(
+                ProfileRoles {
+                    member: member.clone(),
+                }
+                .into_element(),
+            );
+        }
+
+        if user_ref.pronouns.is_some() || member_ref.as_ref().is_some_and(|m| m.pronouns.is_some())
+        {
+            tiles.push(
+                ProfilePronouns {
+                    user: user.into_readable(),
+                    member: self.member.clone(),
+                }
+                .into_element(),
+            )
+        }
+
+        if let Some(mutuals) = &*mutuals.read() {
+            if !mutuals.users.is_empty() {
+                tiles.push(
+                    ProfileMutualFriends {
+                        user: user.into_readable(),
+                        users: mutuals.users.clone(),
+                    }
+                    .into_element(),
+                )
+            }
+
+            if !mutuals.servers.is_empty() || !mutuals.channels.is_empty() {
+                tiles.push(
+                    ProfileMutualServersGroups {
+                        user: user.into_readable(),
+                        servers: mutuals.servers.clone(),
+                        channels: mutuals.channels.clone(),
+                    }
+                    .into_element(),
+                )
+            }
+        }
 
         rect().background(0xBB000000).expanded().child(
             ScrollView::new()
@@ -96,59 +182,13 @@ impl Component for UserProfile {
                                             permissions: self.permissions,
                                             close: Rc::new(close_profile),
                                         })
-                                        .child({
-                                            let status_text = user
-                                                .read()
-                                                .status
-                                                .as_ref()
-                                                .and_then(|status| status.text.clone());
-
-                                            let badges = user.read().badges;
-
-                                            let show_hidden = status_text.is_none() || badges == 0;
-
-                                            row()
-                                                .maybe_child(
-                                                    status_text.map(|text| ProfileStatus { text }),
-                                                )
-                                                .maybe_child(
-                                                    (badges != 0).then(|| ProfileBadges { badges }),
-                                                )
-                                                .child(ProfileJoined {
-                                                    user: user.into_readable(),
-                                                    member: self.member.clone(),
-                                                })
-                                                .maybe_child(show_hidden.then(empty_card))
-                                        })
-                                        .maybe_child({
-                                            let has_roles = self
-                                                .member
-                                                .as_ref()
-                                                .is_some_and(|m| !m.read().roles.is_empty());
-
-                                            let has_pronouns = user.read().pronouns.is_some()
-                                                || self
-                                                    .member
-                                                    .as_ref()
-                                                    .is_some_and(|m| m.read().pronouns.is_some());
-
-                                            (has_roles || has_pronouns).then(|| {
-                                                row()
-                                                    .maybe_child(has_roles.then(|| {
-                                                        ProfileRoles {
-                                                            member: self.member.clone().unwrap(),
-                                                        }
-                                                        .into_element()
-                                                    }))
-                                                    .maybe_child(has_pronouns.then(|| {
-                                                        ProfilePronouns {
-                                                            user: user.into_readable(),
-                                                            member: self.member.clone(),
-                                                        }
-                                                        .into_element()
-                                                    }))
-                                            })
-                                        })
+                                        .children(
+                                            tiles
+                                                .into_iter()
+                                                .chunks(3)
+                                                .into_iter()
+                                                .map(|tiles| row().children(tiles)),
+                                        )
                                         .maybe_child(
                                             profile
                                                 .read()
@@ -163,7 +203,7 @@ impl Component for UserProfile {
     }
 }
 
-fn row() -> Rect {
+pub fn row() -> Rect {
     rect()
         .horizontal()
         .spacing(8.)
@@ -179,6 +219,7 @@ fn card(title: &'static str, theme: &Theme, content: impl IntoElement) -> Rect {
         .padding(15.)
         .corner_radius(16.)
         .spacing(4.)
+        .overflow(Overflow::Clip)
         .child(
             label()
                 .max_lines(1)
@@ -187,10 +228,6 @@ fn card(title: &'static str, theme: &Theme, content: impl IntoElement) -> Rect {
                 .font_weight(FontWeight::SEMI_BOLD),
         )
         .child(content)
-}
-
-fn empty_card() -> Rect {
-    rect().width(Size::flex(1.)).height(Size::px(170.))
 }
 
 #[derive(PartialEq)]
@@ -574,6 +611,7 @@ impl Component for ProfileButtons {
 #[derive(PartialEq)]
 pub struct ProfileStatus {
     pub text: String,
+    pub member: Option<Readable<v0::Member>>,
 }
 
 impl Component for ProfileStatus {
@@ -583,7 +621,7 @@ impl Component for ProfileStatus {
         card(
             "Status",
             &theme,
-            label().text(self.text.clone()).font_size(14),
+            MarkdownViewer::new(self.text.clone(), None).font_size(14.),
         )
     }
 }
@@ -676,28 +714,16 @@ impl Component for ProfileJoined {
             &theme,
             rect()
                 .spacing(4.)
-                .child(
-                    label()
-                        .font_size(12.)
-                        .font_weight(FontWeight::MEDIUM)
-                        .line_height(1.5)
-                        .text("Stoat"),
-                )
-                .child(
-                    label()
-                        .font_size(14.)
-                        .line_height(1.5)
-                        .text(platform_joined_at),
-                )
+                .child(stoat_label().font_size(12.).font_weight(500).text("Stoat"))
+                .child(stoat_label().font_size(14.).text(platform_joined_at))
                 .map(server_joined_at, |this, (server_name, joined_at)| {
                     this.child(
-                        label()
+                        stoat_label()
                             .font_size(12.)
-                            .font_weight(FontWeight::MEDIUM)
-                            .line_height(1.5)
+                            .font_weight(500)
                             .text(server_name),
                     )
-                    .child(label().font_size(14.).line_height(1.5).text(joined_at))
+                    .child(stoat_label().font_size(14.).text(joined_at))
                 }),
         )
     }
@@ -818,26 +844,89 @@ impl Component for ProfilePronouns {
                 .spacing(4.)
                 .maybe_child(main_pronouns.map(|pronouns| {
                     rect()
-                        .child(
-                            label()
-                                .font_size(12.)
-                                .font_weight(FontWeight::MEDIUM)
-                                .line_height(1.5)
-                                .text("Stoat"),
-                        )
-                        .child(label().font_size(14.).line_height(1.5).text(pronouns))
+                        .child(stoat_label().font_size(12.).font_weight(500).text("Stoat"))
+                        .child(stoat_label().font_size(14.).text(pronouns))
                 }))
                 .maybe_child(server_pronouns.map(|(pronouns, server)| {
                     rect()
-                        .child(
-                            label()
-                                .font_size(12.)
-                                .font_weight(FontWeight::MEDIUM)
-                                .line_height(1.5)
-                                .text(server),
-                        )
-                        .child(label().font_size(14.).line_height(1.5).text(pronouns))
+                        .child(stoat_label().font_size(12.).font_weight(500).text(server))
+                        .child(stoat_label().font_size(14.).text(pronouns))
                 })),
+        )
+    }
+}
+
+#[derive(PartialEq)]
+pub struct ProfileMutualFriends {
+    pub user: Readable<v0::User>,
+    pub users: Vec<String>,
+}
+
+impl Component for ProfileMutualFriends {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        let radio = use_radio(AppChannel::Users);
+        let state = radio.read();
+
+        card(
+            "Mutuals",
+            &theme,
+            rect()
+                .horizontal()
+                .content(Content::wrap_spacing(8.))
+                .spacing(8.)
+                .children(
+                    self.users
+                        .iter()
+                        .flat_map(|id| state.users.get(id).cloned())
+                        .map(|user| Avatar::new(user, None, 20.)),
+                ),
+        )
+    }
+}
+
+#[derive(PartialEq)]
+pub struct ProfileMutualServersGroups {
+    pub user: Readable<v0::User>,
+    pub servers: Vec<String>,
+    pub channels: Vec<String>,
+}
+
+impl Component for ProfileMutualServersGroups {
+    fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
+        let radio = use_radio(AppChannel::Servers);
+        let servers = radio.slice_current(|state| &state.servers);
+        let channels = radio.slice(AppChannel::Channels, |state| &state.channels);
+
+        let servers = servers.read();
+        let channels = channels.read();
+
+        card(
+            "Groups",
+            &theme,
+            rect()
+                .horizontal()
+                .content(Content::wrap_spacing(8.))
+                .spacing(8.)
+                .children(
+                    self.servers
+                        .iter()
+                        .flat_map(|id| servers.get(id))
+                        .map(|server| {
+                            ServerIcon::from_values(server.icon.clone(), server.name.clone(), 20.)
+                                .corner_radius(10.)
+                        }),
+                )
+                .children(
+                    self.channels
+                        .iter()
+                        .flat_map(|id| channels.get(id))
+                        .filter(|channel| matches!(channel, v0::Channel::Group { .. }))
+                        .map(|channel| GroupDMIcon::new(channel.clone()).size(20.)),
+                ),
         )
     }
 }

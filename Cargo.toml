@@ -23,24 +23,24 @@ devtools = ["freya/devtools", "freya-devtools"]
 serde_qs = { git = "https://github.com/Zomatree/serde_qs.git", rev = "b7497ee" }
 
 # add freya Color/Fill conversion for Rgb
-material-colors = { git = "https://github.com/Zomatree/material-colors.git", rev = "00e28af" }
+material-colors = { git = "https://github.com/Zomatree/material-colors.git", rev = "7a219dd" }
 # material-colors = { path = "../material-colors" }
 
 [dependencies]
-freya = { version = "0.5.0-rc.13", features = [
+freya = { version = "0.5.0", features = [
     "radio",
     "remote-asset",
     "markdown",
     "zoom-shortcuts",
 ] }
-freya-engine = { version = "0.5.0-rc.13" }
-freya-core = { version = "0.5.0-rc.13" }
-freya-components = { version = "0.5.0-rc.13", features = [
+freya-engine = { version = "0.5.0" }
+freya-core = { version = "0.5.0" }
+freya-components = { version = "0.5.0", features = [
     "remote-asset",
     "gif",
 ] }
-freya-devtools = { version = "0.5.0-rc.13", optional = true }
-freya-metrics-plugin = { version = "0.5.0-rc.13", optional = true }
+freya-devtools = { version = "0.5.0", optional = true }
+freya-metrics-plugin = { version = "0.5.0", optional = true }
 # freya = { git = "https://github.com/marc2332/freya.git", features = [
 #     "radio",
 #     "remote-asset",
@@ -110,16 +110,18 @@ two-face = { version = "0.5.2", features = ["syntect-default-fancy"] }
 thumbhash = "0.1.0"
 yuv = { version = "0.8.19", features = ["fast_mode"] }
 cameras = "0.3.2"
+bezier_easing = "0.3"
+qrcode-generator = "6.1.2"
 
-stoat-models = { package = "revolt-models", version = "0.16.1", default-features = false, features = [
+stoat-models = { package = "revolt-models", version = "0.16.2", default-features = false, features = [
     "serde",
     "partials",
 ] }
-stoat-permissions = { package = "revolt-permissions", version = "0.16.1" }
+stoat-permissions = { package = "revolt-permissions", version = "0.16.2" }
 stoat-result = { package = "revolt-result", default-features = false, features = [
     "serde",
-], version = "0.16.1" }
-stoat-config = { package = "revolt-config", default-features = false, version = "0.16.1" }
+], version = "0.16.2" }
+stoat-config = { package = "revolt-config", default-features = false, version = "0.16.2" }
 
 # The profile that 'dist' will build with
 [profile.dist]

@@ -1,10 +1,11 @@
-pub mod channel;
-pub mod permission_values;
-pub mod permissions_editor;
-pub mod server;
-pub mod settings;
+mod channel;
+mod permission_values;
+mod permissions_editor;
+mod server;
+mod settings;
 
 pub use channel::*;
 pub use permissions_editor::*;
 pub use server::*;
 pub use settings::*;
+pub use permission_values::*;

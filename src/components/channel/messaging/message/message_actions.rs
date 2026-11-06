@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chumsky::container::Seq;
 use freya::{
-    animation::{AnimColor, AnimatedValue, Ease, OnChange, OnCreation, use_animation},
+    animation::{AnimColor, AnimatedValue, OnChange, OnCreation, use_animation},
     prelude::*,
     radio::use_radio,
 };
@@ -17,7 +17,7 @@ use crate::{
         material::outlined::{delete, edit, insert_emoticon, more_vert, reply},
         use_floating, use_modals,
     },
-    consume_material_theme, http, peak_material_theme,
+    consume_material_theme, fast_func, http, peak_material_theme,
     theme::Theme,
     user_permissions_query,
 };
@@ -109,7 +109,7 @@ impl Component for MessageActions {
 
             let anim = AnimColor::new(start, theme.md.surface_container.as_argb_u32())
                 .duration(Duration::from_secs_f32(0.1))
-                .ease(Ease::InOut);
+                .function(fast_func());
 
             if change_background() {
                 anim

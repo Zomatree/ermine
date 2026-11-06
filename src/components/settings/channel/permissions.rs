@@ -5,10 +5,9 @@ use stoat_permissions::OverrideField;
 use crate::{
     AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
     components::{
-        MaterialIcon, PermissionsEditor, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt,
+        GROUP_CHANNEL_PERMISSIONS, MaterialIcon, PermissionsEditor, SERVER_CHANNEL_PERMISSIONS,
+        StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt,
         material::{filled::chevron_right, outlined::public},
-        permission_values,
     },
     consume_material_theme, http, parse_fill, use_initial,
 };
@@ -240,7 +239,7 @@ impl Component for GroupPermissionsChannelSettings {
         rect()
             .child(PermissionsEditor::new_value(
                 permissions,
-                permission_values::GROUP_CHANNEL_PERMISSIONS,
+                GROUP_CHANNEL_PERMISSIONS,
             ))
             .child(
                 rect()
@@ -321,7 +320,7 @@ impl Component for ServerChannelPermissionsSettings {
         rect()
             .child(PermissionsEditor::new_overrite(
                 permissions,
-                permission_values::SERVER_CHANNEL_PERMISSIONS,
+                SERVER_CHANNEL_PERMISSIONS,
             ))
             .child(
                 rect()

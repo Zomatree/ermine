@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Not};
 
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
@@ -10,13 +10,12 @@ use crate::{
     calculate_channel_permissions,
     components::{
         AttachmentController, ChannelMessages, HideSidebarHeader, MarkdownViewer, MaterialIcon,
-        MemberList, MessageInput, MessageSearch, ModalValue, ReplyController, RoomManager,
-        StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
+        MemberList, MessageInput, MessagePinned, MessageSearch, ModalValue, ReplyController,
+        RoomManager, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{
             filled::{alternate_email, grid_3x3, phone},
             outlined::{group, push_pin, settings, sticky_note_2},
         },
-        message_pinned::MessagePinned,
         use_modals,
     },
     consume_material_theme, use_config, user_permissions_query,
@@ -89,24 +88,6 @@ impl Component for Channel {
             None
         };
 
-        let server = use_hook(|| {
-            let channel = self.channel.read();
-
-            if let v0::Channel::TextChannel { server, .. } = &*channel {
-                let server = server.clone();
-
-                Some(
-                    radio
-                        .slice(AppChannel::Servers, move |state| {
-                            state.servers.get(&server).unwrap()
-                        })
-                        .into_readable(),
-                )
-            } else {
-                None
-            }
-        });
-
         let mut permissions = use_state(|| PermissionValue::from_raw(0));
 
         use_side_effect({
@@ -160,7 +141,7 @@ impl Component for Channel {
                             .maybe_child(channel_description.map(|description| {
                                 rect()
                                     .child(
-                                        MarkdownViewer::new(description, server)
+                                        MarkdownViewer::new(description, self.server.clone())
                                             .text_overflow(TextOverflow::Ellipsis)
                                             .max_lines(1)
                                             .font_size(14.),
@@ -451,17 +432,15 @@ impl Component for Channel {
                                 })
                             })
                             .or_else(|| {
-                                self.server
-                                    .as_ref()
-                                    .filter(|_| !hide_members_list)
-                                    .map(|server| {
-                                        rect()
-                                            .child(MemberList {
-                                                server: server.clone(),
-                                            })
-                                            .width(Size::px(248.))
-                                            .padding((0., 8., 0., 0.))
-                                    })
+                                hide_members_list.not().then(|| {
+                                    rect()
+                                        .child(MemberList {
+                                            server: self.server.clone(),
+                                            channel: self.channel.clone(),
+                                        })
+                                        .width(Size::px(248.))
+                                        .padding((0., 8., 0., 0.))
+                                })
                             }),
                     ),
             )

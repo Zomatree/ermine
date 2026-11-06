@@ -13,9 +13,9 @@ pub struct Avatar {
 }
 
 impl Avatar {
-    pub fn new(user: Readable<v0::User>, member: Option<Readable<v0::Member>>, size: f32) -> Self {
+    pub fn new(user: impl Into<Readable<v0::User>>, member: Option<Readable<v0::Member>>, size: f32) -> Self {
         Self {
-            user,
+            user: user.into(),
             member,
             size,
             presence: false,

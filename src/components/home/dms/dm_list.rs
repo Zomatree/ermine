@@ -236,7 +236,7 @@ impl Component for DMList {
                                             modals.write().push_modal(ModalValue::CreateGroup);
                                         }
                                     })
-                                    .child(MaterialIcon::new(add()).size(Size::px(20.))),
+                                    .child(rect().size(Size::px(20.)).center().child(MaterialIcon::new(add()).size(Size::px(18.))))
                             ),
                     )
                     .child(

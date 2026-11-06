@@ -240,7 +240,7 @@ impl Component for RoomUserCard {
                     .width(Size::Fill)
                     .height(Size::Fill)
                     .center()
-                    .child(Avatar::new(user.clone().into(), member.clone(), 48.)),
+                    .child(Avatar::new(user.clone(), member.clone(), 48.)),
             )
             .child(
                 rect()

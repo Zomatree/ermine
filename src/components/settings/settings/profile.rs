@@ -2,16 +2,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, Tag,
-    components::{
-        Avatar, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, file_image,
-        material::{
+    AppChannel, SizeExt, Tag, components::{
+        Avatar, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image, material::{
             filled::expand_more,
             outlined::{clear, groups},
-        },
-    },
-    consume_material_theme, http, prompt_image_upload, use_initial,
+        }, stoat_label,
+    }, consume_material_theme, http, prompt_image_upload, use_initial,
 };
 
 #[derive(PartialEq)]
@@ -115,14 +111,11 @@ impl Component for ProfileSettings {
                             .child(
                                 rect()
                                     .color(theme.md.on_secondary_container.as_argb_u32())
-                                    .height(Size::Fill)
                                     .width(Size::flex(1.))
-                                    .main_align(Alignment::SpaceAround)
                                     .child(
-                                        label()
+                                        stoat_label()
                                             .font_size(18.)
                                             .font_weight(FontWeight::SEMI_BOLD)
-                                            .line_height(1.5)
                                             .text(
                                                 current_user
                                                     .display_name
@@ -131,7 +124,7 @@ impl Component for ProfileSettings {
                                                     .clone(),
                                             ),
                                     )
-                                    .child(label().font_size(14.).line_height(1.5).text(format!(
+                                    .child(stoat_label().font_size(14.).text(format!(
                                         "{}#{}",
                                         current_user.username, current_user.discriminator
                                     ))),
@@ -350,8 +343,8 @@ impl Component for ProfileSettings {
                                     ),
                             ),
                     )
-                    .child(SingleLineEntry::new("Display Name", display_name))
-                    .child(SingleLineEntry::new("Pronouns", pronouns))
+                    .child(SingleLineEntry::new("Display Name", display_name).max_length(32))
+                    .child(SingleLineEntry::new("Pronouns", pronouns).max_length(24))
                     .child(SingleLineEntry::new("Profile Bio", bio))
                     .child(
                         rect()
@@ -360,6 +353,7 @@ impl Component for ProfileSettings {
                             .font_size(14)
                             .child(
                                 StoatButton::new()
+                                    .enabled(display_name.is_different() || pronouns.is_different() || bio.is_different())
                                     .color(theme.md.primary.as_argb_u32())
                                     .corner_radius(40.)
                                     .child(
@@ -377,7 +371,7 @@ impl Component for ProfileSettings {
                             )
                             .child(
                                 StoatButton::new()
-                                    .enabled(display_name.is_different() || pronouns.is_different())
+                                    .enabled(display_name.is_different() || pronouns.is_different() || bio.is_different())
                                     .color(theme.md.on_primary.as_argb_u32())
                                     .background(theme.md.primary.as_argb_u32())
                                     .corner_radius(40.)

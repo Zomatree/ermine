@@ -13,27 +13,27 @@ use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_string};
 use stoat_models::v0::{
-    AllMemberResponse, AuditLogQueryResponse, BanListResult, BotWithUserResponse,
+    AccountInfo, AllMemberResponse, AuditLogQueryResponse, BanListResult, BotWithUserResponse,
     BulkMessageResponse, Channel, ChannelUnread, CreateServerLegacyResponse,
-    CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataCreateBot, DataCreateEmoji,
-    DataCreateGroup, DataCreateRole, DataCreateServer, DataCreateServerChannel,
-    DataDefaultChannelPermissions, DataEditBot, DataEditChannel, DataEditMessage, DataEditRole,
-    DataEditRoleRanks, DataEditServer, DataEditUser, DataEditWebhook, DataJoinCall, DataMemberEdit,
-    DataMessageSearch, DataMessageSend, DataSendFriendRequest, DataSetRolePermissions,
-    DataSetServerRolePermission, Emoji, FetchServerResponse, FlagResponse, Invite,
-    InviteBotDestination, InviteJoinResponse, InviteResponse, MFAResponse, MFATicket, Member,
-    Message, MultiFactorStatus, MutualResponse, NewRoleResponse, OptionsAuditLogQuery,
-    OptionsBulkDelete, OptionsFetchAllMembers, OptionsFetchServer, OptionsFetchSettings,
-    OptionsQueryMessages, OptionsServerDelete, OptionsUnreact, OwnedBotsResponse, PublicBot,
-    ResponseWebhook, Role, Server, ServerBan, SessionInfo, User, UserProfile, UserSettings,
-    Webhook,
+    CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataChangeEmail, DataChangePassword,
+    DataCreateBot, DataCreateEmoji, DataCreateGroup, DataCreateRole, DataCreateServer,
+    DataCreateServerChannel, DataDefaultChannelPermissions, DataEditBot, DataEditChannel,
+    DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser,
+    DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch, DataMessageSend,
+    DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, Emoji,
+    FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
+    InviteResponse, MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse,
+    NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers,
+    OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete,
+    OptionsUnreact, OwnedBotsResponse, PublicBot, ResponseTotpSecret, ResponseWebhook, Role,
+    Server, ServerBan, SessionInfo, User, UserProfile, UserSettings, Webhook,
 };
 use stoat_permissions::DataPermissionsValue;
 use tokio::time::sleep;
 
 use crate::{
-    CategoriesQueryParams, CategoryResponse, PaginatedMediaResponse, SearchQueryParams, Session,
-    TrendingQueryParams,
+    CategoriesQueryParams, CategoryResponse, DataChangeUsername, PaginatedMediaResponse,
+    SearchQueryParams, Session, TrendingQueryParams,
     error::{Error, Result},
     types::{AutumnResponse, DataLogin, ResponseLogin, StoatConfig},
 };
@@ -1004,6 +1004,92 @@ impl HttpClient {
             .response()
             .await
     }
+
+    pub async fn change_username(&self, data: &DataChangeUsername) -> Result<User> {
+        self.request(Method::PATCH, format!("/users/@me/username"))
+            .body(data)
+            .response()
+            .await
+    }
+
+    pub async fn change_email(
+        &self,
+        mfa_ticket: Option<String>,
+        data: &DataChangeEmail,
+    ) -> Result<()> {
+        self.request(Method::PATCH, format!("/auth/account/change/email"))
+            .mfa_ticket(mfa_ticket)
+            .body(data)
+            .send()
+            .await
+    }
+
+    pub async fn change_password(
+        &self,
+        mfa_ticket: Option<String>,
+        data: &DataChangePassword,
+    ) -> Result<()> {
+        self.request(Method::PATCH, format!("/auth/account/change/password"))
+            .mfa_ticket(mfa_ticket)
+            .body(data)
+            .send()
+            .await
+    }
+
+    pub async fn disable_account(&self, mfa_ticket: Option<String>) -> Result<()> {
+        self.request(Method::PATCH, format!("/auth/account/disable"))
+            .mfa_ticket(mfa_ticket)
+            .send()
+            .await
+    }
+
+    pub async fn delete_account(&self, mfa_ticket: Option<String>) -> Result<()> {
+        self.request(Method::PATCH, format!("/auth/account/delete"))
+            .mfa_ticket(mfa_ticket)
+            .send()
+            .await
+    }
+
+    pub async fn fetch_account(&self) -> Result<AccountInfo> {
+        self.request(Method::GET, format!("/auth/account"))
+            .response()
+            .await
+    }
+
+    pub async fn generate_recovery_codes(&self, mfa_ticket: String) -> Result<Vec<String>> {
+        self.request(Method::PATCH, format!("/auth/mfa/recovery"))
+            .mfa_ticket(mfa_ticket)
+            .response()
+            .await
+    }
+
+    pub async fn fetch_recovery_codes(&self, mfa_ticket: String) -> Result<Vec<String>> {
+        self.request(Method::POST, format!("/auth/mfa/recovery"))
+            .mfa_ticket(mfa_ticket)
+            .response()
+            .await
+    }
+
+    pub async fn generate_totp_secret(&self, mfa_ticket: String) -> Result<ResponseTotpSecret> {
+        self.request(Method::POST, format!("/auth/mfa/totp"))
+            .mfa_ticket(mfa_ticket)
+            .response()
+            .await
+    }
+
+    pub async fn enable_totp(&self, data: &MFAResponse) -> Result<()> {
+        self.request(Method::PUT, format!("/auth/mfa/totp"))
+            .body(data)
+            .send()
+            .await
+    }
+
+    pub async fn disable_totp(&self, mfa_ticket: String) -> Result<()> {
+        self.request(Method::DELETE, format!("/auth/mfa/totp"))
+            .mfa_ticket(mfa_ticket)
+            .send()
+            .await
+    }
 }
 
 pub struct HttpRequest {
@@ -1112,8 +1198,10 @@ impl HttpRequest {
         self
     }
 
-    pub fn mfa_ticket(mut self, token: String) -> HttpRequest {
-        self.builder = self.builder.header("X-Mfa-Ticket", token);
+    pub fn mfa_ticket(mut self, token: impl Into<Option<String>>) -> HttpRequest {
+        if let Some(token) = token.into() {
+            self.builder = self.builder.header("X-Mfa-Ticket", token);
+        }
 
         self
     }

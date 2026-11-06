@@ -153,7 +153,12 @@ impl Component for SessionsSettings {
                 .overflow(Overflow::Clip)
                 .spacing(2.)
                 .children(sessions.read().iter().cloned().map(|info|
-                    Session { info, refetch }.into_element()
+                    // Session { info, refetch }
+                    Lazy::new()
+                        .keep_rendered(false)
+                        .height(Size::px(65.))
+                        .width(Size::Fill)
+                        .child(Session { info, refetch })
                 ))
         )
     }
@@ -181,6 +186,8 @@ impl Component for Session {
         let icon = use_hook(|| session_icon(&self.info.name));
 
         rect()
+        // .on_sized(|e: Event<SizedEventData>| println!("{:?}", e.area.height()))
+        // .on_visible(|_| println!("visible"))
             .corner_radius(12.)
             .padding(13.)
             .background(theme.md.secondary_container.as_argb_u32())

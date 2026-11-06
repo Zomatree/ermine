@@ -26,6 +26,7 @@ pub struct MarkdownViewer {
     max_lines: Option<usize>,
     text_overflow: TextOverflow,
     font_size: f32,
+    font_weight: FontWeight,
 
     cursor_index: Option<usize>,
     cursor_style: CursorStyle,
@@ -51,6 +52,7 @@ impl MarkdownViewer {
             max_lines: None,
             text_overflow: TextOverflow::default(),
             font_size: 14.,
+            font_weight: FontWeight::default(),
 
             cursor_index: None,
             cursor_style: CursorStyle::Line,
@@ -77,6 +79,12 @@ impl MarkdownViewer {
         self.text_overflow = text_overflow.into();
         self
     }
+
+    pub fn font_weight(mut self, font_weight: impl Into<FontWeight>) -> Self {
+        self.font_weight = font_weight.into();
+        self
+    }
+
 
     pub fn cursor_style(mut self, cursor_style: impl Into<CursorStyle>) -> Self {
         self.cursor_style = cursor_style.into();
@@ -148,8 +156,8 @@ impl Component for MarkdownViewer {
             .accessibility(self.accessibility.clone())
             .max_lines(self.max_lines)
             .text_overflow(self.text_overflow.clone())
-            .line_height(1.5)
             .font_size(self.font_size)
+            .font_weight(self.font_weight)
             .cursor_index(self.cursor_index)
             .cursor_style(self.cursor_style)
             .highlights(self.highlights.clone())
@@ -250,7 +258,6 @@ impl Component for MarkdownViewer {
                             .child(
                                 label()
                                     .text(format!("{}.", number))
-                                    .line_height(1.5)
                                     .font_size(self.font_size), // .color(theme.md.on_surface.as_argb_u32()),
                             )
                             .child(render_content(

@@ -9,9 +9,9 @@ use stoat_models::v0;
 use crate::{
     AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
     components::{
-        Avatar, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-        UserCard, UserContextMenu, file_image, material::filled::smart_toy, stoat_label,
-        stoat_scrollbar, use_floating,
+        Avatar, MarkdownViewer, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
+        StoatTooltip, UserCard, UserContextMenu, file_image, material::filled::smart_toy,
+        stoat_label, stoat_scrollbar, use_floating,
     },
     consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
     user_permissions_query,
@@ -39,7 +39,8 @@ impl PartialEq for ListValue {
 
 #[derive(PartialEq)]
 pub struct MemberList {
-    pub server: Readable<v0::Server>,
+    pub server: Option<Readable<v0::Server>>,
+    pub channel: Readable<v0::Channel>,
 }
 
 impl Component for MemberList {
@@ -48,104 +49,129 @@ impl Component for MemberList {
         let radio = use_radio(AppChannel::Members);
         let station = use_radio_station();
 
-        let slice = radio.slice_current({
-            let server = self.server.clone();
-            move |state| state.members.get(&server.peek().id).unwrap()
+        let slice = self.server.clone().map(|server| {
+            radio.slice_current(move |state| state.members.get(&server.peek().id).unwrap())
         });
 
         let users = radio.slice(AppChannel::Users, |state| &state.users);
-        let exclude_offline = use_hook(|| self.server.read().approximate_member_count > 1000);
+        let exclude_offline = use_hook(|| {
+            self.server.as_ref()
+                .is_some_and(|s| s.read().approximate_member_count > 1000)
+        });
 
         use_side_effect({
             let radio = radio.clone();
             let server = self.server.clone();
 
             move || {
-                // let should_exclude_offline = exclude_offline();
-                let mut radio = radio.clone();
-                let server = server.clone();
+                if let Some(server) = server.clone() {
+                    let mut radio = radio.clone();
 
-                spawn(async move {
-                    let server_id = server.peek().id.clone();
+                    spawn(async move {
+                        let server_id = server.peek().id.clone();
 
-                    let response = http()
-                        .fetch_server_members(
-                            &server_id,
-                            &v0::OptionsFetchAllMembers {
-                                exclude_offline: Some(exclude_offline),
-                            },
-                        )
-                        .await
-                        .unwrap();
+                        let response = http()
+                            .fetch_server_members(
+                                &server_id,
+                                &v0::OptionsFetchAllMembers {
+                                    exclude_offline: Some(exclude_offline),
+                                },
+                            )
+                            .await
+                            .unwrap();
 
-                    for user in response.users {
-                        insert_user(user, station);
-                    }
+                        for user in response.users {
+                            insert_user(user, station);
+                        }
 
-                    let mut state = radio.write_channel(AppChannel::Members);
-                    let server_members = state.members.get_mut(&server_id).unwrap();
+                        let mut state = radio.write_channel(AppChannel::Members);
+                        let server_members = state.members.get_mut(&server_id).unwrap();
 
-                    for member in response.members {
-                        server_members.insert(member.id.user.clone(), member);
-                    }
-                });
+                        for member in response.members {
+                            server_members.insert(member.id.user.clone(), member);
+                        }
+                    });
+                }
             }
         });
 
         let hoisted_roles = use_memo({
             let server = self.server.clone();
+
             move || {
-                let mut roles = server
-                    .read()
-                    .roles
-                    .values()
-                    .filter(|role| role.hoist)
-                    .cloned()
-                    .collect::<Vec<_>>();
-                roles.sort_by(|a, b| a.rank.cmp(&b.rank));
-                roles
+                if let Some(server) = &server {
+                    let mut roles = server
+                        .read()
+                        .roles
+                        .values()
+                        .filter(|role| role.hoist)
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    roles.sort_by(|a, b| a.rank.cmp(&b.rank));
+                    roles
+                } else {
+                    Vec::new()
+                }
             }
         });
 
         let groups = use_memo({
             let slice = slice.clone();
             let users = users.clone();
+            let channel = self.channel.clone();
 
             move || {
-                // let should_exclude_offline = exclude_offline();
-                let members = slice.read();
                 let roles = hoisted_roles.read();
+                let users = users.read();
 
                 let mut groups = HashMap::new();
                 groups.insert("default".to_string(), Vec::new());
                 groups.insert("offline".to_string(), Vec::new());
 
-                for role in roles.iter() {
-                    groups.insert(role.id.clone(), Vec::new());
-                }
+                if let Some(slice) = &slice {
+                    let members = slice.read();
 
-                let users = users.read();
+                    for role in roles.iter() {
+                        groups.insert(role.id.clone(), Vec::new());
+                    }
 
-                'a: for member in members.values() {
-                    if let Some(user) = users.get(&member.id.user) {
-                        if user.online {
-                            if !member.roles.is_empty() {
-                                for hoisted_role in roles.iter() {
-                                    if member.roles.contains(&hoisted_role.id) {
-                                        groups
-                                            .get_mut(&hoisted_role.id)
-                                            .unwrap()
-                                            .push(member.id.user.clone());
-                                        continue 'a;
+                    'a: for member in members.values() {
+                        if let Some(user) = users.get(&member.id.user) {
+                            if user.online {
+                                if !member.roles.is_empty() {
+                                    for hoisted_role in roles.iter() {
+                                        if member.roles.contains(&hoisted_role.id) {
+                                            groups
+                                                .get_mut(&hoisted_role.id)
+                                                .unwrap()
+                                                .push(member.id.user.clone());
+                                            continue 'a;
+                                        }
                                     }
-                                }
-                            };
+                                };
 
-                            groups.get_mut("default").unwrap().push(user.id.clone());
-                        } else if !exclude_offline {
-                            groups.get_mut("offline").unwrap().push(user.id.clone());
+                                groups.get_mut("default").unwrap().push(user.id.clone());
+                            } else if !exclude_offline {
+                                groups.get_mut("offline").unwrap().push(user.id.clone());
+                            }
+                        };
+                    }
+                } else {
+                    let channel = channel.read();
+
+                    if let v0::Channel::DirectMessage { recipients, .. }
+                    | v0::Channel::Group { recipients, .. } = &*channel
+                    {
+                        for user_id in recipients {
+                            if let Some(user) = users.get(user_id) {
+                                if user.online {
+                                    groups.get_mut("default").unwrap().push(user_id.clone());
+                                } else {
+                                    groups.get_mut("offline").unwrap().push(user_id.clone());
+                                }
+                            }
                         }
-                    };
+                    }
                 }
 
                 let mut out = Vec::new();
@@ -174,7 +200,8 @@ impl Component for MemberList {
         });
 
         let role_members = use_memo({
-            let members: Readable<HashMap<String, v0::Member>> = slice.clone().into_readable();
+            let members: Option<Readable<HashMap<String, v0::Member>>> =
+                slice.clone().map(|s| s.into_readable());
 
             move || {
                 let mut out = Vec::new();
@@ -189,9 +216,13 @@ impl Component for MemberList {
                                 move |state| state.users.get(&user_id).unwrap()
                             });
 
-                            let member = map_optional_readable(members.clone(), move |members| {
-                                members.get(&user_id)
-                            });
+                            let member = if let Some(members) = &members {
+                                map_optional_readable(members.clone(), move |members| {
+                                    members.get(&user_id)
+                                })
+                            } else {
+                                OptionalReadable::none()
+                            };
 
                             (user.into_readable(), member)
                         })
@@ -219,34 +250,6 @@ impl Component for MemberList {
                             .to_ascii_lowercase();
 
                         a.cmp(&b)
-
-                        // match (member1.nickname.as_ref(), member2.nickname.as_ref()) {
-                        //     (Some(nick1), Some(nick2)) => nick1.cmp(nick2),
-                        //     (Some(nick1), None) => {
-                        //         let user2 = user2.read();
-
-                        //         nick1.cmp(user2.display_name.as_ref().unwrap_or(&user2.username))
-                        //     }
-                        //     (None, Some(nick2)) => {
-                        //         let user1 = user1.read();
-
-                        //         user1
-                        //             .display_name
-                        //             .as_ref()
-                        //             .unwrap_or(&user1.username)
-                        //             .cmp(nick2)
-                        //     }
-                        //     (None, None) => {
-                        //         let user1 = user1.read();
-                        //         let user2 = user2.read();
-
-                        //         user1
-                        //             .display_name
-                        //             .as_ref()
-                        //             .unwrap_or(&user1.username)
-                        //             .cmp(user2.display_name.as_ref().unwrap_or(&user2.username))
-                        //     }
-                        // }
                     });
 
                     out.push((role.clone(), icon.clone(), *is_online, users));
@@ -297,6 +300,7 @@ impl Component for MemberList {
             VirtualScrollView::new({
                 let elements = elements.clone();
                 let server = self.server.clone();
+                let channel = self.channel.clone();
 
                 move |item, _| {
                     let element = elements.read()[item.index].clone();
@@ -354,6 +358,7 @@ impl Component for MemberList {
                         }
                         ListValue::Member(user, member, is_online) => MemberListMember {
                             server: server.clone(),
+                            channel: channel.clone(),
                             member,
                             user,
                             is_online,
@@ -371,7 +376,8 @@ impl Component for MemberList {
 
 #[derive(PartialEq)]
 pub struct MemberListMember {
-    pub server: Readable<v0::Server>,
+    pub server: Option<Readable<v0::Server>>,
+    pub channel: Readable<v0::Channel>,
     pub member: OptionalReadable<v0::Member>,
     pub user: Readable<v0::User>,
     pub is_online: bool,
@@ -389,7 +395,9 @@ impl Component for MemberListMember {
             let member = self.member.clone();
 
             move || {
-                if let Some(member) = member.read() {
+                if let Some(member) = member.read()
+                    && let Some(server) = &server
+                {
                     member_display_color(&member, &server.read())
                 } else {
                     None
@@ -426,15 +434,18 @@ impl Component for MemberListMember {
                         let user = self.user.clone();
                         let member = self.member.clone();
                         let server = self.server.clone();
+                        let channel = self.channel.clone();
 
                         move |_| {
                             let user = user.clone();
                             let member = member.read().map(|m| m.clone().into_readable());
-                            let server = server.read().clone();
+                            let server = server.as_ref().map(|s| s.read().clone());
+                            let channel = channel.read().clone();
 
                             spawn(async move {
-                                let mut query =
-                                    user_permissions_query(radio.clone()).server(server);
+                                let mut query = user_permissions_query(radio.clone())
+                                    .server(server)
+                                    .channel(channel);
                                 let permissions = calculate_server_permissions(&mut query).await;
 
                                 floating.clone().set(Some(
@@ -459,24 +470,26 @@ impl Component for MemberListMember {
                             .on_secondary_down({
                                 let user = self.user.clone();
                                 let server = self.server.clone();
+                                let channel = self.channel.clone();
                                 let radio = radio.clone();
 
                                 move |_| {
                                     let user = user.read().clone();
-                                    let server = server.read().clone();
+                                    let server = server.as_ref().map(|s| s.read().clone());
+                                    let channel = channel.read().clone();
                                     let radio = radio.clone();
 
                                     spawn(async move {
                                         let mut query = user_permissions_query(radio)
                                             .user(user.clone())
-                                            .server(server.clone());
+                                            .server(server.clone()).channel(channel);
                                         let permissions =
                                             calculate_server_permissions(&mut query).await;
 
                                         ContextMenu::open(Menu::new().key(&user.id).child(
                                             UserContextMenu {
                                                 user_id: user.id.clone(),
-                                                server_id: Some(server.id.clone()),
+                                                server_id: server.map(|s| s.id),
                                                 permissions,
                                             },
                                         ));
@@ -556,11 +569,13 @@ impl Component for MemberListMember {
                                                 )
                                                 .position(AttachedPosition::Top)
                                                 .child(
-                                                    stoat_label()
-                                                        .text(text)
-                                                        .font_size(11)
-                                                        .max_lines(1)
-                                                        .text_overflow(TextOverflow::Ellipsis),
+                                                    MarkdownViewer::new(
+                                                        text,
+                                                        self.server.clone(),
+                                                    )
+                                                    .font_size(11)
+                                                    .max_lines(1)
+                                                    .text_overflow(TextOverflow::Ellipsis),
                                                 )
                                             }),
                                     ),

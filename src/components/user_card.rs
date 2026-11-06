@@ -1,14 +1,16 @@
 use std::rc::Rc;
 
 use freya::{prelude::*, radio::use_radio};
+use itertools::Itertools;
 use stoat_models::v0;
 use stoat_permissions::PermissionValue;
 
 use crate::{
     AppChannel,
     components::{
-        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfilePronouns,
-        ProfileRoles, ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, use_floating,
+        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined,
+        ProfilePronouns, ProfileRoles,
+        ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, row, use_floating,
     },
     consume_material_theme, http,
 };
@@ -31,14 +33,13 @@ impl Component for UserCard {
             move || user.read().clone()
         });
 
-        let profile = use_state(|| None);
+        let mut profile = use_state(|| None);
 
         use_future({
             let user_id = self.user.peek().id.clone();
 
             move || {
                 let user_id = user_id.clone();
-                let mut profile = profile.clone();
 
                 async move {
                     if let Ok(user_profile) = http().fetch_user_profile(&user_id).await {
@@ -49,6 +50,55 @@ impl Component for UserCard {
         });
 
         let mut floating = use_floating();
+
+        let mut tiles = Vec::new();
+
+        let user_ref = user.read();
+        let member_ref = self.member.as_ref().map(|m| m.read());
+
+
+        if let Some(member) = &self.member
+            && member_ref.as_ref().is_some_and(|m| !m.roles.is_empty())
+        {
+            tiles.push(
+                ProfileRoles {
+                    member: member.clone(),
+                }
+                .into_element(),
+            );
+        }
+
+        if user_ref.badges != 0 {
+            tiles.push(
+                ProfileBadges {
+                    badges: user_ref.badges,
+                }
+                .into_element(),
+            )
+        }
+
+        if let Some(text) = user_ref.status.as_ref().and_then(|s| s.text.clone()) {
+            tiles.push(ProfileStatus { text, member: self.member.clone() }.into_element());
+        }
+
+        tiles.push(
+            ProfileJoined {
+                user: user.into_readable(),
+                member: self.member.clone(),
+            }
+            .into_element(),
+        );
+
+        if user_ref.pronouns.is_some() || member_ref.as_ref().is_some_and(|m| m.pronouns.is_some())
+        {
+            tiles.push(
+                ProfilePronouns {
+                    user: user.into_readable(),
+                    member: self.member.clone(),
+                }
+                .into_element(),
+            )
+        }
 
         rect()
             .corner_radius(28.)
@@ -89,60 +139,12 @@ impl Component for UserCard {
                             permissions: self.permissions,
                             close: Rc::new(move || floating.clone().set(None)),
                         })
-                        .maybe_child({
-                            (self
-                                .member
-                                .as_ref()
-                                .is_some_and(|member| !member.read().roles.is_empty())
-                                || self.user.read().badges != 0)
-                                .then(|| {
-                                    rect()
-                                        .horizontal()
-                                        .spacing(8.)
-                                        .content(Content::Flex)
-                                        .maybe_child(
-                                            self.member
-                                                .clone()
-                                                .filter(|member| !member.read().roles.is_empty())
-                                                .map(|member| ProfileRoles { member }),
-                                        )
-                                        .maybe_child({
-                                            let badges = self.user.read().badges;
-
-                                            (badges != 0).then(|| ProfileBadges { badges })
-                                        })
-                                })
-                        })
-                        .child(
-                            rect()
-                                .horizontal()
-                                .spacing(8.)
-                                .content(Content::Flex)
-                                .maybe_child(
-                                    user.read()
-                                        .status
-                                        .as_ref()
-                                        .and_then(|status| status.text.clone())
-                                        .map(|text| ProfileStatus { text }),
-                                )
-                                .child(ProfileJoined {
-                                    user: self.user.clone(),
-                                    member: self.member.clone(),
-                                }),
-                        )
-                        .maybe_child(
-                            (self
-                                .member
-                                .as_ref()
-                                .is_some_and(|m| m.read().pronouns.is_some())
-                                || self.user.read().pronouns.is_some())
-                            .then(|| {
-                                ProfilePronouns {
-                                    user: self.user.clone(),
-                                    member: self.member.clone(),
-                                }
-                                .into_element()
-                            }),
+                        .children(
+                            tiles
+                                .into_iter()
+                                .chunks(2)
+                                .into_iter()
+                                .map(|tiles| row().children(tiles)),
                         )
                         .maybe_child(
                             profile

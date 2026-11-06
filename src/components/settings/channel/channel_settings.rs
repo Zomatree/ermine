@@ -1,6 +1,12 @@
 use std::{borrow::Cow, mem::discriminant};
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{
+    animation::{
+        AnimNum, OnChange, OnCreation, ReadAnimatedValue, use_animation_with_dependencies,
+    },
+    prelude::*,
+    radio::use_radio,
+};
 use stoat_models::v0;
 
 use crate::{
@@ -17,7 +23,7 @@ use crate::{
         },
         stoat_scrollbar, use_modals,
     },
-    consume_material_theme,
+    consume_material_theme, settings_func,
     theme::Theme,
 };
 
@@ -45,6 +51,18 @@ impl Component for ChannelSettings {
 
         let fullscreen = (window_size.read().width() != 0. && window_size.read().width() <= 1000.)
             || (window_size.read().height() != 0. && window_size.read().height() <= 500.);
+
+        let anim = use_animation_with_dependencies(&*current_page.read(), |anim, _| {
+            anim.on_creation(OnCreation::Finish);
+            anim.on_change(OnChange::Rerun);
+
+            (
+                AnimNum::new(0., 1.).function(settings_func()).time(200),
+                AnimNum::new(50., 0.).function(settings_func()).time(200),
+            )
+        });
+
+        let (opacity, offset) = anim.read().value();
 
         rect()
             .expanded()
@@ -213,28 +231,32 @@ impl Component for ChannelSettings {
                                                             .map(|name| label().text(name)),
                                                     ),
                                             )
-                                            .child(match page {
-                                                ChannelSettingsPage::Overview => {
-                                                    OverviewChannelSettings {
-                                                        channel: self.channel.clone(),
-                                                    }
-                                                    .into_element()
-                                                }
-                                                ChannelSettingsPage::Permissions(selected_role) => {
-                                                    PermissionsChannelSettings {
-                                                        channel: self.channel.clone(),
-                                                        selected_role,
-                                                    }
-                                                    .into_element()
-                                                }
-                                                ChannelSettingsPage::Webhooks(selected_webhook) => {
-                                                    WebhookChannelSettings {
-                                                        channel: self.channel.clone(),
-                                                        selected_webhook,
-                                                    }
-                                                    .into_element()
-                                                }
-                                            })
+                                            .child(
+                                                rect().offset_y(offset).opacity(opacity).child(
+                                                    match page {
+                                                        ChannelSettingsPage::Overview => {
+                                                            OverviewChannelSettings {
+                                                                channel: self.channel.clone(),
+                                                            }
+                                                            .into_element()
+                                                        }
+                                                        ChannelSettingsPage::Permissions(
+                                                            selected_role,
+                                                        ) => PermissionsChannelSettings {
+                                                            channel: self.channel.clone(),
+                                                            selected_role,
+                                                        }
+                                                        .into_element(),
+                                                        ChannelSettingsPage::Webhooks(
+                                                            selected_webhook,
+                                                        ) => WebhookChannelSettings {
+                                                            channel: self.channel.clone(),
+                                                            selected_webhook,
+                                                        }
+                                                        .into_element(),
+                                                    },
+                                                ),
+                                            )
                                     })),
                             )
                             .child(

@@ -2,8 +2,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, StoatButton},
+    AppChannel, components::{Avatar, StoatButton, stoat_label},
 };
 
 #[derive(PartialEq)]
@@ -32,7 +31,7 @@ impl Component for FriendButton {
                     .cross_align(Alignment::Center)
                     .spacing(16.)
                     .child(Avatar::new(self.user.clone(), None, 36.).presence(true))
-                    .child(self.user.read().username.clone()),
+                    .child(stoat_label().font_size(16.).text(self.user.read().username.clone())),
             )
     }
 }

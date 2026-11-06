@@ -12,6 +12,7 @@ mod url;
 mod use_changed;
 mod use_clipboard;
 mod use_initial;
+mod transition;
 
 pub use channel::*;
 pub use duration::*;
@@ -27,3 +28,4 @@ pub use url::*;
 pub use use_changed::*;
 pub use use_clipboard::*;
 pub use use_initial::*;
+pub use transition::*;

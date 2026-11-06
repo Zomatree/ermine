@@ -1,11 +1,10 @@
 use std::{borrow::Cow, mem::discriminant};
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{animation::{AnimNum, OnChange, OnCreation, ReadAnimatedValue, use_animation_with_dependencies}, prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
-    components::{
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, components::{
         MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
         material::{
@@ -17,9 +16,7 @@ use crate::{
             InviteServerSettings, OverviewServerSettings, RoleServerSettings,
         },
         stoat_scrollbar,
-    },
-    consume_material_theme,
-    theme::Theme,
+    }, consume_material_theme, settings_func, theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -44,6 +41,22 @@ impl Component for ServerSettings {
 
         let fullscreen = (window_size.read().width() != 0. && window_size.read().width() <= 1000.)
             || (window_size.read().height() != 0. && window_size.read().height() <= 500.);
+
+        let anim = use_animation_with_dependencies(&*current_page.read(), |anim, _| {
+            anim.on_creation(OnCreation::Finish);
+            anim.on_change(OnChange::Rerun);
+
+            (
+                AnimNum::new(0., 1.)
+                    .function(settings_func())
+                    .time(200),
+                AnimNum::new(50., 0.)
+                    .function(settings_func())
+                    .time(200),
+            )
+        });
+
+        let (opacity, offset) = anim.read().value();
 
         rect()
             .expanded()
@@ -193,7 +206,7 @@ impl Component for ServerSettings {
                                                         })
                                                     })),
                                             )
-                                            .child(match page {
+                                            .child(rect().offset_y(offset).opacity(opacity).child(match page {
                                                 ServerSettingsPage::Overview => {
                                                     OverviewServerSettings {
                                                         server: self.server.clone(),
@@ -229,7 +242,7 @@ impl Component for ServerSettings {
                                                 ServerSettingsPage::AuditLogs => {
                                                     AuditLogServerSettings { server: self.server.clone() }.into_element()
                                                 }
-                                            })
+                                            }))
                                     })),
                             )
                             .child(

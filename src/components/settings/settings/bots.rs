@@ -4,17 +4,12 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SettingsPage, SizeExt, Tag,
-    components::{
-        Avatar, MaterialIcon, ModalValue, SingleLineEntry, StoatButton,
-        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image,
-        material::outlined::{
+    AppChannel, SettingsPage, SizeExt, Tag, components::{
+        Avatar, MaterialIcon, ModalValue, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, checkbox::StoatCheckbox, file_image, material::outlined::{
             chevron_right, clear, content_copy, delete, key, launch, library_books, link,
             lock_reset, person_add, smart_toy,
-        },
-        use_modals,
-    },
-    consume_material_theme, http, prompt_image_upload, use_initial,
+        }, stoat_label, use_modals,
+    }, consume_material_theme, http, prompt_image_upload, use_initial,
 };
 
 #[derive(PartialEq)]
@@ -249,6 +244,7 @@ impl Component for SelectedBotsSettings {
 
         let bot = self.bot.map(|(bot, _)| bot, |(bot, _)| bot);
         let user = self.bot.map(|(_, user)| user, |(_, user)| user);
+        let mut profile = use_state(|| None);
 
         let mut error = use_state(|| None);
 
@@ -310,31 +306,46 @@ impl Component for SelectedBotsSettings {
             }
         };
 
-        let remove_bot_field = {
-            let edit_bot = edit_bot.clone();
+        // let remove_bot_field = {
+        //     let edit_bot = edit_bot.clone();
 
-            move |field| {
-                let edit_bot = edit_bot.clone();
+        //     move |field| {
+        //         let edit_bot = edit_bot.clone();
 
-                async move {
-                    edit_bot(v0::DataEditBot {
-                        name: None,
-                        public: None,
-                        analytics: None,
-                        interactions_url: None,
-                        default_permissions: None,
-                        remove: vec![field],
-                    })
-                    .await
-                }
-            }
-        };
+        //         async move {
+        //             edit_bot(v0::DataEditBot {
+        //                 name: None,
+        //                 public: None,
+        //                 analytics: None,
+        //                 interactions_url: None,
+        //                 default_permissions: None,
+        //                 remove: vec![field],
+        //             })
+        //             .await
+        //         }
+        //     }
+        // };
 
+        let current_bot = bot.read();
         let current_user = user.read();
 
         let mut username = use_initial(|| current_user.username.clone());
         let mut display_name =
             use_initial(|| current_user.display_name.clone().unwrap_or_default());
+        let mut pronouns = use_initial(|| current_user.pronouns.clone().unwrap_or_default());
+        let mut bio = use_initial(String::new);
+        let mut public = use_initial(|| current_bot.public);
+
+        use_hook(|| {
+            let user_id = self.id.clone();
+
+            spawn(async move {
+                if let Ok(response) = http().fetch_user_profile(&user_id).await {
+                    bio.set_new(response.content.clone().unwrap_or_default());
+                    profile.set(Some(response));
+                };
+            });
+        });
 
         rect()
             .spacing(15.)
@@ -415,90 +426,94 @@ impl Component for SelectedBotsSettings {
                                     ),
                             ),
                     )
-                    // .child(label().text("Banner").font_size(12.))
-                    // .child(
-                    //     rect()
-                    //         .horizontal()
-                    //         .spacing(15.)
-                    //         .cross_align(Alignment::Center)
-                    //         .child(
-                    //             StoatButton::new()
-                    //                 .corner_radius(16.)
-                    //                 .on_press({
-                    //                     let prompt_image_upload = prompt_image_upload.clone();
-                    //                     let edit_user = edit_user.clone();
-                    //                     move |_| {
-                    //                         let prompt_image_upload = prompt_image_upload.clone();
-                    //                         let edit_user = edit_user.clone();
-                    //                         spawn(async move {
-                    //                             if let Some(id) =
-                    //                                 prompt_image_upload(Tag::Banners).await
-                    //                             {
-                    //                                 let profile = profile.read().cloned();
-                    //                                 edit_user(v0::DataEditUser {
-                    //                                     display_name: None,
-                    //                                     pronouns: None,
-                    //                                     avatar: None,
-                    //                                     status: None,
-                    //                                     profile: Some(v0::DataUserProfile {
-                    //                                         content: profile.content,
-                    //                                         background: Some(id),
-                    //                                     }),
-                    //                                     badges: None,
-                    //                                     flags: None,
-                    //                                     remove: Vec::new(),
-                    //                                 })
-                    //                                 .await;
-                    //                             };
-                    //                         });
-                    //                     }
-                    //                 })
-                    //                 .child(
-                    //                     rect()
-                    //                         .width(Size::px((96. / 100.) * 232.))
-                    //                         .height(Size::px(96.))
-                    //                         .background(theme.md.surface_dim.as_argb_u32())
-                    //                         .maybe_child(profile.read().background.as_ref().map(
-                    //                             |banner| {
-                    //                                 rect()
-                    //                                     .layer(Layer::Relative(1))
-                    //                                     .width(Size::Fill)
-                    //                                     .height(Size::Fill)
-                    //                                     .child(
-                    //                                         file_image(banner)
-                    //                                             .aspect_ratio(AspectRatio::Max),
-                    //                                     )
-                    //                             },
-                    //                         )),
-                    //                 ),
-                    //         )
-                    //         .child(
-                    //             StoatButton::new()
-                    //                 .corner_radius(16.)
-                    //                 .on_press({
-                    //                     let remove_field = remove_field.clone();
-                    //                     move |_| {
-                    //                         let remove_field = remove_field.clone();
-                    //                         spawn(async move {
-                    //                             remove_field(v0::FieldsUser::ProfileBackground).await;
-                    //                         });
-                    //                     }
-                    //                 })
-                    //                 .child(
-                    //                     rect()
-                    //                         .width(Size::px(36.))
-                    //                         .height(Size::px(36.))
-                    //                         .center()
-                    //                         .child(
-                    //                             MaterialIcon::new(clear())
-                    //                                 .size(Size::px(24.))
-                    //                                 .color(theme.md.primary.as_argb_u32()),
-                    //                         ),
-                    //                 ),
-                    //         ),
-                    // )
-                    .child(SingleLineEntry::new("Username", username))
-                    .child(SingleLineEntry::new("Display Name", display_name))
+                    .child(label().text("Banner").font_size(12.))
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(15.)
+                            .cross_align(Alignment::Center)
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(16.)
+                                    .on_press({
+                                        let prompt_image_upload = prompt_image_upload.clone();
+                                        let edit_user = edit_user.clone();
+                                        move |_| {
+                                            let prompt_image_upload = prompt_image_upload.clone();
+                                            let edit_user = edit_user.clone();
+
+                                            spawn(async move {
+                                                if let Some(id) =
+                                                    prompt_image_upload(Tag::Banners).await
+                                                {
+                                                    let content = profile.read().as_ref().and_then(|p| p.content.clone());
+
+                                                    edit_user(v0::DataEditUser {
+                                                        display_name: None,
+                                                        pronouns: None,
+                                                        avatar: None,
+                                                        status: None,
+                                                        profile: Some(v0::DataUserProfile {
+                                                            content,
+                                                            background: Some(id),
+                                                        }),
+                                                        badges: None,
+                                                        flags: None,
+                                                        remove: Vec::new(),
+                                                    })
+                                                    .await;
+                                                };
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .width(Size::px((96. / 100.) * 232.))
+                                            .height(Size::px(96.))
+                                            .background(theme.md.surface_dim.as_argb_u32())
+                                            .maybe_child(profile.read().as_ref().and_then(|p| p.background.as_ref().map(
+                                                |banner| {
+                                                    rect()
+                                                        .layer(Layer::Relative(1))
+                                                        .width(Size::Fill)
+                                                        .height(Size::Fill)
+                                                        .child(
+                                                            file_image(banner)
+                                                                .aspect_ratio(AspectRatio::Max),
+                                                        )
+                                                },
+                                            ))),
+                                    ),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(16.)
+                                    .on_press({
+                                        let remove_user_field = remove_user_field.clone();
+                                        move |_| {
+                                            let remove_user_field = remove_user_field.clone();
+                                            spawn(async move {
+                                                remove_user_field(v0::FieldsUser::ProfileBackground).await;
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .width(Size::px(36.))
+                                            .height(Size::px(36.))
+                                            .center()
+                                            .child(
+                                                MaterialIcon::new(clear())
+                                                    .size(Size::px(24.))
+                                                    .color(theme.md.primary.as_argb_u32()),
+                                            ),
+                                    ),
+                            ),
+                    )
+                    .child(SingleLineEntry::new("Username", username).max_length(32))
+                    .child(SingleLineEntry::new("Display Name", display_name).max_length(32))
+                    .child(SingleLineEntry::new("Profile Bio", bio).placeholder("Something cool about me..."))
+                    .child(StoatCheckbox::new(public).child(stoat_label().text("Allow others to invite your bot")))
                     .child(
                         rect()
                             .horizontal()
@@ -508,6 +523,7 @@ impl Component for SelectedBotsSettings {
                                 StoatButton::new()
                                     .color(theme.md.primary.as_argb_u32())
                                     .corner_radius(40.)
+                                    .enabled(username.is_different() || display_name.is_different() || bio.is_different() || public.is_different())
                                     .child(
                                         rect()
                                             .height(Size::px(40.))
@@ -518,6 +534,7 @@ impl Component for SelectedBotsSettings {
                                     .on_press(move |_| {
                                         username.reset();
                                         display_name.reset();
+                                        public.is_different();
                                     }),
                             )
                             .child(
@@ -525,6 +542,7 @@ impl Component for SelectedBotsSettings {
                                     .color(theme.md.on_primary.as_argb_u32())
                                     .background(theme.md.primary.as_argb_u32())
                                     .corner_radius(40.)
+                                    .enabled(username.is_different() || display_name.is_different() || bio.is_different() || public.is_different())
                                     .on_press({
                                         let edit_user = edit_user.clone();
                                         let edit_bot = edit_bot.clone();
@@ -541,8 +559,11 @@ impl Component for SelectedBotsSettings {
 
                                             spawn({
                                                 async move {
-                                                    if let Some(new_display_name) =
-                                                        display_name.get_if_different()
+                                                    let new_display_name = display_name.get_if_different();
+                                                    let new_bio = bio.get_if_different();
+                                                    let new_pronouns = pronouns.get_if_different();
+
+                                                    if new_display_name.is_some() || new_bio.is_some() || new_pronouns.is_some()
                                                     {
                                                         let mut payload = v0::DataEditUser {
                                                             display_name: None,
@@ -555,29 +576,60 @@ impl Component for SelectedBotsSettings {
                                                             remove: Vec::new(),
                                                         };
 
-                                                        if new_display_name.is_empty() {
-                                                            payload
-                                                                .remove
-                                                                .push(v0::FieldsUser::DisplayName);
-                                                        } else {
-                                                            payload.display_name =
-                                                                Some(new_display_name);
-                                                        };
+                                                        if let Some(new_display_name) = new_display_name {
+                                                            if new_display_name.is_empty() {
+                                                                payload
+                                                                    .remove
+                                                                    .push(v0::FieldsUser::DisplayName);
+                                                            } else {
+                                                                payload.display_name =
+                                                                    Some(new_display_name);
+                                                            };
+                                                        }
+
+                                                        if let Some(new_bio) = new_bio {
+                                                            if new_bio.is_empty() {
+                                                                payload
+                                                                    .remove
+                                                                    .push(v0::FieldsUser::ProfileContent);
+                                                            } else {
+                                                                payload.profile =
+                                                                    Some(v0::DataUserProfile {
+                                                                        content: Some(new_bio),
+                                                                        background: None,
+                                                                    });
+                                                            };
+                                                        }
+
+                                                        if let Some(new_pronouns) = new_pronouns {
+                                                            if new_pronouns.is_empty() {
+                                                                payload
+                                                                    .remove
+                                                                    .push(v0::FieldsUser::Pronouns);
+                                                            } else {
+                                                                payload.pronouns =
+                                                                    Some(new_pronouns);
+                                                            };
+                                                        }
 
                                                         if let Some(new_user) = edit_user(payload).await {
                                                             display_name.set_new(
                                                                 new_user.display_name.clone().unwrap_or_default(),
                                                             );
+                                                            bio.apply();
+                                                            pronouns.set_new(new_user.pronouns.clone().unwrap_or_default());
                                                             user.set(new_user);
                                                         };
                                                     };
 
-                                                    if let Some(new_username) =
-                                                        username.get_if_different()
+                                                    let new_username = username.get_if_different();
+                                                    let new_public = public.get_if_different();
+
+                                                    if new_username.is_some() || new_public.is_some()
                                                     {
                                                         let payload = v0::DataEditBot {
-                                                            name: Some(new_username),
-                                                            public: None,
+                                                            name: new_username,
+                                                            public: new_public,
                                                             analytics: None,
                                                             interactions_url: None,
                                                             default_permissions: None,
@@ -587,6 +639,7 @@ impl Component for SelectedBotsSettings {
                                                         if let Some(response) = edit_bot(payload).await
                                                         {
                                                             username.set_new(response.user.username.clone());
+                                                            public.set_new(response.bot.public);
                                                             *settings.write() = Some(SettingsPage::MyBots(Some((response.bot.id.clone(), response.user.username.clone()))));
                                                             bot.set(response.bot);
                                                             user.set(response.user)

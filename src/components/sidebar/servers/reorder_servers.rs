@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use freya::{
-    animation::{AnimNum, Ease, use_animation_transition},
+    animation::{AnimNum, use_animation_transition},
     prelude::*,
     radio::use_radio,
 };
@@ -15,7 +15,7 @@ use crate::{
         material::{MaterialIcon, filled::folder as filled_folder},
         stoat_label,
     },
-    consume_material_theme, get_unread_badge, is_server_muted, parse_fill,
+    consume_material_theme, fast_func, get_unread_badge, is_server_muted, parse_fill,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -710,7 +710,7 @@ impl Component for FolderEntry {
         };
 
         let indicator_anim = use_animation_transition(indicator_height, move |before, after| {
-            AnimNum::new(before, after).time(100).ease(Ease::InOut)
+            AnimNum::new(before, after).time(100).function(fast_func())
         });
 
         rect()
