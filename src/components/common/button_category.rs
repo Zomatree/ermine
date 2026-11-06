@@ -169,7 +169,7 @@ impl Component for CategoryButton {
                             .maybe_child(
                                 self.action
                                     .clone()
-                                    .map(|action| MaterialIcon::new(action).size(Size::px(18.))),
+                                    .map(|action| rect().size(Size::px(24.)).center().child(MaterialIcon::new(action).size(Size::px(18.)))),
                             ),
                     ),
             )

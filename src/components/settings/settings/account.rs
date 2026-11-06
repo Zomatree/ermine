@@ -1,11 +1,11 @@
-use std::{borrow::Cow, ops::Not};
+use std::borrow::Cow;
 
 use freya::{prelude::*, radio::use_radio};
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SettingsPage, SizeExt,
+    AppChannel, AppState, Config, SettingsPage, SizeExt,
     components::{
         Avatar, CategoryButton, CategoryButtonGroup, MaterialIcon, ModalValue, StoatButton,
         StoatButtonLayoutThemePartialExt, StoatTooltip, file_image,
@@ -18,7 +18,7 @@ use crate::{
         },
         stoat_label, use_modals,
     },
-    consume_material_theme, http,
+    consume_material_theme, http, use_config,
 };
 
 #[derive(PartialEq)]
@@ -27,9 +27,11 @@ pub struct AccountSettings {}
 impl Component for AccountSettings {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
+        let mut config = use_config();
         let mut modals = use_modals();
 
-        let radio = use_radio(AppChannel::UserId);
+        let mut radio = use_radio(AppChannel::UserId);
+        let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
         let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
         let user = radio.slice(AppChannel::Users, move |state| {
             state.users.get(state.user_id.as_ref().unwrap()).unwrap()
@@ -39,7 +41,7 @@ impl Component for AccountSettings {
 
         let mut profile = use_state(|| None);
         let mut mfa = use_state(|| v0::MultiFactorStatus::default());
-        let mut account_email = use_state(|| None::<String>);
+        let account_email = use_state(|| None::<String>);
 
         let user_value = user.read();
 
@@ -58,6 +60,8 @@ impl Component for AccountSettings {
                 }
             });
         });
+
+        let does_own_servers = servers.read().values().any(|s| &s.owner == &user_value.id);
 
         rect()
             .spacing(15.)
@@ -212,21 +216,9 @@ impl Component for AccountSettings {
                                         },
                                     ))
                                     .maybe_child(account_email.read().is_none().then(|| {
-                                        stoat_label()
-                                            .font_size(12.)
-                                            .text("Reveal")
-                                            .cursor(CursorIcon::Pointer)
-                                            .on_press(move |evt: Event<PressEventData>| {
-                                                evt.stop_propagation();
-
-                                                spawn(async move {
-                                                    if let Ok(account) =
-                                                        http().fetch_account().await
-                                                    {
-                                                        account_email.set(Some(account.email));
-                                                    }
-                                                });
-                                            })
+                                        RevealEmail {
+                                            account_email,
+                                        }
                                     })),
                             ),
                     )
@@ -353,7 +345,20 @@ impl Component for AccountSettings {
                         CategoryButton::new(block())
                             .chevron()
                             .icon_color(theme.md.error)
-                            .on_press(move |_| {})
+                            .on_press(move |_| {
+                                modals.clone().write().push_modal(ModalValue::MFA {
+                                    callback: EventHandler::new(move |ticket: v0::MFATicket| {
+                                        spawn_in_window(async move {
+                                            if http().disable_account(Some(ticket.token)).await.is_ok() {
+                                                config.set(Config::default());
+                                                radio.set(AppState::new());
+
+                                                http().logout().await.unwrap();
+                                            }
+                                        });
+                                    })
+                                });
+                            })
                             .title(stoat_label().text("Disable Account"))
                             .description(stoat_label().text("You won't be able to access your account unless you contact support - however, your data will not be deleted."))
                     )
@@ -361,10 +366,67 @@ impl Component for AccountSettings {
                         CategoryButton::new(delete())
                             .chevron()
                             .icon_color(theme.md.error)
-                            .on_press(move |_| {})
-                            .title(stoat_label().text("Delete Account"))
+                            .enabled(!does_own_servers)
+                            .on_press(move |_| {
+                                modals.clone().write().push_modal(ModalValue::MFA {
+                                    callback: EventHandler::new(move |ticket: v0::MFATicket| {
+                                        spawn_in_window(async move {
+                                            if http().delete_account(Some(ticket.token)).await.is_ok() {
+                                                config.set(Config::default());
+                                                radio.set(AppState::new());
+
+                                                http().logout().await.unwrap();
+                                            }
+                                        });
+                                    })
+                                });
+                            })
+                            .title(
+                                stoat_label()
+                                    .text(if does_own_servers {
+                                        "Cannot delete account until your servers are deleted or transferred"
+                                    } else {
+                                        "Delete Account"
+                                    })
+                            )
                             .description(stoat_label().text("Your account and all of your data (including your messages and friends list) will be queued for deletion. A confirmation email will be sent - you can cancel this within 7 days by contacting support."))
                     ),
             )
+    }
+}
+
+#[derive(PartialEq)]
+struct RevealEmail {
+    pub account_email: State<Option<String>>,
+}
+
+impl Component for RevealEmail {
+    fn render(&self) -> impl IntoElement {
+        let mut account_email = self.account_email;
+
+        let mut hovering = use_state(|| false);
+
+        stoat_label()
+            .font_size(12.)
+            .cursor(CursorIcon::Pointer)
+            .text_decoration(if hovering() {
+                TextDecoration::Underline
+            } else {
+                TextDecoration::None
+            })
+            .on_pointer_over(move |_| {
+                hovering.set(true);
+            })
+            .on_pointer_out(move |_| hovering.set_if_modified(false))
+            .on_press(move |evt: Event<PressEventData>| {
+                evt.stop_propagation();
+
+                spawn(async move {
+                    if let Ok(account) = http().fetch_account().await {
+                        account_email.set(Some(account.email));
+                    }
+                });
+            })
+            .text("Reveal")
     }
 }
