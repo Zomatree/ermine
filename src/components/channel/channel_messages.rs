@@ -1436,7 +1436,7 @@ impl Component for ChannelMessages {
                             )
                             .child(
                                 rect()
-                                    .padding((0., 15.))
+                                    .padding((0., 8., 0., 15.))
                                     .width(Size::Fill)
                                     .height(Size::px(26.))
                                     .horizontal()

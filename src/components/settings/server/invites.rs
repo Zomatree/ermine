@@ -6,7 +6,7 @@ use crate::{
         Avatar, MaterialIcon, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
         StoatTooltip,
         material::{filled::content_copy, outlined::delete},
-        stoat_scrollbar, use_modals,
+        stoat_label, stoat_scrollbar, use_modals,
     },
     consume_material_theme, http,
 };
@@ -70,6 +70,7 @@ impl Component for InviteServerSettings {
                         .width(Size::Fill)
                         .center()
                         .font_size(14.)
+                        .font_weight(500)
                         .background(theme.md.secondary_container.as_argb_u32())
                         .color(theme.md.on_secondary_container.as_argb_u32())
                         .child("Create invite"),
@@ -90,6 +91,7 @@ impl Component for InviteServerSettings {
                             .content(Content::Flex)
                             .width(Size::Fill)
                             .color(theme.md.on_surface_variant.as_argb_u32())
+                            .font_size(16.)
                             .border(
                                 Border::new()
                                     .width(BorderWidth {
@@ -100,12 +102,17 @@ impl Component for InviteServerSettings {
                                     })
                                     .fill(theme.md.outline_variant.as_argb_u32()),
                             )
-                            .child(rect().width(Size::flex(1.)).padding(15.).child("Inviter"))
                             .child(
                                 rect()
                                     .width(Size::flex(1.))
                                     .padding(15.)
-                                    .child("Invite Code"),
+                                    .child(stoat_label().text("Inviter")),
+                            )
+                            .child(
+                                rect()
+                                    .width(Size::flex(1.))
+                                    .padding(15.)
+                                    .child(stoat_label().text("Invite Code")),
                             )
                             .child(rect().padding(15.).child(rect().width(Size::px(36.)))),
                     )
@@ -157,20 +164,30 @@ impl Component for InviteServerSettings {
                                         )
                                         .child(
                                             rect()
-                                                .child(label().font_size(16.).text(match user {
-                                                    Some(user) => Cow::Owned(user.username.clone()),
-                                                    None => Cow::Borrowed("Unknown User"),
-                                                }))
+                                                .child(stoat_label().font_size(16.).text(
+                                                    match user {
+                                                        Some(user) => {
+                                                            Cow::Owned(user.username.clone())
+                                                        }
+                                                        None => Cow::Borrowed("Unknown User"),
+                                                    },
+                                                ))
                                                 .child(
-                                                    label().font_size(12.).text(
-                                                        channel
-                                                            .map(|c| {
-                                                                format!("#{}", c.name().unwrap())
-                                                            })
-                                                            .unwrap_or_else(|| {
-                                                                "Unknown Channel".to_string()
-                                                            }),
-                                                    ),
+                                                    stoat_label()
+                                                        .font_size(12.)
+                                                        .font_weight(500)
+                                                        .text(
+                                                            channel
+                                                                .map(|c| {
+                                                                    format!(
+                                                                        "#{}",
+                                                                        c.name().unwrap()
+                                                                    )
+                                                                })
+                                                                .unwrap_or_else(|| {
+                                                                    "Unknown Channel".to_string()
+                                                                }),
+                                                        ),
                                                 ),
                                         ),
                                 )
@@ -182,7 +199,7 @@ impl Component for InviteServerSettings {
                                         .horizontal()
                                         .cross_align(Alignment::Center)
                                         .font_size(16.)
-                                        .child(label().line_height(1.5).text(invite.code.clone()))
+                                        .child(stoat_label().text(invite.code.clone()))
                                         .child(
                                             StoatTooltip::new(
                                                 label()
@@ -256,7 +273,7 @@ impl Component for InviteServerSettings {
                         })
                         .scrollbar(stoat_scrollbar)
                         .length(invites.read().len())
-                        .item_size(66.)
+                        .item_size(72.)
                         .min_height(Size::Inner)
                         .max_height(Size::Fill)
                     }),

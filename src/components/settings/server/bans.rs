@@ -154,7 +154,7 @@ impl Component for BanServerSettings {
                             .child(SingleLineEntry::new("Reason", reason_filter)),
                     )
                     .child(
-                        rect().padding(15.).height(Size::px(82.)).center().child(
+                        rect().padding(15.).height(Size::px(86.)).center().child(
                             StoatButton::new()
                                 .corner_radius(18.)
                                 .enabled(

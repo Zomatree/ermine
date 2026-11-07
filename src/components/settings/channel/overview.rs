@@ -1,8 +1,9 @@
 use crate::{
     SizeExt,
     components::{
-        Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
+        Dropdown, MaterialIcon, ModalValue, SingleLineEntry, StoatButton,
+        StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, file_image,
+        material::filled::clear, stoat_label, use_modals,
     },
     consume_material_theme, http, prompt_image_upload,
     types::Tag,
@@ -19,6 +20,8 @@ pub struct OverviewChannelSettings {
 impl Component for OverviewChannelSettings {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
+        let mut modals = use_modals();
+
         let mut error = use_state(|| None);
 
         let edit_channel = {
@@ -97,189 +100,257 @@ impl Component for OverviewChannelSettings {
         };
 
         let is_text_channel = matches!(&*current_channel, v0::Channel::TextChannel { .. });
+        let is_mature = matches!(
+            &*current_channel,
+            v0::Channel::TextChannel { nsfw: true, .. } | v0::Channel::Group { nsfw: true, .. }
+        );
 
         rect()
-            .spacing(8.)
-            .child(label().text("Channel Icon").font_size(12.))
+            .spacing(32.)
             .child(
                 rect()
-                    .horizontal()
-                    .spacing(15.)
-                    .cross_align(Alignment::Center)
+                    .spacing(8.)
+                    .child(label().text("Channel Icon").font_size(12.))
                     .child(
-                        StoatButton::new()
-                            .corner_radius(48.)
-                            .on_press({
-                                let edit_channel = edit_channel.clone();
-
-                                move |_| {
-                                    let edit_channel = edit_channel.clone();
-
-                                    spawn(async move {
-                                        if let Some(id) = prompt_image_upload(Tag::Icons).await {
-                                            edit_channel(v0::DataEditChannel {
-                                                name: None,
-                                                description: None,
-                                                owner: None,
-                                                icon: Some(id),
-                                                nsfw: None,
-                                                archived: None,
-                                                voice: None,
-                                                slowmode: None,
-                                                remove: Vec::new(),
-                                            })
-                                            .await;
-                                        };
-                                    });
-                                }
-                            })
+                        rect()
+                            .horizontal()
+                            .spacing(15.)
+                            .cross_align(Alignment::Center)
                             .child(
-                                rect()
-                                    .width(Size::px(96.))
-                                    .height(Size::px(96.))
-                                    .background(theme.md.surface_dim.as_argb_u32())
-                                    .maybe_child(icon.as_ref().map(|icon| {
+                                StoatButton::new()
+                                    .corner_radius(48.)
+                                    .on_press({
+                                        let edit_channel = edit_channel.clone();
+
+                                        move |_| {
+                                            let edit_channel = edit_channel.clone();
+
+                                            spawn(async move {
+                                                if let Some(id) =
+                                                    prompt_image_upload(Tag::Icons).await
+                                                {
+                                                    edit_channel(v0::DataEditChannel {
+                                                        name: None,
+                                                        description: None,
+                                                        owner: None,
+                                                        icon: Some(id),
+                                                        nsfw: None,
+                                                        archived: None,
+                                                        voice: None,
+                                                        slowmode: None,
+                                                        remove: Vec::new(),
+                                                    })
+                                                    .await;
+                                                };
+                                            });
+                                        }
+                                    })
+                                    .child(
                                         rect()
-                                            .layer(Layer::Relative(1))
-                                            .width(Size::Fill)
-                                            .height(Size::Fill)
-                                            .child(file_image(icon))
-                                    })),
+                                            .width(Size::px(96.))
+                                            .height(Size::px(96.))
+                                            .background(theme.md.surface_dim.as_argb_u32())
+                                            .maybe_child(icon.as_ref().map(|icon| {
+                                                rect()
+                                                    .layer(Layer::Relative(1))
+                                                    .width(Size::Fill)
+                                                    .height(Size::Fill)
+                                                    .child(file_image(icon))
+                                            })),
+                                    ),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .corner_radius(16.)
+                                    .on_press({
+                                        let remove_field = remove_field.clone();
+
+                                        move |_| {
+                                            let remove_field = remove_field.clone();
+
+                                            spawn(async move {
+                                                remove_field(v0::FieldsChannel::Icon).await;
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .width(Size::px(36.))
+                                            .height(Size::px(36.))
+                                            .center()
+                                            .child(
+                                                MaterialIcon::new(clear())
+                                                    .size(Size::px(24.))
+                                                    .color(theme.md.primary.as_argb_u32()),
+                                            ),
+                                    ),
                             ),
                     )
+                    .child(SingleLineEntry::new("Channel Name", channel_name).max_length(32))
                     .child(
-                        StoatButton::new()
-                            .corner_radius(16.)
-                            .on_press({
-                                let remove_field = remove_field.clone();
-
-                                move |_| {
-                                    let remove_field = remove_field.clone();
-
-                                    spawn(async move {
-                                        remove_field(v0::FieldsChannel::Icon).await;
-                                    });
-                                }
-                            })
+                        SingleLineEntry::new("Channel Description", channel_description)
+                            .placeholder("This channel is about...")
+                            .max_length(1024),
+                    )
+                    .maybe_child(is_text_channel.then(|| {
+                        Dropdown::new(
+                            "Channel Slowmode",
+                            channel_slowmode.into_writable(),
+                            vec![
+                                0,
+                                5,
+                                10,
+                                30,
+                                60,
+                                60 * 5,
+                                60 * 10,
+                                60 * 30,
+                                60 * 60,
+                                60 * 60 * 2,
+                                60 * 60 * 6,
+                            ],
+                            |duration| format!("{duration} seconds").into_element(),
+                        )
+                    }))
+                    .child(
+                        rect()
+                            .horizontal()
+                            .spacing(8.)
+                            .font_size(14)
                             .child(
-                                rect()
-                                    .width(Size::px(36.))
-                                    .height(Size::px(36.))
-                                    .center()
+                                StoatButton::new()
+                                    .enabled(
+                                        channel_name.is_different()
+                                            || channel_description.is_different()
+                                            || channel_slowmode.is_different(),
+                                    )
+                                    .color(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
                                     .child(
-                                        MaterialIcon::new(clear())
-                                            .size(Size::px(24.))
-                                            .color(theme.md.primary.as_argb_u32()),
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .font_weight(500)
+                                            .child("Reset"),
+                                    )
+                                    .on_press(move |_| {
+                                        channel_name.reset();
+                                        channel_description.reset();
+                                        channel_slowmode.reset();
+                                    }),
+                            )
+                            .child(
+                                StoatButton::new()
+                                    .enabled(
+                                        channel_name.is_different()
+                                            || channel_description.is_different()
+                                            || channel_slowmode.is_different(),
+                                    )
+                                    .color(theme.md.on_primary.as_argb_u32())
+                                    .background(theme.md.primary.as_argb_u32())
+                                    .corner_radius(40.)
+                                    .on_press({
+                                        move |_| {
+                                            let edit_channel = edit_channel.clone();
+
+                                            spawn({
+                                                async move {
+                                                    let payload = v0::DataEditChannel {
+                                                        name: channel_name.get_if_different(),
+                                                        description: channel_description
+                                                            .get_if_different(),
+                                                        icon: None,
+                                                        owner: None,
+                                                        nsfw: None,
+                                                        archived: None,
+                                                        voice: None,
+                                                        slowmode: channel_slowmode
+                                                            .get_if_different(),
+                                                        remove: Vec::new(),
+                                                    };
+
+                                                    if let Some(new_channel) =
+                                                        edit_channel(payload).await
+                                                    {
+                                                        match new_channel {
+                                                            v0::Channel::Group {
+                                                                name,
+                                                                description,
+                                                                ..
+                                                            } => {
+                                                                channel_name.set_new(name);
+
+                                                                if let Some(description) =
+                                                                    description
+                                                                {
+                                                                    channel_description
+                                                                        .set_new(description);
+                                                                }
+                                                            }
+                                                            v0::Channel::TextChannel {
+                                                                name,
+                                                                description,
+                                                                slowmode,
+                                                                ..
+                                                            } => {
+                                                                channel_name.set_new(name);
+
+                                                                if let Some(description) =
+                                                                    description
+                                                                {
+                                                                    channel_description
+                                                                        .set_new(description);
+                                                                }
+
+                                                                if let Some(slowmode) = slowmode {
+                                                                    channel_slowmode
+                                                                        .set_new(slowmode);
+                                                                }
+                                                            }
+                                                            _ => {}
+                                                        }
+                                                    };
+                                                }
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        rect()
+                                            .height(Size::px(40.))
+                                            .padding((0., 16.))
+                                            .center()
+                                            .font_weight(500)
+                                            .child("Save"),
                                     ),
                             ),
                     ),
             )
-            .child(SingleLineEntry::new("Channel Name", channel_name).margin((0., 0., 24., 0.)))
-            .child(
-                SingleLineEntry::new("Channel Description", channel_description)
-                    .placeholder("This channel is about...")
-                    .margin((0., 0., 24., 0.)),
-            )
-            .maybe_child(is_text_channel.then(|| {
-                Dropdown::new(
-                    "Channel Slowmode",
-                    channel_slowmode.into_writable(),
-                    vec![
-                        0,
-                        5,
-                        10,
-                        30,
-                        60,
-                        60 * 5,
-                        60 * 10,
-                        60 * 30,
-                        60 * 60,
-                        60 * 60 * 2,
-                        60 * 60 * 6,
-                    ],
-                    |duration| format!("{duration} seconds").into_element(),
-                )
-            }))
             .child(
                 rect()
-                    .horizontal()
                     .spacing(8.)
-                    .font_size(14)
                     .child(
-                        StoatButton::new()
-                            .color(theme.md.primary.as_argb_u32())
-                            .corner_radius(40.)
-                            .child(
-                                rect()
-                                    .height(Size::px(40.))
-                                    .padding((0., 16.))
-                                    .center()
-                                    .child("Reset"),
-                            )
-                            .on_press(move |_| {
-                                channel_name.reset();
-                                channel_description.reset();
-                                channel_slowmode.reset();
-                            }),
+                        stoat_label()
+                            .font_size(12.)
+                            .font_weight(500)
+                            .text("Mark as Mature"),
                     )
+                    .child(stoat_label().font_size(14.).text(
+                        "Users will be asked to confirm their age before opening this channel.",
+                    ))
                     .child(
                         StoatButton::new()
-                            .color(theme.md.on_primary.as_argb_u32())
-                            .background(theme.md.primary.as_argb_u32())
-                            .corner_radius(40.)
+                            .color(theme.md.on_primary)
+                            .background(theme.md.primary)
+                            .corner_radius(20.)
                             .on_press({
+                                let id = current_channel.id().to_string();
+
                                 move |_| {
-                                    let edit_channel = edit_channel.clone();
-
-                                    spawn({
-                                        async move {
-                                            let payload = v0::DataEditChannel {
-                                                name: channel_name.get_if_different(),
-                                                description: channel_description.get_if_different(),
-                                                icon: None,
-                                                owner: None,
-                                                nsfw: None,
-                                                archived: None,
-                                                voice: None,
-                                                slowmode: channel_slowmode.get_if_different(),
-                                                remove: Vec::new(),
-                                            };
-
-                                            if let Some(new_channel) = edit_channel(payload).await {
-                                                match new_channel {
-                                                    v0::Channel::Group {
-                                                        name,
-                                                        description,
-                                                        ..
-                                                    } => {
-                                                        channel_name.set_new(name);
-
-                                                        if let Some(description) = description {
-                                                            channel_description
-                                                                .set_new(description);
-                                                        }
-                                                    }
-                                                    v0::Channel::TextChannel {
-                                                        name,
-                                                        description,
-                                                        slowmode,
-                                                        ..
-                                                    } => {
-                                                        channel_name.set_new(name);
-
-                                                        if let Some(description) = description {
-                                                            channel_description
-                                                                .set_new(description);
-                                                        }
-
-                                                        if let Some(slowmode) = slowmode {
-                                                            channel_slowmode.set_new(slowmode);
-                                                        }
-                                                    }
-                                                    _ => {}
-                                                }
-                                            };
-                                        }
+                                    modals.write().push_modal(if is_mature {
+                                        ModalValue::MarkChannelUnmature { id: id.clone() }
+                                    } else {
+                                        ModalValue::MarkChannelMature { id: id.clone() }
                                     });
                                 }
                             })
@@ -288,7 +359,12 @@ impl Component for OverviewChannelSettings {
                                     .height(Size::px(40.))
                                     .padding((0., 16.))
                                     .center()
-                                    .child("Save"),
+                                    .font_weight(600)
+                                    .child(if is_mature {
+                                        "Unmark as Mature"
+                                    } else {
+                                        "Mark as Mature"
+                                    }),
                             ),
                     ),
             )

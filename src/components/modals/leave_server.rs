@@ -66,6 +66,7 @@ impl Component for LeaveServer {
                             http()
                                 .delete_server(
                                     &server,
+                                    None,
                                     &v0::OptionsServerDelete {
                                         leave_silently: Some(silent()),
                                     },

@@ -914,7 +914,10 @@ pub async fn update_state(
             emojis,
             voice_states: _,
         } => {
-            insert_server(server, station);
+            let user_id = station.read().user_id.clone().unwrap();
+            let member = http().fetch_member(&id, &user_id).await.unwrap();
+
+            insert_member(member, station);
 
             for channel in channels.into_iter() {
                 insert_channel(channel, station);
@@ -923,9 +926,8 @@ pub async fn update_state(
             for emoji in emojis.into_iter() {
                 insert_emoji(emoji, station);
             }
-            let user_id = station.read().user_id.clone().unwrap();
-            let member = http().fetch_member(&id, &user_id).await.unwrap();
-            insert_member(member, station);
+
+            insert_server(server, station);
         }
         EventV1::ServerUpdate { id, data, clear } => {
             update_server(&id, station, |server| {

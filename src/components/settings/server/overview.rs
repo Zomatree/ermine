@@ -2,7 +2,7 @@ use crate::{
     AppChannel, SizeExt,
     components::{
         Dropdown, MaterialIcon, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
-        StoatButtonLayoutThemePartialExt, file_image, material::filled::clear,
+        StoatButtonLayoutThemePartialExt, file_image, material::filled::clear, stoat_label,
     },
     consume_material_theme, http, prompt_image_upload,
     types::Tag,
@@ -249,13 +249,18 @@ impl Component for OverviewServerSettings {
                             ),
                     ),
             )
-            .child(SingleLineEntry::new("Server Name", server_name).margin((0., 0., 24., 0.)))
+            .child(SingleLineEntry::new("Server Name", server_name).max_length(32))
             .child(
                 SingleLineEntry::new("Server Description", server_description)
                     .placeholder("This server is about...")
-                    .margin((0., 0., 24., 0.)),
+                    .max_length(1024),
             )
-            .child(label().text("System message channels").font_size(14.))
+            .child(
+                stoat_label()
+                    .font_size(14.)
+                    .font_weight(550)
+                    .text("System message channels"),
+            )
             .child(SystemMessagesChannelSelector::new(
                 "User Joined",
                 self.server.clone(),

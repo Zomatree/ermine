@@ -6,6 +6,7 @@ use freya::{
     radio::use_radio,
 };
 use itertools::Itertools;
+use stoat_models::v0;
 use ulid::Ulid;
 
 use crate::{
@@ -20,14 +21,19 @@ use crate::{
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Entry {
-    Server { id: String, folder: Option<String> },
-    Folder { id: String },
+    Server {
+        server: v0::Server,
+        folder: Option<String>,
+    },
+    Folder {
+        id: String,
+    },
 }
 
 impl Entry {
     pub fn id(&self) -> &str {
         match self {
-            Self::Server { id, .. } => id,
+            Self::Server { server, .. } => &server.id,
             Self::Folder { id } => id,
         }
     }
@@ -120,9 +126,9 @@ impl Component for ReorderServers {
                         }
                     } else if found.contains(&entry) {
                         continue;
-                    } else if servers.contains_key(&entry) {
+                    } else if let Some(server) = servers.get(&entry).cloned() {
                         entries.push(Entry::Server {
-                            id: entry,
+                            server,
                             folder: None,
                         });
                     }
@@ -154,8 +160,8 @@ impl Component for ReorderServers {
                             entries,
                         }
                         .into_element(),
-                        Entry::Server { id, folder } => ServerEntry {
-                            id,
+                        Entry::Server { server, folder } => ServerEntry {
+                            server,
                             folder,
                             dragging,
                             entries,
@@ -214,7 +220,7 @@ impl Component for InsertArea {
 
                         move |entry| {
                             if let Entry::Server {
-                                id,
+                                server,
                                 folder: entry_folder,
                             } = &entry
                                 && (entry_folder.is_some() || folder.is_some())
@@ -230,7 +236,8 @@ impl Component for InsertArea {
                                             .unwrap()
                                             .servers;
 
-                                        let from = servers.iter().position(|s| s == id).unwrap();
+                                        let from =
+                                            servers.iter().position(|s| s == &server.id).unwrap();
 
                                         if from == idx {
                                             return;
@@ -253,14 +260,14 @@ impl Component for InsertArea {
                                             .find(|f| &f.id == entry_folder)
                                             .unwrap()
                                             .servers
-                                            .retain(|s| s != id);
+                                            .retain(|s| s != &server.id);
 
                                         folders
                                             .iter_mut()
                                             .find(|f| &f.id == folder)
                                             .unwrap()
                                             .servers
-                                            .insert(idx, id.clone());
+                                            .insert(idx, server.id.clone());
                                     }
                                 } else if let Some(entry_folder) = &entry_folder {
                                     folders
@@ -269,17 +276,17 @@ impl Component for InsertArea {
                                         .find(|f| &f.id == entry_folder)
                                         .unwrap()
                                         .servers
-                                        .retain(|s| s != id);
+                                        .retain(|s| s != &server.id);
 
                                     entries.write().insert(
                                         idx,
                                         Entry::Server {
-                                            id: id.clone(),
+                                            server: server.clone(),
                                             folder: None,
                                         },
                                     );
                                 } else if let Some(folder) = &folder {
-                                    entries.write().retain(|e| e.id() != id);
+                                    entries.write().retain(|e| e.id() != &server.id);
 
                                     folders
                                         .write()
@@ -287,7 +294,7 @@ impl Component for InsertArea {
                                         .find(|f| &f.id == folder)
                                         .unwrap()
                                         .servers
-                                        .insert(idx, id.clone());
+                                        .insert(idx, server.id.clone());
                                 }
                             } else {
                                 let mut entries = entries.write();
@@ -315,8 +322,8 @@ impl Component for InsertArea {
 
                                 for entry in entries.read().iter() {
                                     match entry {
-                                        Entry::Server { id, folder: _ } => {
-                                            new_sidebar.push(id.clone())
+                                        Entry::Server { server, folder: _ } => {
+                                            new_sidebar.push(server.id.clone())
                                         }
                                         Entry::Folder { id } => {
                                             new_sidebar.push(id.clone());
@@ -381,7 +388,7 @@ impl Component for InsertArea {
 
 #[derive(PartialEq)]
 pub struct ServerEntry {
-    pub id: String,
+    pub server: v0::Server,
     pub folder: Option<String>,
 
     pub dragging: State<Option<Entry>>,
@@ -409,9 +416,6 @@ impl Component for ServerEntry {
                 .folders
         });
 
-        let state = radio.read();
-        let server = state.servers.get(&self.id).unwrap();
-
         let mut hovering = use_state(|| false);
 
         rect()
@@ -421,11 +425,10 @@ impl Component for ServerEntry {
                     .size(Size::px(56.))
                     .corner_radius(28.)
                     .border(hovering().then(|| Border::new().fill(theme.md.primary).width(2.)))
-                    // .center()
                     .on_pointer_down(|evt: Event<PointerEventData>| evt.stop_propagation())
                     .child(
                         DragZone::new(Entry::Server {
-                            id: self.id.clone(),
+                            server: self.server.clone(),
                             folder: self.folder.clone(),
                         })
                         .child(
@@ -435,7 +438,7 @@ impl Component for ServerEntry {
                                         .dragging
                                         .read()
                                         .as_ref()
-                                        .is_some_and(|entry| entry.id() == &self.id)
+                                        .is_some_and(|entry| entry.id() == &self.server.id)
                                     {
                                         0.35
                                     } else {
@@ -443,11 +446,11 @@ impl Component for ServerEntry {
                                     },
                                 )
                                 .child(ServerListButton {
-                                    server: server.clone(),
+                                    server: self.server.clone(),
                                 }),
                         )
                         .drag_element(DragServer {
-                            id: self.id.clone(),
+                            server: self.server.clone(),
                             folder: self.folder.clone(),
                             dragging: self.dragging,
                         }),
@@ -459,7 +462,7 @@ impl Component for ServerEntry {
                         .dragging
                         .read()
                         .as_ref()
-                        .is_some_and(|entry| entry.id() != &self.id))
+                        .is_some_and(|entry| entry.id() != &self.server.id))
                 .then(|| {
                     rect()
                         .position(Position::new_absolute().top(18.))
@@ -469,9 +472,9 @@ impl Component for ServerEntry {
                                 let mut folders = folders.clone();
                                 let mut entries = self.entries;
                                 let mut sidebar = ordering.clone();
-                                let current_id = self.id.clone();
+                                let current_id = self.server.id.clone();
                                 move |entry| {
-                                    let Entry::Server { id, folder } = entry else {
+                                    let Entry::Server { server, folder } = entry else {
                                         return;
                                     };
 
@@ -482,7 +485,7 @@ impl Component for ServerEntry {
                                             .find(|f| &f.id == &folder)
                                             .unwrap()
                                             .servers
-                                            .retain(|s| s != &id);
+                                            .retain(|s| s != &server.id);
                                     }
 
                                     let folder_id = format!("folder-{}", Ulid::new().to_string());
@@ -490,7 +493,7 @@ impl Component for ServerEntry {
                                     {
                                         let mut entries = entries.write();
 
-                                        entries.retain(|e| e.id() != &id);
+                                        entries.retain(|e| e.id() != &server.id);
 
                                         let idx = entries
                                             .iter()
@@ -507,7 +510,7 @@ impl Component for ServerEntry {
                                         name: "Untitled Folder".to_string(),
                                         colour: None,
                                         collapsed: false,
-                                        servers: vec![current_id.clone(), id],
+                                        servers: vec![current_id.clone(), server.id],
                                     });
 
                                     let mut new_sidebar = Vec::new();
@@ -517,8 +520,8 @@ impl Component for ServerEntry {
 
                                         for entry in entries.read().iter() {
                                             match entry {
-                                                Entry::Server { id, folder: _ } => {
-                                                    new_sidebar.push(id.clone())
+                                                Entry::Server { server, folder: _ } => {
+                                                    new_sidebar.push(server.id.clone())
                                                 }
                                                 Entry::Folder { id } => {
                                                     new_sidebar.push(id.clone());
@@ -560,7 +563,7 @@ impl Component for ServerEntry {
 
 #[derive(PartialEq)]
 pub struct DragServer {
-    pub id: String,
+    pub server: v0::Server,
     pub folder: Option<String>,
 
     pub dragging: State<Option<Entry>>,
@@ -570,13 +573,12 @@ impl Component for DragServer {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::Servers);
         let state = radio.read();
-        let server = state.servers.get(&self.id).unwrap().clone();
 
         let mut dragging = self.dragging;
 
         use_hook(|| {
             dragging.set(Some(Entry::Server {
-                id: self.id.clone(),
+                server: self.server.clone(),
                 folder: self.folder.clone(),
             }));
         });
@@ -584,7 +586,7 @@ impl Component for DragServer {
 
         rect()
             .opacity(0.85)
-            .child(ServerIcon::new(server, 42.).corner_radius(21.))
+            .child(ServerIcon::new(self.server.clone(), 42.).corner_radius(21.))
     }
 }
 
@@ -649,6 +651,7 @@ impl Component for FolderEntry {
             let folder = use_reactive(&folder);
             let channels = channels.clone();
             let notifications_settings = notifications_settings.clone().into_readable();
+            let servers = servers.clone();
 
             move || {
                 let folder = folder.read().cloned();
@@ -657,9 +660,9 @@ impl Component for FolderEntry {
                 let servers = servers.read();
 
                 for server_id in &folder.servers {
-                    if !is_server_muted(server_id, &notifications_settings) {
-                        let server = servers.get(server_id).unwrap();
-
+                    if !is_server_muted(server_id, &notifications_settings)
+                        && let Some(server) = servers.get(server_id)
+                    {
                         let badges = server
                             .channels
                             .iter()
@@ -841,15 +844,21 @@ impl Component for FolderEntry {
                                     }
                                     .into_element()
                                 })
-                                .zip(folder.servers.iter().cloned().map(|id| {
-                                    ServerEntry {
-                                        id,
-                                        folder: Some(self.id.clone()),
-                                        dragging: self.dragging,
-                                        entries: self.entries,
-                                    }
-                                    .into_element()
-                                }))
+                                .zip(
+                                    folder
+                                        .servers
+                                        .iter()
+                                        .filter_map(|id| servers.read().get(id).cloned())
+                                        .map(|server| {
+                                            ServerEntry {
+                                                server,
+                                                folder: Some(self.id.clone()),
+                                                dragging: self.dragging,
+                                                entries: self.entries,
+                                            }
+                                            .into_element()
+                                        }),
+                                )
                                 .map(|(a, b)| [a, b])
                                 .flatten(),
                         )
@@ -875,7 +884,7 @@ impl Component for FolderEntry {
 
                                 move |entry| {
                                     let Entry::Server {
-                                        id,
+                                        server,
                                         folder: entry_folder,
                                     } = entry
                                     else {
@@ -889,15 +898,15 @@ impl Component for FolderEntry {
                                             .find(|f| &f.id == &entry_folder)
                                             .unwrap()
                                             .servers
-                                            .retain(|s| s != &id);
+                                            .retain(|s| s != &server.id);
                                     } else {
-                                        sidebar.write().retain(|e| e != &id);
+                                        sidebar.write().retain(|e| e != &server.id);
                                     }
 
                                     if let Some(folder) =
                                         folders.write().iter_mut().find(|f| &f.id == &folder_id)
                                     {
-                                        folder.servers.push(id);
+                                        folder.servers.push(server.id);
                                     }
                                 }
                             })

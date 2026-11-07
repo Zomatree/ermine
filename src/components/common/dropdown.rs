@@ -2,16 +2,19 @@ use std::borrow::Cow;
 
 use freya::{
     animation::{
-        AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, ReadAnimatedValue,
-        use_animation,
+        AnimColor, AnimNum, AnimatedValue, OnChange, OnCreation, ReadAnimatedValue, use_animation,
+        use_animation_transition,
     },
     prelude::*,
 };
 
 use crate::{
     SizeExt,
-    components::{MaterialIcon, StoatButton, material::filled::expand_more, stoat_scrollbar},
-    consume_material_theme,
+    components::{
+        MaterialIcon, StoatButton, material::outlined::arrow_drop_down, stoat_label,
+        stoat_scrollbar,
+    },
+    consume_material_theme, dropdown_func, medium_func, peak_material_theme,
 };
 
 pub struct Dropdown<T: PartialEq + 'static, B> {
@@ -70,19 +73,13 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
             conf.on_change(OnChange::Rerun);
             conf.on_creation(OnCreation::Finish);
 
-            let opacity = AnimNum::new(0., 1.)
-                .time(200)
-                .ease(Ease::InOut)
-                .function(Function::Quart);
-            let offset_y = AnimNum::new(-8., 0.)
-                .time(200)
-                .ease(Ease::InOut)
-                .function(Function::Quart);
-            if open() {
-                (opacity, offset_y)
-            } else {
-                (opacity.into_reversed(), offset_y.into_reversed())
-            }
+            let opacity = AnimNum::new(0., 1.).time(200).function(dropdown_func());
+            let offset_y = AnimNum::new(-8., 0.).time(200).function(dropdown_func());
+            let rotation = AnimNum::new(0., 180.).time(200).function(medium_func());
+
+            let anim = (opacity, offset_y, rotation);
+
+            if open() { anim } else { anim.into_reversed() }
         });
 
         use_side_effect(move || {
@@ -126,7 +123,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
             _ => {}
         };
 
-        let (opacity, slide) = animation.read().value();
+        let (opacity, slide, rotation) = animation.read().value();
 
         let offset_y = match (button_area(), list_size()) {
             (button, Some(list)) => {
@@ -145,14 +142,31 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
 
         let opacity = if list_size().is_some() { opacity } else { 0. };
 
-        let border_color = if open() {
-            theme.md.primary
-        } else if hovering() {
-            theme.md.on_surface
-        } else {
-            theme.md.outline
-        }
-        .as_argb_u32();
+        let border_anim = use_animation_transition((open(), hovering()), |from, to| {
+            let theme = peak_material_theme();
+
+            let before = if from.0 {
+                theme.md.primary
+            } else if from.1 {
+                theme.md.on_surface
+            } else {
+                theme.md.outline
+            };
+
+            let after = if to.0 {
+                theme.md.primary
+            } else if to.1 {
+                theme.md.on_surface
+            } else {
+                theme.md.outline
+            };
+
+            AnimColor::new(before, after)
+                .time(200)
+                .function(dropdown_func())
+        });
+
+        let border_color = border_anim.read().value();
 
         rect()
             .layout(self.layout.clone())
@@ -174,6 +188,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                 button_area.set_if_modified(e.area);
                             })
                             .width(Size::Fill)
+                            .min_height(Size::px(55.))
                             .background(theme.md.surface_container_highest.as_argb_u32())
                             .padding((8., 16.))
                             .corner_radius(CornerRadius::new_symmetric(4., 0.))
@@ -184,10 +199,9 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                             .child(
                                 rect()
                                     .child(
-                                        label()
+                                        stoat_label()
                                             .font_size(12.)
-                                            .line_height(1.5)
-                                            .text_height(TextHeightBehavior::All)
+                                            .font_weight(500)
                                             .color(theme.md.on_surface_variant.as_argb_u32())
                                             .text(self.title.clone()),
                                     )
@@ -196,8 +210,9 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                                     ),
                             )
                             .child(
-                                MaterialIcon::new(expand_more())
+                                MaterialIcon::new(arrow_drop_down())
                                     .size(Size::px(24.))
+                                    .rotation(rotation)
                                     .color(theme.md.on_surface_variant.as_argb_u32()),
                             ),
                     )
@@ -212,7 +227,7 @@ impl<T: Clone + PartialEq + 'static, B: Fn(&T) -> Element + 'static> Component f
                 rect().height(Size::px(0.)).width(Size::px(0.)).child(
                     rect()
                         .width(Size::window_percent(100.))
-                        .margin(Gaps::new(2., 0., 2., 0.))
+                        .margin(Gaps::new(4., 0., 4., 0.))
                         .offset_y(offset_y)
                         .on_sized(move |e: Event<SizedEventData>| {
                             list_size.set_if_modified(Some(e.area.size));

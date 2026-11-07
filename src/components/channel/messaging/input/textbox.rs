@@ -21,7 +21,7 @@ use crate::{
         material::{
             MaterialIcon,
             filled::{add, do_not_disturb, gif, send},
-            round::insert_emoticon,
+            outlined::emoji_emotions,
         },
         stoat_scrollbar, use_floating,
     },
@@ -374,6 +374,7 @@ impl Component for Textbox {
                                                         .center()
                                                         .child(
                                                             MaterialIcon::new(add())
+                                                                .color(theme.md.on_surface_variant)
                                                                 .size(Size::px(24.)),
                                                         ),
                                                 ),
@@ -635,7 +636,11 @@ impl Component for Textbox {
                                         .width(Size::px(40.))
                                         .height(Size::px(40.))
                                         .center()
-                                        .child(MaterialIcon::new(gif()).size(Size::px(24.))),
+                                        .child(
+                                            MaterialIcon::new(gif())
+                                                .color(theme.md.on_surface_variant)
+                                                .size(Size::px(24.)),
+                                        ),
                                 ),
                         )
                         .child(
@@ -658,7 +663,8 @@ impl Component for Textbox {
                                         .height(Size::px(40.))
                                         .center()
                                         .child(
-                                            MaterialIcon::new(insert_emoticon())
+                                            MaterialIcon::new(emoji_emotions())
+                                                .color(theme.md.on_surface_variant)
                                                 .size(Size::px(24.)),
                                         ),
                                 ),

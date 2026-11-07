@@ -18,10 +18,11 @@ use crate::{
             AddFriend, BanMember, ChangeEmail, ChangePassword, ChangeUsername, ChannelDescription,
             CreateBot, CreateCategory, CreateChannel, CreateGroup, CreateGroupServer,
             CreateJoinServer, CreateRole, CreateServer, CreateWebhook, DeleteBot, DeleteCategory,
-            DeleteChannel, DeleteInvite, DeleteMessage, DeleteWebhook, EditApi,
-            EditOwnServerIdentity, EditRoles, EditServerFolder, EditServerIdentity, EnableTotp,
-            ErrorModal, ImageViewer, InviteBot, InviteInfo, JoinServer, KickMember, LeaveGroup,
-            LeaveServer, LogoutOtherSessions, MFA, OpenLink, RemoveTimeoutMember, RenameCategory,
+            DeleteChannel, DeleteEmoji, DeleteInvite, DeleteMessage, DeleteServer, DeleteWebhook,
+            EditApi, EditEmoji, EditOwnServerIdentity, EditRoles, EditServerFolder,
+            EditServerIdentity, EnableTotp, ErrorModal, ImageViewer, InviteBot, InviteInfo,
+            JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA,
+            MarkChannelMature, MarkChannelUnmature, OpenLink, RemoveTimeoutMember, RenameCategory,
             ResetBotToken, ServerInfo, TimeoutMember, ViewRecoveryCodes,
         },
     },
@@ -155,6 +156,21 @@ pub enum ModalValue {
     EnableTotp {
         secret: String,
         callback: EventHandler<()>,
+    },
+    EditEmoji {
+        id: String,
+    },
+    DeleteEmoji {
+        id: String,
+    },
+    DeleteServer {
+        id: String,
+    },
+    MarkChannelMature {
+        id: String,
+    },
+    MarkChannelUnmature {
+        id: String,
     },
     Error {
         error: Error,
@@ -601,6 +617,19 @@ impl Component for Modal {
                                     }
                                     ModalValue::EnableTotp { secret, callback } => {
                                         EnableTotp { secret, callback }.into_element()
+                                    }
+                                    ModalValue::EditEmoji { id } => EditEmoji { id }.into_element(),
+                                    ModalValue::DeleteEmoji { id } => {
+                                        DeleteEmoji { id }.into_element()
+                                    }
+                                    ModalValue::DeleteServer { id } => {
+                                        DeleteServer { id }.into_element()
+                                    }
+                                    ModalValue::MarkChannelMature { id } => {
+                                        MarkChannelMature { id }.into_element()
+                                    }
+                                    ModalValue::MarkChannelUnmature { id } => {
+                                        MarkChannelUnmature { id }.into_element()
                                     }
                                 }),
                         ),

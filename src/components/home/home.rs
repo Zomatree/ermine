@@ -20,12 +20,13 @@ pub struct Home {}
 
 impl Component for Home {
     fn render(&self) -> impl IntoElement {
-        let config = use_config();
-        let radio = use_radio(AppChannel::SelectedChannel);
         let theme = consume_material_theme();
+        let config = use_config();
 
-        let selection = use_state(HomeSelection::default);
+        let radio = use_radio(AppChannel::SelectedChannel);
         let channel = radio.slice_current(|state| &state.selected_channel);
+        let channels = radio.slice(AppChannel::Channels, move |state| &state.channels);
+        let selection = use_state(HomeSelection::default);
 
         rect()
             .corner_radius(CornerRadius::new(16., 0., 0., 16.))
@@ -34,15 +35,13 @@ impl Component for Home {
             .direction(Direction::Horizontal)
             .maybe_child(config.read().hide_channel_list.not().then(|| {
                 rect()
-                    // .spacing(8.)
                     .width(Size::px(248.))
                     .child(DMList { selection })
             }))
             .child(
-                if let Some((channel_id, jump_message)) = channel.read().cloned() {
-                    let channel = radio.slice(AppChannel::Channels, move |state| {
-                        state.channels.get(&channel_id).unwrap()
-                    });
+                if let Some((channel_id, jump_message)) = channel.read().cloned()
+                    && let Some(channel) = channels.read().get(&channel_id).cloned()
+                {
                     Channel {
                         channel: channel.into_readable(),
                         server: None,

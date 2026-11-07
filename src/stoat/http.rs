@@ -18,7 +18,7 @@ use stoat_models::v0::{
     CreateVoiceUserResponse, CreateWebhookBody, DataBanCreate, DataChangeEmail, DataChangePassword,
     DataCreateBot, DataCreateEmoji, DataCreateGroup, DataCreateRole, DataCreateServer,
     DataCreateServerChannel, DataDefaultChannelPermissions, DataEditBot, DataEditChannel,
-    DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser,
+    DataEditEmoji, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser,
     DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch, DataMessageSend,
     DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, Emoji,
     FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
@@ -623,9 +623,11 @@ impl HttpClient {
     pub async fn delete_server(
         &self,
         server_id: &str,
+        mfa_ticket: Option<String>,
         options: &OptionsServerDelete,
     ) -> Result<()> {
         self.request(Method::DELETE, format!("/servers/{server_id}"))
+            .mfa_ticket(mfa_ticket)
             .query(options)
             .send()
             .await
@@ -821,6 +823,13 @@ impl HttpClient {
     pub async fn delete_emoji(&self, emoji_id: &str) -> Result<()> {
         self.request(Method::DELETE, format!("/custom/emoji/{emoji_id}"))
             .send()
+            .await
+    }
+
+    pub async fn edit_emoji(&self, emoji_id: &str, data: &DataEditEmoji) -> Result<Emoji> {
+        self.request(Method::PATCH, format!("/custom/emoji/{emoji_id}"))
+            .body(data)
+            .response()
             .await
     }
 

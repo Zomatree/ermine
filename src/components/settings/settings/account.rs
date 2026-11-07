@@ -32,7 +32,6 @@ impl Component for AccountSettings {
 
         let mut radio = use_radio(AppChannel::UserId);
         let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
-        let user_id = radio.slice_current(|state| state.user_id.as_ref().unwrap());
         let user = radio.slice(AppChannel::Users, move |state| {
             state.users.get(state.user_id.as_ref().unwrap()).unwrap()
         });
@@ -157,7 +156,7 @@ impl Component for AccountSettings {
                                         StoatTooltip::new(
                                             label().max_lines(1).font_size(11.).text({
                                                 let datetime = Timestamp::try_from(
-                                                    ulid::Ulid::from_string(&user_id.read())
+                                                    ulid::Ulid::from_string(&user_value.id)
                                                         .unwrap()
                                                         .datetime(),
                                                 )

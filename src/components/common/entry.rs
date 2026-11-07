@@ -2,13 +2,13 @@ use std::borrow::Cow;
 
 use freya::{
     animation::{
-        AnimColor, AnimNum, AnimatedValue, Ease, Function, OnChange, OnCreation, ReadAnimatedValue,
+        AnimColor, AnimNum, AnimatedValue, OnChange, OnCreation, ReadAnimatedValue,
         use_animation_with_dependencies,
     },
     prelude::*,
 };
 
-use crate::{components::stoat_label, consume_material_theme};
+use crate::{components::stoat_label, consume_material_theme, text_entry_func};
 
 #[derive(PartialEq)]
 pub struct SingleLineEntry {
@@ -84,15 +84,10 @@ impl Component for SingleLineEntry {
                 anim.on_creation(OnCreation::Finish);
                 anim.on_change(OnChange::Rerun);
 
-                let num = |a, b| {
-                    AnimNum::new(a, b)
-                        .time(200)
-                        .ease(Ease::InOut)
-                        .function(Function::Cubic)
-                };
+                let num = |a, b| AnimNum::new(a, b).time(200).function(text_entry_func());
 
                 let title_scale = num(1., 0.75);
-                let top = num(16., 2.);
+                let top = num(16., 4.);
 
                 if *focused {
                     (title_scale, top)
@@ -107,12 +102,7 @@ impl Component for SingleLineEntry {
                 anim.on_creation(OnCreation::Finish);
                 anim.on_change(OnChange::Rerun);
 
-                let color = |a, b| {
-                    AnimColor::new(a, b)
-                        .time(200)
-                        .ease(Ease::InOut)
-                        .function(Function::Cubic)
-                };
+                let color = |a, b| AnimColor::new(a, b).time(200).function(text_entry_func());
 
                 let title_color = color(
                     theme.md.on_surface_variant.as_argb_u32(),
@@ -134,74 +124,80 @@ impl Component for SingleLineEntry {
         let (title_scale, title_top) = title_animation.read().value();
         let (title_color, placeholder_color) = color_animation.read().value();
 
-        rect().layout(self.layout.clone()).child(
-            rect()
-                .corner_radius(CornerRadius::new_symmetric(4., 0.))
-                .background(theme.md.surface_container_highest.as_argb_u32())
-                .child(
-                    rect()
-                        .padding((2., 16.))
-                        .center()
-                        .font_size(16.)
-                        .child(
-                            Input::new(self.value.clone())
-                                .padding((22., 14., 6., 0.))
-                                .a11y_id(a11y_id)
-                                .color(theme.md.on_surface.as_argb_u32())
-                                .placeholder_color(placeholder_color)
-                                .map(self.on_submit.clone(), |this, on_submit| {
-                                    this.on_submit(on_submit)
-                                })
-                                .map(self.placeholder.clone(), |this, placeholder| {
-                                    this.placeholder(placeholder)
-                                })
-                                .on_validate({
-                                    let max_length = self.max_length;
-                                    move |validator: InputValidator| {
-                                        if let Some(max_length) = max_length {
-                                            if validator.text().len() > max_length {
-                                                validator.set_valid(false);
+        rect()
+            .layout(self.layout.clone())
+            .child(
+                rect()
+                    .corner_radius(CornerRadius::new_symmetric(4., 0.))
+                    .background(theme.md.surface_container_highest.as_argb_u32())
+                    .child(
+                        rect()
+                            .padding((2., 16.))
+                            .center()
+                            .font_size(16.)
+                            .child(
+                                Input::new(self.value.clone())
+                                    .padding((24., 14., 8., 0.))
+                                    .a11y_id(a11y_id)
+                                    .color(theme.md.on_surface.as_argb_u32())
+                                    .placeholder_color(placeholder_color)
+                                    .map(self.on_submit.clone(), |this, on_submit| {
+                                        this.on_submit(on_submit)
+                                    })
+                                    .map(self.placeholder.clone(), |this, placeholder| {
+                                        this.placeholder(placeholder)
+                                    })
+                                    .on_validate({
+                                        let max_length = self.max_length;
+                                        move |validator: InputValidator| {
+                                            if let Some(max_length) = max_length {
+                                                if validator.text().len() > max_length {
+                                                    validator.set_valid(false);
+                                                }
                                             }
                                         }
-                                    }
-                                })
-                                .mode(self.mode.clone())
-                                .width(Size::Fill)
-                                .flat()
-                                .background(Color::TRANSPARENT)
-                                .focus_background(Color::TRANSPARENT)
-                                .focus_border_fill(Color::TRANSPARENT),
-                        )
-                        .child(
-                            rect()
-                                .child(
-                                    label()
-                                        .text(self.title.clone())
-                                        .text_align(TextAlign::Start)
-                                        .max_lines(1)
-                                        .color(title_color)
-                                        .font_size(16),
-                                )
-                                .position(Position::new_absolute().top(title_top))
-                                .transform_origin(TransformOrigin::top_left())
-                                .scale(title_scale)
-                                .layer(1),
-                        ),
-                )
-                .child(
-                    rect()
-                        .width(Size::percent(100.))
-                        .height(Size::px(1.))
-                        .background(title_color)
-                        .layer(1),
-                ),
-        ).maybe_child(self.max_length.map(|max_length| {
-            rect().width(Size::Fill)
-            .padding((4., 16.))
-            .cross_align(Alignment::End)
-            .color(theme.md.on_surface_variant)
-            .font_size(12.)
-            .child(stoat_label().text(format!("{}/{max_length}", self.value.read().len())))
-        }))
+                                    })
+                                    .mode(self.mode.clone())
+                                    .width(Size::Fill)
+                                    .flat()
+                                    .background(Color::TRANSPARENT)
+                                    .focus_background(Color::TRANSPARENT)
+                                    .focus_border_fill(Color::TRANSPARENT),
+                            )
+                            .child(
+                                rect()
+                                    .child(
+                                        stoat_label()
+                                            .text(self.title.clone())
+                                            .text_align(TextAlign::Start)
+                                            .max_lines(1)
+                                            .color(title_color)
+                                            .font_weight(500)
+                                            .font_size(16),
+                                    )
+                                    .position(Position::new_absolute().top(title_top))
+                                    .transform_origin(TransformOrigin::top_left())
+                                    .scale(title_scale)
+                                    .layer(1),
+                            ),
+                    )
+                    .child(
+                        rect()
+                            .width(Size::percent(100.))
+                            .height(Size::px(1.))
+                            .background(title_color)
+                            .layer(1),
+                    ),
+            )
+            .maybe_child(self.max_length.map(|max_length| {
+                rect()
+                    .width(Size::Fill)
+                    .padding((4., 16.))
+                    .cross_align(Alignment::End)
+                    .color(theme.md.on_surface_variant)
+                    .font_size(12.)
+                    .font_weight(500)
+                    .child(stoat_label().text(format!("{}/{max_length}", self.value.read().len())))
+            }))
     }
 }

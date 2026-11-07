@@ -1,11 +1,18 @@
 use std::{borrow::Cow, mem::discriminant};
 
-use freya::{animation::{AnimNum, OnChange, OnCreation, ReadAnimatedValue, use_animation_with_dependencies}, prelude::*, radio::use_radio};
+use freya::{
+    animation::{
+        AnimNum, OnChange, OnCreation, ReadAnimatedValue, use_animation_with_dependencies,
+    },
+    prelude::*,
+    radio::use_radio,
+};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, components::{
-        MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
+    components::{
+        MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
         material::{
             filled::{chevron_right, clear},
@@ -15,8 +22,10 @@ use crate::{
             AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings,
             InviteServerSettings, OverviewServerSettings, RoleServerSettings,
         },
-        stoat_scrollbar,
-    }, consume_material_theme, settings_func, theme::Theme,
+        stoat_scrollbar, use_modals,
+    },
+    consume_material_theme, settings_func,
+    theme::Theme,
 };
 
 #[derive(PartialEq)]
@@ -26,9 +35,11 @@ pub struct ServerSettings {
 
 impl Component for ServerSettings {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
         let radio = use_radio(AppChannel::ServerSettingsPage);
         let current_page = radio.slice_mut_current(|state| &mut state.server_settings_page);
-        let theme = consume_material_theme();
+        let user_id = radio.slice(AppChannel::UserId, |state| state.user_id.as_ref().unwrap());
 
         let close_settings = {
             let current_page = current_page.clone();
@@ -47,16 +58,14 @@ impl Component for ServerSettings {
             anim.on_change(OnChange::Rerun);
 
             (
-                AnimNum::new(0., 1.)
-                    .function(settings_func())
-                    .time(200),
-                AnimNum::new(50., 0.)
-                    .function(settings_func())
-                    .time(200),
+                AnimNum::new(0., 1.).function(settings_func()).time(200),
+                AnimNum::new(50., 0.).function(settings_func()).time(200),
             )
         });
 
         let (opacity, offset) = anim.read().value();
+
+        let owns_server = &self.server.read().owner == &*user_id.read();
 
         rect()
             .expanded()
@@ -125,7 +134,9 @@ impl Component for ServerSettings {
                                             ServerSettingsPage::Bans,
                                         ],
                                     ))
-                                    .child(DeleteServerButton {}),
+                                    .maybe_child(owns_server.then(|| DeleteServerButton {
+                                        server: self.server.clone()
+                                    })),
                             ),
                     )
                     .child(
@@ -342,15 +353,28 @@ fn settings_category(
 }
 
 #[derive(PartialEq)]
-struct DeleteServerButton {}
+struct DeleteServerButton {
+    pub server: Readable<v0::Server>,
+}
 
 impl Component for DeleteServerButton {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
+        let mut modals = use_modals();
+
         StoatButton::new()
             .corner_radius(8.)
             .color(theme.md.error.as_argb_u32())
+            .on_press({
+                let id = self.server.read().id.clone();
+
+                move |_| {
+                    modals
+                        .write()
+                        .push_modal(ModalValue::DeleteServer { id: id.clone() });
+                }
+            })
             .child(
                 rect()
                     .padding((6., 8.))
@@ -367,6 +391,5 @@ impl Component for DeleteServerButton {
                             .text("Delete Server"),
                     ),
             )
-            .on_press(move |_| {})
     }
 }
