@@ -1059,6 +1059,29 @@ impl Component for ChannelMessages {
 
                                     true
                                 } else {
+                                    member_radio
+                                        .write()
+                                        .members
+                                        .entry(server_id.clone())
+                                        .or_default()
+                                        .insert(
+                                            message.author.clone(),
+                                            v0::Member {
+                                                id: v0::MemberCompositeKey {
+                                                    user: message.author.clone(),
+                                                    server: server_id.clone(),
+                                                },
+                                                joined_at: iso8601_timestamp::Timestamp::UNIX_EPOCH,
+                                                nickname: None,
+                                                pronouns: None,
+                                                avatar: None,
+                                                roles: Vec::new(),
+                                                timeout: None,
+                                                can_publish: false,
+                                                can_receive: false,
+                                            },
+                                        );
+
                                     false
                                 }
                             } else {

@@ -80,12 +80,11 @@ impl Component for JoinServer {
                                         insert_channel(channel, station);
                                     }
 
-                                    insert_server(server, station);
-
                                     let user_id = user_id.read().clone();
 
                                     let member = http().fetch_member(&id, &user_id).await.unwrap();
                                     insert_member(member, station);
+                                    insert_server(server, station);
 
                                     *selection.write() = Selection::Server(id.clone());
 

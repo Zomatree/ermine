@@ -19,8 +19,9 @@ use crate::{
             outlined::delete,
         },
         settings::server::{
-            AuditLogServerSettings, BanServerSettings, CategoryServerSettings, EmojiServerSettings,
-            InviteServerSettings, OverviewServerSettings, RoleServerSettings,
+            AuditLogServerSettings, BanServerSettings, CategoryServerSettings,
+            DiscoverServerSettings, EmojiServerSettings, InviteServerSettings,
+            OverviewServerSettings, RoleServerSettings,
         },
         stoat_scrollbar, use_modals,
     },
@@ -113,7 +114,7 @@ impl Component for ServerSettings {
                                     .child(settings_category(
                                         self.server.read().name.to_uppercase(),
                                         &theme,
-                                        &[ServerSettingsPage::Overview, ServerSettingsPage::Categories],
+                                        &[ServerSettingsPage::Overview, ServerSettingsPage::Categories, ServerSettingsPage::Discover],
                                     ))
                                     .child(settings_category(
                                         "CUSTOMISATION",
@@ -226,6 +227,12 @@ impl Component for ServerSettings {
                                                 }
                                                 ServerSettingsPage::Categories => {
                                                     CategoryServerSettings {
+                                                        server: self.server.clone(),
+                                                    }
+                                                    .into_element()
+                                                }
+                                                ServerSettingsPage::Discover => {
+                                                    DiscoverServerSettings {
                                                         server: self.server.clone(),
                                                     }
                                                     .into_element()

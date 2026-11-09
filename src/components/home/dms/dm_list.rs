@@ -114,11 +114,12 @@ impl Component for DMList {
         });
 
         rect()
-            .spacing(4.)
             .padding((0., 0., 0., 8.))
             .child(
                 rect()
-                    .padding((24., 16.0))
+                    .padding((0., 15.0))
+                    .height(Size::px(64.))
+                    .main_align(Alignment::Center)
                     .font_size(16)
                     .font_weight(600)
                     .child("Conversations"),
@@ -214,7 +215,7 @@ impl Component for DMList {
                             .width(Size::Fill)
                             .main_align(Alignment::SpaceBetween)
                             .cross_align(Alignment::Center)
-                            .margin((28., 8., 8., 8.))
+                            .margin((27., 8., 8., 8.))
                             .child(
                                 label()
                                     .font_weight(500)
@@ -236,7 +237,12 @@ impl Component for DMList {
                                             modals.write().push_modal(ModalValue::CreateGroup);
                                         }
                                     })
-                                    .child(rect().size(Size::px(20.)).center().child(MaterialIcon::new(add()).size(Size::px(18.))))
+                                    .child(
+                                        rect()
+                                            .size(Size::px(20.))
+                                            .center()
+                                            .child(MaterialIcon::new(add()).size(Size::px(18.))),
+                                    ),
                             ),
                     )
                     .child(

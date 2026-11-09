@@ -63,6 +63,9 @@ impl Component for Textbox {
         let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
         let slowmodes = radio.slice(AppChannel::Slowmodes, |state| &state.slowmodes);
         let members = radio.slice(AppChannel::Members, |state| &state.members);
+        let unreads = radio.slice_mut(AppChannel::ChannelUnreads, |state| {
+            &mut state.channel_unreads
+        });
 
         let theme = consume_material_theme();
         let holder = use_state(ParagraphHolder::default);
@@ -162,6 +165,7 @@ impl Component for Textbox {
             let users_last_message = users_last_message.clone();
 
             move || {
+                let mut unreads = unreads.clone();
                 let editor = editable.editor_mut();
                 let previous = editor.write().editor_history().clone();
                 let content = editor.read().to_string();
@@ -284,7 +288,7 @@ impl Component for Textbox {
                                 attachment_ids.push(file.id);
                             }
 
-                            http()
+                            if let Ok(message) = http()
                                 .send_message(
                                     &channel_id,
                                     &v0::DataMessageSend {
@@ -299,7 +303,25 @@ impl Component for Textbox {
                                     },
                                 )
                                 .await
-                                .unwrap();
+                            {
+                                if let Some(unread) = unreads.write().get_mut(&channel_id) {
+                                    unread.last_id = Some(message.id);
+                                };
+                                // if let Some(
+                                //     v0::Channel::DirectMessage {
+                                //         last_message_id, ..
+                                //     }
+                                //     | v0::Channel::Group {
+                                //         last_message_id, ..
+                                //     }
+                                //     | v0::Channel::TextChannel {
+                                //         last_message_id, ..
+                                //     },
+                                // ) = channels.write().get_mut(&channel_id)
+                                // {
+                                //     *last_message_id = Some(message.id);
+                                // }
+                            }
                         }
                     });
                 }

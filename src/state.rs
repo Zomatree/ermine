@@ -23,8 +23,8 @@ use crate::{
     Config,
     components::material::outlined::{
         account_circle, color_lens, credit_card, fact_check, flag, gavel, info, insert_emoticon,
-        language, link, list, memory, mic, rate_review, science, smart_toy, tune, verified_user,
-        webhook,
+        language, link, list, memory, mic, public, rate_review, science, smart_toy, tune,
+        verified_user, webhook,
     },
     http,
     types::EventV1,
@@ -107,6 +107,7 @@ pub enum ServerSettingsPage {
     Invites,
     Bans,
     AuditLogs,
+    Discover,
 }
 
 impl ServerSettingsPage {
@@ -119,6 +120,7 @@ impl ServerSettingsPage {
             Self::Invites => "Invites",
             Self::Bans => "Bans",
             Self::AuditLogs => "Audit Logs",
+            Self::Discover => "Discover",
         }
     }
 
@@ -131,6 +133,7 @@ impl ServerSettingsPage {
             Self::Invites => link(),
             Self::Bans => gavel(),
             Self::AuditLogs => fact_check(),
+            Self::Discover => public(),
         }
     }
 }
@@ -893,19 +896,24 @@ pub async fn update_state(
                 }
             });
 
+            let mut unreads = station.write_channel(AppChannel::ChannelUnreads);
+            let user_id = unreads.user_id.clone().unwrap();
+
+            let unread = unreads
+                .channel_unreads
+                .entry(message.channel.clone())
+                .or_insert_with(|| ChannelUnread {
+                    last_id: None,
+                    mentions: HashSet::new(),
+                });
+
             if message
                 .mentions
                 .as_ref()
-                .is_some_and(|m| m.contains(station.peek().user_id.as_ref().unwrap()))
+                .is_some_and(|m| m.contains(&user_id))
             {
-                station
-                    .write_channel(AppChannel::ChannelUnreads)
-                    .channel_unreads
-                    .entry(message.channel.clone())
-                    .or_default()
-                    .mentions
-                    .insert(message.id);
-            }
+                unread.mentions.insert(user_id);
+            };
         }
         EventV1::ServerCreate {
             id,

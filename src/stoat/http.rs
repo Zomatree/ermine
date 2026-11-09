@@ -20,8 +20,8 @@ use stoat_models::v0::{
     DataCreateServerChannel, DataDefaultChannelPermissions, DataEditBot, DataEditChannel,
     DataEditEmoji, DataEditMessage, DataEditRole, DataEditRoleRanks, DataEditServer, DataEditUser,
     DataEditWebhook, DataJoinCall, DataMemberEdit, DataMessageSearch, DataMessageSend,
-    DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, Emoji,
-    FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
+    DataSendFriendRequest, DataSetRolePermissions, DataSetServerRolePermission, DiscoverRequest,
+    Emoji, FetchServerResponse, FlagResponse, Invite, InviteBotDestination, InviteJoinResponse,
     InviteResponse, MFAResponse, MFATicket, Member, Message, MultiFactorStatus, MutualResponse,
     NewRoleResponse, OptionsAuditLogQuery, OptionsBulkDelete, OptionsFetchAllMembers,
     OptionsFetchServer, OptionsFetchSettings, OptionsQueryMessages, OptionsServerDelete,
@@ -1099,6 +1099,24 @@ impl HttpClient {
             .send()
             .await
     }
+
+    pub async fn fetch_discover_status(&self, server_id: &str) -> Result<DiscoverRequest> {
+        self.request(Method::GET, format!("/servers/{server_id}/discover"))
+            .response()
+            .await
+    }
+
+    pub async fn add_to_discover(&self, server_id: &str) -> Result<()> {
+        self.request(Method::PUT, format!("/servers/{server_id}/discover"))
+            .send()
+            .await
+    }
+
+    pub async fn remove_from_discover(&self, server_id: &str) -> Result<()> {
+        self.request(Method::DELETE, format!("/servers/{server_id}/discover"))
+            .send()
+            .await
+    }
 }
 
 pub struct HttpRequest {
@@ -1251,6 +1269,8 @@ impl HttpRequest {
                     request.url().path(),
                     duration.as_secs_f32()
                 );
+
+                log::debug!("{}", std::backtrace::Backtrace::force_capture());
 
                 // TODO: switch to queue system to avoid re-hitting the ratelimit after the bucket is reset and too many requests are waiting
                 sleep(duration).await;

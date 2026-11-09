@@ -571,9 +571,6 @@ pub struct DragServer {
 
 impl Component for DragServer {
     fn render(&self) -> impl IntoElement {
-        let radio = use_radio(AppChannel::Servers);
-        let state = radio.read();
-
         let mut dragging = self.dragging;
 
         use_hook(|| {

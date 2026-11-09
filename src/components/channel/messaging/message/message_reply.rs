@@ -4,7 +4,7 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
+    AppChannel, CUSTOM_EMOJI_REGEX, OptionalReadable, SizeExt, calculate_server_permissions,
     components::{
         Avatar, MarkdownViewer, MaterialIcon, MessageModel, UserCard,
         material::filled::description, use_floating,
@@ -336,7 +336,20 @@ impl Component for MessageReply {
                                                 .font_slant(FontSlant::Italic),
                                         )
                                 }))
-                                .maybe_child(reply.content.clone().map(|content| {
+                                .maybe_child(reply.content.clone().map(|mut content| {
+                                    if content.len() > 128 {
+                                        for r in CUSTOM_EMOJI_REGEX.find_iter(&content) {
+                                            let start = r.start();
+
+                                            if start < 128 && start + r.len() > 128 {
+                                                content = format!("{}...", &content[..start]);
+                                                break;
+                                            }
+                                        }
+
+                                        content = format!("{}...", &content[..128]);
+                                    };
+
                                     MarkdownViewer::new(content, server.clone())
                                         .max_lines(1)
                                         .text_overflow(TextOverflow::Ellipsis)
