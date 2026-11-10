@@ -53,8 +53,8 @@ impl Component for AppearanceSettings {
             |config| &mut config.theme.variant,
         );
         let code_theme = config.map(
-            |config| &config.theme.code_theme,
-            |config| &mut config.theme.code_theme,
+            |config| &config.code_theme,
+            |config| &mut config.code_theme,
         );
 
         let mut config = use_config();

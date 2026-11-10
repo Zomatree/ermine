@@ -161,7 +161,7 @@ impl Component for MarkdownViewer {
             .cursor_index(self.cursor_index)
             .cursor_style(self.cursor_style)
             .highlights(self.highlights.clone())
-            .holder(self.holder.clone())
+            // .holder(self.holder.clone())
             .event_handlers(self.event_handlers.clone())
             .cursor_color(0xFFFFFFFF);
 

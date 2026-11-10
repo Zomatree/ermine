@@ -281,21 +281,19 @@ impl Component for MessageReply {
                                         let member = member.clone();
                                         let server = server.as_ref().map(|s| s.read().clone());
 
-                                        spawn(async move {
-                                            let mut query = user_permissions_query(radio.clone())
-                                                .server(server);
-                                            let permissions =
-                                                calculate_server_permissions(&mut query).await;
+                                        let mut query = user_permissions_query(radio.clone())
+                                            .server(server);
+                                        let permissions =
+                                            calculate_server_permissions(&mut query);
 
-                                            floating.clone().set(Some(
-                                                UserCard {
-                                                    user,
-                                                    member,
-                                                    permissions,
-                                                }
-                                                .into_element(),
-                                            ));
-                                        });
+                                        floating.clone().set(Some(
+                                            UserCard {
+                                                user,
+                                                member,
+                                                permissions,
+                                            }
+                                            .into_element(),
+                                        ));
                                     }
                                 })
                                 .child(Avatar::new(user.clone().into_readable(), None, 14.))

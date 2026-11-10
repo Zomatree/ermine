@@ -171,10 +171,8 @@ impl Component for Client {
                         .member(member.clone())
                         .server(server);
 
-                    spawn(async move {
-                        let permissions = calculate_server_permissions(&mut query).await;
-                        user_profile_perms.set(Some((user, member, permissions)));
-                    });
+                    let permissions = calculate_server_permissions(&mut query);
+                    user_profile_perms.set(Some((user, member, permissions)));
                 } else {
                     user_profile_perms.set(None);
                 }

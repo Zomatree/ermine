@@ -33,8 +33,9 @@ impl Component for Category {
             .read()
             .channels
             .iter()
-            .filter_map(|channel_id| channels.read().get(channel_id).cloned())
-            .map(|channel| channel.into_readable())
+            .filter(|&channel_id| channels.read().contains_key(channel_id))
+            .cloned()
+            .map(|channel| radio.slice_current(move |state| state.channels.get(&channel).unwrap()).into_readable())
             .collect::<Vec<Readable<v0::Channel>>>();
 
         let is_expanded = use_memo({
@@ -158,19 +159,17 @@ impl Component for CategoryHeader {
                     let category_id = category_id.clone();
                     let radio = radio.clone();
 
-                    spawn(async move {
-                        let mut query = user_permissions_query(radio).server(server.clone());
+                    let mut query = user_permissions_query(radio).server(server.clone());
 
-                        let permissions = calculate_server_permissions(&mut query).await;
+                    let permissions = calculate_server_permissions(&mut query);
 
-                        ContextMenu::open(Menu::new().key(&category_id).child(
-                            CategoryContextMenu {
-                                server_id: server.id.clone(),
-                                category_id: category_id.clone(),
-                                current_permissions: permissions,
-                            },
-                        ));
-                    });
+                    ContextMenu::open(Menu::new().key(&category_id).child(
+                        CategoryContextMenu {
+                            server_id: server.id.clone(),
+                            category_id: category_id.clone(),
+                            current_permissions: permissions,
+                        },
+                    ));
                 }
             })
             .child(

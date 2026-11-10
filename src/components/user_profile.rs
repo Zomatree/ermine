@@ -566,29 +566,28 @@ impl Component for ProfileButtons {
                         let radio = radio.clone();
 
                         move |_| {
-                            let user = user.clone();
+                            let user_id = user.id.clone();
+
                             let member = member.as_ref().map(|member| member.read().clone());
-                            let radio = radio.clone();
 
-                            spawn(async move {
-                                let mut query = user_permissions_query(radio).user(user.clone());
+                            let mut query = user_permissions_query(radio.clone()).user(user.clone());
 
-                                let server_id = if let Some(member) = member {
-                                    query = query.member(member.clone());
-                                    Some(member.id.server)
-                                } else {
-                                    None
-                                };
+                            let server_id = if let Some(member) = member {
+                                query = query.member(member.clone());
+                                Some(member.id.server)
+                            } else {
+                                None
+                            };
 
-                                let permissions = calculate_server_permissions(&mut query).await;
-                                ContextMenu::open(Menu::new().key(&user.id).child(
-                                    UserContextMenu {
-                                        user_id: user.id,
-                                        server_id,
-                                        permissions,
-                                    },
-                                ));
-                            });
+                            let permissions = calculate_server_permissions(&mut query);
+
+                            ContextMenu::open(Menu::new().key(&user.id).child(
+                                UserContextMenu {
+                                    user_id: user_id,
+                                    server_id,
+                                    permissions,
+                                },
+                            ));
                         }
                     })
                     .corner_radius(40.)

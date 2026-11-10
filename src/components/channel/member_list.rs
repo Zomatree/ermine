@@ -442,21 +442,19 @@ impl Component for MemberListMember {
                             let server = server.as_ref().map(|s| s.read().clone());
                             let channel = channel.read().clone();
 
-                            spawn(async move {
-                                let mut query = user_permissions_query(radio.clone())
-                                    .server(server)
-                                    .channel(channel);
-                                let permissions = calculate_server_permissions(&mut query).await;
+                            let mut query = user_permissions_query(radio.clone())
+                                .server(server)
+                                .channel(channel);
+                            let permissions = calculate_server_permissions(&mut query);
 
-                                floating.clone().set(Some(
-                                    UserCard {
-                                        user,
-                                        member,
-                                        permissions,
-                                    }
-                                    .into_element(),
-                                ))
-                            });
+                            floating.clone().set(Some(
+                                UserCard {
+                                    user,
+                                    member,
+                                    permissions,
+                                }
+                                .into_element(),
+                            ))
                         }
                     })
                     .child(
@@ -479,21 +477,19 @@ impl Component for MemberListMember {
                                     let channel = channel.read().clone();
                                     let radio = radio.clone();
 
-                                    spawn(async move {
-                                        let mut query = user_permissions_query(radio)
-                                            .user(user.clone())
-                                            .server(server.clone()).channel(channel);
-                                        let permissions =
-                                            calculate_server_permissions(&mut query).await;
+                                    let mut query = user_permissions_query(radio)
+                                        .user(user.clone())
+                                        .server(server.clone()).channel(channel);
+                                    let permissions =
+                                        calculate_server_permissions(&mut query);
 
-                                        ContextMenu::open(Menu::new().key(&user.id).child(
-                                            UserContextMenu {
-                                                user_id: user.id.clone(),
-                                                server_id: server.map(|s| s.id),
-                                                permissions,
-                                            },
-                                        ));
-                                    });
+                                    ContextMenu::open(Menu::new().key(&user.id).child(
+                                        UserContextMenu {
+                                            user_id: user.id.clone(),
+                                            server_id: server.map(|s| s.id),
+                                            permissions,
+                                        },
+                                    ));
                                 }
                             })
                             .child(

@@ -122,22 +122,20 @@ impl Component for Message {
                 let member = member.as_ref().map(|m| m.read().clone());
                 let server = server.as_ref().map(|s| s.read().clone());
 
-                spawn(async move {
-                    let mut query = user_permissions_query(radio.clone())
-                        .user(user.clone())
-                        .member(member.clone())
-                        .server(server);
-                    let permissions = calculate_server_permissions(&mut query).await;
+                let mut query = user_permissions_query(radio.clone())
+                    .user(user.clone())
+                    .member(member.clone())
+                    .server(server);
+                let permissions = calculate_server_permissions(&mut query);
 
-                    floating.clone().set(Some(
-                        UserCard {
-                            user: user.into_readable(),
-                            member: member.map(|m| m.into_readable()),
-                            permissions,
-                        }
-                        .into_element(),
-                    ));
-                });
+                floating.clone().set(Some(
+                    UserCard {
+                        user: user.into_readable(),
+                        member: member.map(|m| m.into_readable()),
+                        permissions,
+                    }
+                    .into_element(),
+                ));
             }
         };
 
@@ -195,25 +193,22 @@ impl Component for Message {
                                                 let server = server.clone();
                                                 let radio = radio.clone();
 
-                                                spawn(async move {
-                                                    let mut query = user_permissions_query(radio)
-                                                        .user(user.clone());
+                                                let mut query = user_permissions_query(radio)
+                                                    .user(user.clone());
 
-                                                    if let Some(server) = &server {
-                                                        query = query.server(server.read().clone());
-                                                    };
+                                                if let Some(server) = &server {
+                                                    query = query.server(server.read().clone());
+                                                };
 
-                                                    let permissions =
-                                                        calculate_server_permissions(&mut query)
-                                                            .await;
-                                                    ContextMenu::open(Menu::new().key(&user.id).child(
-                                                        UserContextMenu {
-                                                            user_id: user.id.clone(),
-                                                            server_id,
-                                                            permissions,
-                                                        },
-                                                    ));
-                                                });
+                                                let permissions =
+                                                    calculate_server_permissions(&mut query);
+                                                ContextMenu::open(Menu::new().key(&user.id).child(
+                                                    UserContextMenu {
+                                                        user_id: user.id.clone(),
+                                                        server_id,
+                                                        permissions,
+                                                    },
+                                                ));
                                             }
                                         })
                                         .child(Avatar::new(

@@ -132,12 +132,10 @@ impl Component for Textbox {
                     members.read();
                 }
 
-                spawn(async move {
-                    let mut query = user_permissions_query(radio.clone()).channel(channel);
+                let mut query = user_permissions_query(radio.clone()).channel(channel);
 
-                    let value = calculate_channel_permissions(&mut query).await;
-                    permissions.clone().set(value);
-                });
+                let value = calculate_channel_permissions(&mut query);
+                permissions.clone().set(value);
             }
         });
 
@@ -307,20 +305,6 @@ impl Component for Textbox {
                                 if let Some(unread) = unreads.write().get_mut(&channel_id) {
                                     unread.last_id = Some(message.id);
                                 };
-                                // if let Some(
-                                //     v0::Channel::DirectMessage {
-                                //         last_message_id, ..
-                                //     }
-                                //     | v0::Channel::Group {
-                                //         last_message_id, ..
-                                //     }
-                                //     | v0::Channel::TextChannel {
-                                //         last_message_id, ..
-                                //     },
-                                // ) = channels.write().get_mut(&channel_id)
-                                // {
-                                //     *last_message_id = Some(message.id);
-                                // }
                             }
                         }
                     });

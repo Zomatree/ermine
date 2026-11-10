@@ -39,8 +39,6 @@ pub struct ThemeConfig {
     pub contrast: f64,
     #[serde(default = "default_theme_source")]
     pub theme_source: u32,
-    #[serde(default = "default_code_theme")]
-    pub code_theme: String,
 }
 
 impl Default for ThemeConfig {
@@ -50,7 +48,6 @@ impl Default for ThemeConfig {
             variant: Default::default(),
             contrast: 0.0,
             theme_source: default_theme_source(),
-            code_theme: default_code_theme(),
         }
     }
 }
@@ -97,6 +94,8 @@ pub struct Config {
     pub drafts: HashMap<String, String>,
     #[serde(default)]
     pub audio: AudioConfig,
+    #[serde(default = "default_code_theme")]
+    pub code_theme: String,
 }
 
 impl Default for Config {
@@ -111,6 +110,7 @@ impl Default for Config {
             theme: Default::default(),
             drafts: Default::default(),
             audio: Default::default(),
+            code_theme: default_code_theme(),
         }
     }
 }

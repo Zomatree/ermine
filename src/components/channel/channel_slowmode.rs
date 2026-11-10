@@ -32,13 +32,11 @@ impl Component for ChannelSlowmode {
                 let radio = radio.clone();
                 let channel = channel.clone();
 
-                spawn(async move {
-                    let mut query =
-                        user_permissions_query(radio.clone()).channel(channel.read().clone());
+                let mut query =
+                    user_permissions_query(radio.clone()).channel(channel.read().clone());
 
-                    let value = calculate_channel_permissions(&mut query).await;
-                    permissions.clone().set(value);
-                });
+                let value = calculate_channel_permissions(&mut query);
+                permissions.clone().set(value);
             }
         });
 

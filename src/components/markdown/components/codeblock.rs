@@ -23,7 +23,7 @@ impl Component for Codeblock {
         let ts = consume_root_context::<ThemeSet>();
         let ps = consume_root_context::<SyntaxSet>();
 
-        let code_theme = ts.themes[&config.read().theme.code_theme].clone();
+        let code_theme = ts.themes[&config.read().code_theme].clone();
 
         let deps = use_reactive(&(self.code.clone(), self.language.clone(), code_theme.clone()));
 

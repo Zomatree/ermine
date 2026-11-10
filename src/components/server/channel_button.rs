@@ -2,7 +2,7 @@ use std::ops::Not;
 
 use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission, PermissionValue};
+use stoat_permissions::{ChannelPermission};
 
 use crate::{
     AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
@@ -16,7 +16,8 @@ use crate::{
         },
         use_floating, use_modals,
     },
-    consume_material_theme, get_unread_badge, http, is_channel_muted, user_permissions_query,
+    consume_material_theme, get_unread_badge, http, is_channel_muted,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -45,65 +46,85 @@ impl Component for ChannelButton {
 
         let mut hovering = use_state(|| false);
 
-        let channel = use_memo({
-            let channel = self.channel.clone();
-            move || channel.read().clone()
-        });
+        // let channel = use_memo({
+        //     let channel = self.channel.clone();
+        //     move || channel.read().clone()
+        // });
 
-        let unread = use_memo({
-            let channel = channel.clone();
-            move || unreads.read().get(channel.read().id()).cloned()
-        });
+        // let unread = use_memo({
+        //     let channel = channel.clone();
+        //     move || unreads.read().get(channel.read().id()).cloned()
+        // });
 
-        let muted = use_memo({
-            let channel = channel.clone();
-            let mutes = mutes.into_readable();
-            move || is_channel_muted(channel.read().id(), &mutes)
-        });
+        let unread = unreads.read().get(self.channel.read().id()).cloned();
 
-        let unread_badge = use_memo({
-            let channel = channel.clone();
-            let muted = muted.clone();
+        // let muted = use_memo({
+        //     let channel = channel.clone();
+        //     let mutes = mutes.into_readable();
+        //     move || is_channel_muted(channel.read().id(), &mutes)
+        // });
 
-            move || {
-                let unread = unread.read().clone()?;
+        let muted = is_channel_muted(self.channel.read().id(), &mutes.into_readable());
 
-                let badge = get_unread_badge(&channel.read(), &unread)?;
+        // let unread_badge = use_memo({
+        //     let channel = channel.clone();
+        //     let muted = muted.clone();
 
-                if muted() && !matches!(badge, NotificationBadge::Mentions(_)) {
-                    return None;
-                };
+        //     move || {
+        //         let unread = unread.read().clone()?;
 
-                Some(badge)
+        //         let badge = get_unread_badge(&channel.read(), &unread)?;
+
+        //         if muted() && !matches!(badge, NotificationBadge::Mentions(_)) {
+        //             return None;
+        //         };
+
+        //         Some(badge)
+        //     }
+        // });
+
+        let unread_badge = {
+            if let Some(unread) = unread.clone()
+                && let Some(badge) = get_unread_badge(&self.channel.read(), &unread)
+            {
+                if muted && !matches!(badge, NotificationBadge::Mentions(_)) {
+                    None
+                } else {
+                    Some(badge)
+                }
+            } else {
+                None
             }
-        });
+        };
 
         let selected = selected
             .read()
             .as_ref()
-            .is_some_and(|(id, _)| id == channel.read().id());
+            .is_some_and(|(id, _)| id == self.channel.read().id());
 
-        let mut permissions = use_state(|| PermissionValue::from_raw(0));
+        // let permissions = use_side_effect_value({
+        //     let channel = self.channel.clone();
 
-        use_side_effect({
-            move || {
-                spawn(async move {
-                    let channel = channel.read();
+        //     move || {
+        //         let mut query = user_permissions_query(radio).channel(channel.read().clone());
 
-                    let mut query = user_permissions_query(radio).channel(channel.clone());
+        //         calculate_channel_permissions(&mut query)
+        //     }
+        // });
 
-                    permissions.set(calculate_channel_permissions(&mut query).await);
-                });
-            }
-        });
+        let permissions = {
+            let mut query = user_permissions_query(radio).channel(self.channel.read().clone());
 
-        let is_current_voice = room.is_channel(channel.read().id());
+            calculate_channel_permissions(&mut query)
+        };
 
-        let color = if muted() && !selected {
+        let is_current_voice = room.is_channel(self.channel.read().id());
+
+        let color = if muted && !selected {
             theme.md.outline_variant
         } else if selected {
             theme.md.on_primary_container
-        } else if unread_badge.read().is_some() || is_current_voice {
+        } else if unread_badge.is_some() || is_current_voice {
             theme.md.on_surface
         } else {
             theme.md.outline
@@ -132,7 +153,7 @@ impl Component for ChannelButton {
                         ContextMenu::open_from_down(Menu::new().key(&channel_id).child(
                             ChannelContextMenu {
                                 channel_id: channel_id.clone(),
-                                current_permissions: permissions(),
+                                current_permissions: permissions,
                             }
                         ));
                     }
@@ -179,7 +200,7 @@ impl Component for ChannelButton {
                                 .child(
                                     MaterialIcon::new(
                                         if matches!(
-                                            &*channel.read(),
+                                            &*self.channel.read(),
                                             v0::Channel::TextChannel { voice: Some(_), .. }
                                         ) {
                                             headset_mic()
@@ -192,7 +213,7 @@ impl Component for ChannelButton {
                                 )
                                 .child(
                                     label()
-                                        .text(channel.read().name().unwrap().to_string())
+                                        .text(self.channel.read().name().unwrap().to_string())
                                         .text_overflow(TextOverflow::Ellipsis)
                                         .width(Size::flex(1.))
                                         .font_weight(500)
@@ -200,7 +221,7 @@ impl Component for ChannelButton {
                                 )
                                 .maybe_child(
                                     unread_badge
-                                        .read()
+                                        // .read()
                                         .filter(|_| !hovering() && !selected)
                                         .map(|badge| match badge {
                                             NotificationBadge::Mentions(count) => rect()
@@ -224,13 +245,11 @@ impl Component for ChannelButton {
                                         }),
                                 )
                                 .maybe_child(hovering().then(|| {
-                                    let perms = permissions();
-
                                     rect()
                                         .horizontal()
                                         .spacing(4.)
                                         .maybe_child(
-                                            perms
+                                            permissions
                                                 .has_channel_permission(ChannelPermission::InviteOthers)
                                                 .then(|| {
                                                     StoatTooltip::new(
@@ -278,7 +297,7 @@ impl Component for ChannelButton {
                                                 ChannelPermission::ManageRole,
                                             ]
                                             .iter()
-                                            .any(|&p| perms.has_channel_permission(p)))
+                                            .any(|&p| permissions.has_channel_permission(p)))
                                             .then(|| {
                                                 StoatTooltip::new(
                                                     label()
@@ -368,25 +387,21 @@ impl Component for VoiceParticipant {
 
                 move |_| {
                     if let Some(user) = user.clone() {
-                        let member = member.clone();
-                        let server = server.read().clone();
+                        let mut query = user_permissions_query(radio.clone())
+                            .user(user.clone())
+                            .member(member.clone())
+                            .server(server.read().clone());
 
-                        spawn(async move {
-                            let mut query = user_permissions_query(radio.clone())
-                                .user(user.clone())
-                                .member(member.clone())
-                                .server(server);
-                            let permissions = calculate_server_permissions(&mut query).await;
+                        let permissions = calculate_server_permissions(&mut query);
 
-                            floating.set(Some(
-                                UserCard {
-                                    user: user.into_readable(),
-                                    member: member.clone().map(|m| m.into_readable()),
-                                    permissions,
-                                }
-                                .into_element(),
-                            ));
-                        });
+                        floating.set(Some(
+                            UserCard {
+                                user: user.into_readable(),
+                                member: member.clone().map(|m| m.into_readable()),
+                                permissions,
+                            }
+                            .into_element(),
+                        ));
                     };
                 }
             })

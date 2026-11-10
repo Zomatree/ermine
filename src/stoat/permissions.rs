@@ -6,13 +6,12 @@ use stoat_permissions::{
     RelationshipStatus, UserPermission,
 };
 
-use crate::{AppChannel, AppState, HttpClient, http};
+use crate::{AppChannel, AppState};
 
 /// Stores all relavent info for a permission query.
 #[derive(Clone)]
 pub struct PermissionQuery {
     state: Radio<AppState, AppChannel>,
-    http: HttpClient,
 
     perspective: User,
     user: Option<User>,
@@ -25,10 +24,9 @@ impl PermissionQuery {
     /// Creates an instance of [`PermissionQuery`].
     ///
     /// You should use [`user_permissions_query`] over this in most cases.
-    pub fn new(state: Radio<AppState, AppChannel>, http: HttpClient, perspective: User) -> Self {
+    pub fn new(state: Radio<AppState, AppChannel>, perspective: User) -> Self {
         Self {
             state,
-            http,
             perspective,
             user: None,
             channel: None,
@@ -65,17 +63,17 @@ impl PermissionQuery {
         self
     }
 
-    async fn are_we_privileged(&mut self) -> bool {
+    fn are_we_privileged(&mut self) -> bool {
         self.perspective.privileged
     }
 
     /// Is our perspective user a bot?
-    async fn are_we_a_bot(&mut self) -> bool {
+    fn are_we_a_bot(&mut self) -> bool {
         self.perspective.bot.is_some()
     }
 
     /// Is our perspective user and the currently selected user the same?
-    async fn are_the_users_same(&mut self) -> bool {
+    fn are_the_users_same(&mut self) -> bool {
         if let Some(other_user) = &self.user {
             self.perspective.id == other_user.id
         } else {
@@ -84,7 +82,7 @@ impl PermissionQuery {
     }
 
     /// Get the relationship with have with the currently selected user
-    async fn user_relationship(&mut self) -> RelationshipStatus {
+    fn user_relationship(&mut self) -> RelationshipStatus {
         if let Some(other_user) = &self.user {
             if self.perspective.id == other_user.id {
                 return RelationshipStatus::User;
@@ -121,7 +119,7 @@ impl PermissionQuery {
     }
 
     /// Whether the currently selected user is a bot
-    async fn user_is_bot(&mut self) -> bool {
+    fn user_is_bot(&mut self) -> bool {
         if let Some(other_user) = &self.user {
             other_user.bot.is_some()
         } else {
@@ -129,14 +127,14 @@ impl PermissionQuery {
         }
     }
 
-    async fn have_mutual_connection(&mut self) -> bool {
+    fn have_mutual_connection(&mut self) -> bool {
         true
     }
 
     // * For calculating server permission
 
     /// Is our perspective user the server's owner?
-    async fn are_we_server_owner(&mut self) -> bool {
+    fn are_we_server_owner(&mut self) -> bool {
         if let Some(server) = &self.server {
             server.owner == self.perspective.id
         } else {
@@ -145,7 +143,7 @@ impl PermissionQuery {
     }
 
     /// Is our perspective user a member of the server?
-    async fn are_we_a_member(&mut self) -> bool {
+    fn are_we_a_member(&mut self) -> bool {
         if let Some(server) = &self.server {
             let slice = self
                 .state
@@ -163,13 +161,6 @@ impl PermissionQuery {
                 self.member = Some(member);
 
                 true
-            } else if let Ok(member) = self
-                .http
-                .fetch_member(&server.id, &self.perspective.id)
-                .await
-            {
-                self.member = Some(member);
-                true
             } else {
                 false
             }
@@ -179,7 +170,7 @@ impl PermissionQuery {
     }
 
     /// Get default server permission
-    async fn get_default_server_permissions(&mut self) -> u64 {
+    fn get_default_server_permissions(&mut self) -> u64 {
         if let Some(server) = &self.server {
             server.default_permissions as u64
         } else {
@@ -188,7 +179,7 @@ impl PermissionQuery {
     }
 
     /// Get the ordered role overrides (from lowest to highest) for this member in this server
-    async fn get_our_server_role_overrides(&mut self) -> Vec<Override> {
+    fn get_our_server_role_overrides(&mut self) -> Vec<Override> {
         if let Some(server) = &self.server {
             let member_roles = self
                 .member
@@ -214,7 +205,7 @@ impl PermissionQuery {
     }
 
     /// Is our perspective user timed out on this server?
-    async fn are_we_timed_out(&mut self) -> bool {
+    fn are_we_timed_out(&mut self) -> bool {
         if let Some(member) = &self.member {
             member.timeout.is_some()
         } else {
@@ -223,19 +214,19 @@ impl PermissionQuery {
     }
 
     /// Is the member muted?
-    async fn do_we_have_publish_overwrites(&mut self) -> bool {
+    fn do_we_have_publish_overwrites(&mut self) -> bool {
         self.member.as_ref().is_none_or(|member| member.can_publish)
     }
 
     /// Is the member deafend?
-    async fn do_we_have_receive_overwrites(&mut self) -> bool {
+    fn do_we_have_receive_overwrites(&mut self) -> bool {
         self.member.as_ref().is_none_or(|member| member.can_receive)
     }
 
     // * For calculating channel permission
 
     /// Get the type of the channel
-    async fn get_channel_type(&mut self) -> ChannelType {
+    fn get_channel_type(&mut self) -> ChannelType {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::DirectMessage { .. } => ChannelType::DirectMessage,
@@ -250,7 +241,7 @@ impl PermissionQuery {
 
     /// Get the default channel permissions
     /// Group channel defaults should be mapped to an allow-only override
-    async fn get_default_channel_permissions(&mut self) -> Override {
+    fn get_default_channel_permissions(&mut self) -> Override {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::Group { permissions, .. } => Override {
@@ -269,7 +260,7 @@ impl PermissionQuery {
     }
 
     /// Get the ordered role overrides (from lowest to highest) for this member in this channel
-    async fn get_our_channel_role_overrides(&mut self) -> Vec<Override> {
+    fn get_our_channel_role_overrides(&mut self) -> Vec<Override> {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::TextChannel {
@@ -307,7 +298,7 @@ impl PermissionQuery {
     }
 
     /// Do we own this group or saved messages channel if it is one of those?
-    async fn do_we_own_the_channel(&mut self) -> bool {
+    fn do_we_own_the_channel(&mut self) -> bool {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::Group { owner, .. } => owner == &self.perspective.id,
@@ -320,7 +311,7 @@ impl PermissionQuery {
     }
 
     /// Are we a recipient of this channel?
-    async fn are_we_part_of_the_channel(&mut self) -> bool {
+    fn are_we_part_of_the_channel(&mut self) -> bool {
         if let Some(Channel::DirectMessage { recipients, .. } | Channel::Group { recipients, .. }) =
             &self.channel
         {
@@ -332,7 +323,7 @@ impl PermissionQuery {
 
     /// Set the current user as the recipient of this channel
     /// (this will only ever be called for DirectMessage channels, use unimplemented!() for other code paths)
-    async fn set_recipient_as_user(&mut self) {
+    fn set_recipient_as_user(&mut self) {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::DirectMessage { recipients, .. } => {
@@ -345,8 +336,6 @@ impl PermissionQuery {
 
                     if let Some(user) = slice.read().get(recipient_id).cloned() {
                         self.user.replace(user);
-                    } else if let Ok(user) = self.http.fetch_user(recipient_id).await {
-                        self.user.replace(user);
                     }
                 }
                 _ => unimplemented!(),
@@ -356,7 +345,7 @@ impl PermissionQuery {
 
     /// Set the current server as the server owning this channel
     /// (this will only ever be called for server channels, use unimplemented!() for other code paths)
-    async fn set_server_from_channel(&mut self) {
+    fn set_server_from_channel(&mut self) {
         if let Some(channel) = &self.channel {
             match channel {
                 Channel::TextChannel { server, .. } => {
@@ -389,21 +378,21 @@ pub fn user_permissions_query(state: Radio<AppState, AppChannel>) -> PermissionQ
         .read()
         .cloned();
 
-    PermissionQuery::new(state, http(), user)
+    PermissionQuery::new(state, user)
 }
 
 /// Calculate permissions against a user
-pub async fn calculate_user_permissions(query: &mut PermissionQuery) -> PermissionValue {
-    if query.are_we_privileged().await {
+pub fn calculate_user_permissions(query: &mut PermissionQuery) -> PermissionValue {
+    if query.are_we_privileged() {
         return u64::MAX.into();
     }
 
-    if query.are_the_users_same().await {
+    if query.are_the_users_same() {
         return u64::MAX.into();
     }
 
     let mut permissions = 0_u64;
-    match query.user_relationship().await {
+    match query.user_relationship() {
         RelationshipStatus::Friend => return u64::MAX.into(),
         RelationshipStatus::Blocked | RelationshipStatus::BlockedOther => {
             return (UserPermission::Access as u64).into();
@@ -414,10 +403,10 @@ pub async fn calculate_user_permissions(query: &mut PermissionQuery) -> Permissi
         _ => {}
     }
 
-    if query.have_mutual_connection().await {
+    if query.have_mutual_connection() {
         permissions = UserPermission::Access as u64 + UserPermission::ViewProfile as u64;
 
-        if query.user_is_bot().await || query.are_we_a_bot().await {
+        if query.user_is_bot() || query.are_we_a_bot() {
             permissions += UserPermission::SendMessage as u64;
         }
 
@@ -434,31 +423,31 @@ pub async fn calculate_user_permissions(query: &mut PermissionQuery) -> Permissi
 }
 
 /// Calculate permissions against a server
-pub async fn calculate_server_permissions(query: &mut PermissionQuery) -> PermissionValue {
-    if query.are_we_privileged().await || query.are_we_server_owner().await {
+pub fn calculate_server_permissions(query: &mut PermissionQuery) -> PermissionValue {
+    if query.are_we_privileged() || query.are_we_server_owner() {
         return ChannelPermission::GrantAllSafe.into();
     }
 
-    if !query.are_we_a_member().await {
+    if !query.are_we_a_member() {
         return 0_u64.into();
     }
 
-    let mut permissions: PermissionValue = query.get_default_server_permissions().await.into();
+    let mut permissions: PermissionValue = query.get_default_server_permissions().into();
 
-    for role_override in query.get_our_server_role_overrides().await {
+    for role_override in query.get_our_server_role_overrides() {
         permissions.apply(role_override);
     }
 
-    if !query.do_we_have_publish_overwrites().await {
+    if !query.do_we_have_publish_overwrites() {
         permissions.revoke(ChannelPermission::Speak as u64);
         permissions.revoke(ChannelPermission::Video as u64);
     }
 
-    if !query.do_we_have_receive_overwrites().await {
+    if !query.do_we_have_receive_overwrites() {
         permissions.revoke(ChannelPermission::Listen as u64);
     }
 
-    if query.are_we_timed_out().await {
+    if query.are_we_timed_out() {
         permissions.restrict(*ALLOW_IN_TIMEOUT);
     }
 
@@ -466,24 +455,24 @@ pub async fn calculate_server_permissions(query: &mut PermissionQuery) -> Permis
 }
 
 /// Calculate permissions against a channel
-pub async fn calculate_channel_permissions(query: &mut PermissionQuery) -> PermissionValue {
-    if query.are_we_privileged().await {
+pub fn calculate_channel_permissions(query: &mut PermissionQuery) -> PermissionValue {
+    if query.are_we_privileged() {
         return ChannelPermission::GrantAllSafe.into();
     }
 
-    match query.get_channel_type().await {
+    match query.get_channel_type() {
         ChannelType::SavedMessages => {
-            if query.do_we_own_the_channel().await {
+            if query.do_we_own_the_channel() {
                 DEFAULT_PERMISSION_SAVED_MESSAGES.into()
             } else {
                 0_u64.into()
             }
         }
         ChannelType::DirectMessage => {
-            if query.are_we_part_of_the_channel().await {
-                query.set_recipient_as_user().await;
+            if query.are_we_part_of_the_channel() {
+                query.set_recipient_as_user();
 
-                let permissions = calculate_user_permissions(query).await;
+                let permissions = calculate_user_permissions(query);
                 if permissions.has_user_permission(UserPermission::SendMessage) {
                     (*DEFAULT_PERMISSION_DIRECT_MESSAGE).into()
                 } else {
@@ -494,30 +483,30 @@ pub async fn calculate_channel_permissions(query: &mut PermissionQuery) -> Permi
             }
         }
         ChannelType::Group => {
-            if query.do_we_own_the_channel().await {
+            if query.do_we_own_the_channel() {
                 ChannelPermission::GrantAllSafe.into()
-            } else if query.are_we_part_of_the_channel().await {
+            } else if query.are_we_part_of_the_channel() {
                 (*DEFAULT_PERMISSION_VIEW_ONLY
-                    | query.get_default_channel_permissions().await.allow)
+                    | query.get_default_channel_permissions().allow)
                     .into()
             } else {
                 0_u64.into()
             }
         }
         ChannelType::ServerChannel => {
-            query.set_server_from_channel().await;
+            query.set_server_from_channel();
 
-            if query.are_we_server_owner().await {
+            if query.are_we_server_owner() {
                 ChannelPermission::GrantAllSafe.into()
-            } else if query.are_we_a_member().await {
-                let mut permissions = calculate_server_permissions(query).await;
-                permissions.apply(query.get_default_channel_permissions().await);
+            } else if query.are_we_a_member() {
+                let mut permissions = calculate_server_permissions(query);
+                permissions.apply(query.get_default_channel_permissions());
 
-                for role_override in query.get_our_channel_role_overrides().await {
+                for role_override in query.get_our_channel_role_overrides() {
                     permissions.apply(role_override);
                 }
 
-                if query.are_we_timed_out().await {
+                if query.are_we_timed_out() {
                     permissions.restrict(*ALLOW_IN_TIMEOUT);
                 }
 

@@ -72,41 +72,36 @@ impl Component for InviteBot {
             let user = user.clone();
 
             move || {
-                spawn({
-                    let channels = channels.clone();
-                    let user = user.clone();
+                let channels = channels.clone();
+                let user = user.clone();
 
-                    async move {
-                        let mut allowed = Vec::new();
+                let mut allowed = Vec::new();
 
-                        let channels = channels.read();
-                        let query = user_permissions_query(radio).user(user.read().cloned());
+                let channels = channels.read();
+                let query = user_permissions_query(radio).user(user.read().cloned());
 
-                        for channel in channels.values() {
-                            if matches!(channel, v0::Channel::Group { .. }) {
-                                let permissions = calculate_user_permissions(
-                                    &mut query.clone().channel(channel.clone()),
-                                )
-                                .await;
+                for channel in channels.values() {
+                    if matches!(channel, v0::Channel::Group { .. }) {
+                        let permissions = calculate_user_permissions(
+                            &mut query.clone().channel(channel.clone()),
+                        );
 
-                                if permissions.has_user_permission(UserPermission::Invite) {
-                                    let id = channel.id().to_string();
+                        if permissions.has_user_permission(UserPermission::Invite) {
+                            let id = channel.id().to_string();
 
-                                    allowed.push((
-                                        id.clone(),
-                                        radio
-                                            .slice(AppChannel::Channels, move |state| {
-                                                state.channels.get(&id).unwrap()
-                                            })
-                                            .into_readable(),
-                                    ));
-                                }
-                            }
+                            allowed.push((
+                                id.clone(),
+                                radio
+                                    .slice(AppChannel::Channels, move |state| {
+                                        state.channels.get(&id).unwrap()
+                                    })
+                                    .into_readable(),
+                            ));
                         }
-
-                        allowed_channels.set(allowed);
                     }
-                });
+                }
+
+                allowed_channels.set(allowed);
             }
         });
 
@@ -114,39 +109,34 @@ impl Component for InviteBot {
             let user = user.clone();
 
             move || {
-                spawn({
-                    let servers = servers.clone();
-                    let user = user.clone();
+                let servers = servers.clone();
+                let user = user.clone();
 
-                    async move {
-                        let mut allowed = Vec::new();
+                let mut allowed = Vec::new();
 
-                        let servers = servers.read();
-                        let query = user_permissions_query(radio).user(user.read().cloned());
+                let servers = servers.read();
+                let query = user_permissions_query(radio).user(user.read().cloned());
 
-                        for server in servers.values() {
-                            let permissions = calculate_server_permissions(
-                                &mut query.clone().server(server.clone()),
-                            )
-                            .await;
+                for server in servers.values() {
+                    let permissions = calculate_server_permissions(
+                        &mut query.clone().server(server.clone()),
+                    );
 
-                            if permissions.has_channel_permission(ChannelPermission::ManageServer) {
-                                let id = server.id.clone();
+                    if permissions.has_channel_permission(ChannelPermission::ManageServer) {
+                        let id = server.id.clone();
 
-                                allowed.push((
-                                    id.clone(),
-                                    radio
-                                        .slice(AppChannel::Servers, move |state| {
-                                            state.servers.get(&id).unwrap()
-                                        })
-                                        .into_readable(),
-                                ));
-                            }
-                        }
-
-                        allowed_servers.set(allowed);
+                        allowed.push((
+                            id.clone(),
+                            radio
+                                .slice(AppChannel::Servers, move |state| {
+                                    state.servers.get(&id).unwrap()
+                                })
+                                .into_readable(),
+                        ));
                     }
-                });
+                }
+
+                allowed_servers.set(allowed);
             }
         });
 

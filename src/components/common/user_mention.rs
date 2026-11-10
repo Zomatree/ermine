@@ -97,19 +97,17 @@ impl Component for UserMention {
                         let member = member.read().cloned().map(|m| m.into_readable());
                         let server = server.as_ref().map(|s| s.read().clone());
 
-                        spawn(async move {
-                            let mut query = user_permissions_query(radio.clone()).server(server);
-                            let permissions = calculate_server_permissions(&mut query).await;
+                        let mut query = user_permissions_query(radio.clone()).server(server);
+                        let permissions = calculate_server_permissions(&mut query);
 
-                            floating.set(Some(
-                                UserCard {
-                                    user: user.into_readable(),
-                                    member,
-                                    permissions,
-                                }
-                                .into_element(),
-                            ));
-                        });
+                        floating.set(Some(
+                            UserCard {
+                                user: user.into_readable(),
+                                member,
+                                permissions,
+                            }
+                            .into_element(),
+                        ));
                     };
                 }
             })

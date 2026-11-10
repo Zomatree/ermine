@@ -98,9 +98,7 @@ impl Component for Channel {
 
                 let mut query = user_permissions_query(radio.clone()).channel(channel);
 
-                spawn(async move {
-                    permissions.set(calculate_channel_permissions(&mut query).await);
-                });
+                permissions.set(calculate_channel_permissions(&mut query));
             }
         });
 

@@ -61,18 +61,16 @@ impl Component for DMButton {
                     let channel = channel.read().clone();
                     let radio = radio.clone();
 
-                    spawn(async move {
-                        let mut query = user_permissions_query(radio).channel(channel.clone());
+                    let mut query = user_permissions_query(radio).channel(channel.clone());
 
-                        let permissions = calculate_channel_permissions(&mut query).await;
+                    let permissions = calculate_channel_permissions(&mut query);
 
-                        ContextMenu::open(Menu::new().key(channel.id()).child(
-                            ChannelContextMenu {
-                                channel_id: channel.id().to_string(),
-                                current_permissions: permissions,
-                            },
-                        ));
-                    });
+                    ContextMenu::open(Menu::new().key(channel.id()).child(
+                        ChannelContextMenu {
+                            channel_id: channel.id().to_string(),
+                            current_permissions: permissions,
+                        },
+                    ));
                 }
             })
             .child(
