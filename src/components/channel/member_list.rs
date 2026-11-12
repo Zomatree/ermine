@@ -7,14 +7,13 @@ use freya::{
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, OptionalReadable, SizeExt, calculate_server_permissions,
+    AppChannel, OptionalReadable, SizeExt,
     components::{
         Avatar, MarkdownViewer, MaterialIcon, StoatButton, StoatButtonLayoutThemePartialExt,
         StoatTooltip, UserCard, UserContextMenu, file_image, material::filled::smart_toy,
         stoat_label, stoat_scrollbar, use_floating,
     },
     consume_material_theme, http, insert_user, map_optional_readable, member_display_color,
-    user_permissions_query,
 };
 
 #[derive(Clone)]
@@ -55,7 +54,8 @@ impl Component for MemberList {
 
         let users = radio.slice(AppChannel::Users, |state| &state.users);
         let exclude_offline = use_hook(|| {
-            self.server.as_ref()
+            self.server
+                .as_ref()
                 .is_some_and(|s| s.read().approximate_member_count > 1000)
         });
 
@@ -388,8 +388,6 @@ impl Component for MemberListMember {
         let theme = consume_material_theme();
         let floating = use_floating();
 
-        let radio = use_radio(AppChannel::Users);
-
         let role_color = use_memo({
             let server = self.server.clone();
             let member = self.member.clone();
@@ -433,28 +431,14 @@ impl Component for MemberListMember {
                     .on_press({
                         let user = self.user.clone();
                         let member = self.member.clone();
-                        let server = self.server.clone();
-                        let channel = self.channel.clone();
 
                         move |_| {
                             let user = user.clone();
                             let member = member.read().map(|m| m.clone().into_readable());
-                            let server = server.as_ref().map(|s| s.read().clone());
-                            let channel = channel.read().clone();
 
-                            let mut query = user_permissions_query(radio.clone())
-                                .server(server)
-                                .channel(channel);
-                            let permissions = calculate_server_permissions(&mut query);
-
-                            floating.clone().set(Some(
-                                UserCard {
-                                    user,
-                                    member,
-                                    permissions,
-                                }
-                                .into_element(),
-                            ))
+                            floating
+                                .clone()
+                                .set(Some(UserCard { user, member }.into_element()))
                         }
                     })
                     .child(
@@ -468,28 +452,16 @@ impl Component for MemberListMember {
                             .on_secondary_down({
                                 let user = self.user.clone();
                                 let server = self.server.clone();
-                                let channel = self.channel.clone();
-                                let radio = radio.clone();
 
                                 move |_| {
-                                    let user = user.read().clone();
-                                    let server = server.as_ref().map(|s| s.read().clone());
-                                    let channel = channel.read().clone();
-                                    let radio = radio.clone();
+                                    let user_id = user.read().id.clone();
+                                    let server_id = server.as_ref().map(|s| s.read().id.clone());
 
-                                    let mut query = user_permissions_query(radio)
-                                        .user(user.clone())
-                                        .server(server.clone()).channel(channel);
-                                    let permissions =
-                                        calculate_server_permissions(&mut query);
-
-                                    ContextMenu::open(Menu::new().key(&user.id).child(
-                                        UserContextMenu {
-                                            user_id: user.id.clone(),
-                                            server_id: server.map(|s| s.id),
-                                            permissions,
-                                        },
-                                    ));
+                                    ContextMenu::open(
+                                        Menu::new()
+                                            .key(&user_id)
+                                            .child(UserContextMenu { user_id, server_id }),
+                                    );
                                 }
                             })
                             .child(
@@ -565,13 +537,10 @@ impl Component for MemberListMember {
                                                 )
                                                 .position(AttachedPosition::Top)
                                                 .child(
-                                                    MarkdownViewer::new(
-                                                        text,
-                                                        self.server.clone(),
-                                                    )
-                                                    .font_size(11)
-                                                    .max_lines(1)
-                                                    .text_overflow(TextOverflow::Ellipsis),
+                                                    MarkdownViewer::new(text, self.server.clone())
+                                                        .font_size(11)
+                                                        .max_lines(1)
+                                                        .text_overflow(TextOverflow::Ellipsis),
                                                 )
                                             }),
                                     ),

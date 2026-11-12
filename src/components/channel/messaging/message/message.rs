@@ -5,7 +5,7 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions,
+    AppChannel, SizeExt,
     components::{
         Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip,
         SystemMessage, UserCard, UserContextMenu, file_image,
@@ -13,7 +13,6 @@ use crate::{
         use_floating,
     },
     consume_material_theme, get_channel_server, member_display_color, member_role_icon,
-    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -115,24 +114,15 @@ impl Component for Message {
             let floating = floating.clone();
             let user = self.message.user.clone();
             let member = self.message.member.clone();
-            let server = server.clone();
 
             move || {
                 let user = user.read().clone();
                 let member = member.as_ref().map(|m| m.read().clone());
-                let server = server.as_ref().map(|s| s.read().clone());
-
-                let mut query = user_permissions_query(radio.clone())
-                    .user(user.clone())
-                    .member(member.clone())
-                    .server(server);
-                let permissions = calculate_server_permissions(&mut query);
 
                 floating.clone().set(Some(
                     UserCard {
                         user: user.into_readable(),
                         member: member.map(|m| m.into_readable()),
-                        permissions,
                     }
                     .into_element(),
                 ));
@@ -181,32 +171,18 @@ impl Component for Message {
                                         })
                                         .on_secondary_down({
                                             let user = self.message.user.clone();
-                                            let server = server.clone();
                                             let server_id = server_id.clone();
-                                            let radio = radio.clone();
 
                                             move |e: Event<PressEventData>| {
                                                 e.stop_propagation();
 
-                                                let user = user.read().clone();
+                                                let user_id = user.read().id.clone();
                                                 let server_id = server_id.clone();
-                                                let server = server.clone();
-                                                let radio = radio.clone();
 
-                                                let mut query = user_permissions_query(radio)
-                                                    .user(user.clone());
-
-                                                if let Some(server) = &server {
-                                                    query = query.server(server.read().clone());
-                                                };
-
-                                                let permissions =
-                                                    calculate_server_permissions(&mut query);
-                                                ContextMenu::open(Menu::new().key(&user.id).child(
+                                                ContextMenu::open(Menu::new().key(&user_id).child(
                                                     UserContextMenu {
-                                                        user_id: user.id.clone(),
+                                                        user_id,
                                                         server_id,
-                                                        permissions,
                                                     },
                                                 ));
                                             }

@@ -164,6 +164,18 @@ impl PermissionQuery {
             } else {
                 false
             }
+        } else if let Some(member) = &self.member {
+            let slice = self
+                .state
+                .slice(AppChannel::Servers, |state| &state.servers);
+
+            if let Some(server) = slice.read().get(&member.id.server).cloned() {
+                self.server = Some(server);
+
+                true
+            } else {
+                false
+            }
         } else {
             false
         }
@@ -486,8 +498,7 @@ pub fn calculate_channel_permissions(query: &mut PermissionQuery) -> PermissionV
             if query.do_we_own_the_channel() {
                 ChannelPermission::GrantAllSafe.into()
             } else if query.are_we_part_of_the_channel() {
-                (*DEFAULT_PERMISSION_VIEW_ONLY
-                    | query.get_default_channel_permissions().allow)
+                (*DEFAULT_PERMISSION_VIEW_ONLY | query.get_default_channel_permissions().allow)
                     .into()
             } else {
                 0_u64.into()

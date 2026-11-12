@@ -8,9 +8,10 @@ use freya::{
     radio::use_radio,
 };
 use stoat_models::v0;
+use stoat_permissions::ChannelPermission;
 
 use crate::{
-    AppChannel, SelectedRole, ServerSettingsPage, SizeExt,
+    AppChannel, SelectedRole, ServerSettingsPage, SizeExt, calculate_server_permissions,
     components::{
         MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
@@ -27,6 +28,7 @@ use crate::{
     },
     consume_material_theme, settings_func,
     theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -66,7 +68,14 @@ impl Component for ServerSettings {
 
         let (opacity, offset) = anim.read().value();
 
-        let owns_server = &self.server.read().owner == &*user_id.read();
+        let server_ref = self.server.read();
+
+        let owns_server = &server_ref.owner == &*user_id.read();
+
+        let permissions = {
+            let mut query = user_permissions_query(radio).server(server_ref.clone());
+            calculate_server_permissions(&mut query)
+        };
 
         rect()
             .expanded()
@@ -111,28 +120,36 @@ impl Component for ServerSettings {
                                 rect()
                                     .padding((24., 16., 16., 16.))
                                     .spacing(15.)
-                                    .child(settings_category(
+                                    .maybe_child(settings_category(
                                         self.server.read().name.to_uppercase(),
                                         &theme,
-                                        &[ServerSettingsPage::Overview, ServerSettingsPage::Categories, ServerSettingsPage::Discover],
+                                        &[
+                                            Some(ServerSettingsPage::Overview),
+                                            permissions.has_channel_permission(ChannelPermission::ManageChannel).then_some(ServerSettingsPage::Categories),
+                                            owns_server.then_some(ServerSettingsPage::Discover)
+                                            ],
                                     ))
-                                    .child(settings_category(
+                                    .maybe_child(settings_category(
                                         "CUSTOMISATION",
                                         &theme,
-                                        &[ServerSettingsPage::Emojis],
+                                        &[
+                                            permissions.has_channel_permission(ChannelPermission::ManageCustomisation).then_some(ServerSettingsPage::Emojis)
+                                        ],
                                     ))
-                                    .child(settings_category(
+                                    .maybe_child(settings_category(
                                         "MODERATION",
                                         &theme,
-                                        &[ServerSettingsPage::AuditLogs],
+                                        &[
+                                            permissions.has_channel_permission(ChannelPermission::ViewAuditLogs).then_some(ServerSettingsPage::AuditLogs)
+                                        ],
                                     ))
-                                    .child(settings_category(
+                                    .maybe_child(settings_category(
                                         "USER MANAGEMENT",
                                         &theme,
                                         &[
-                                            ServerSettingsPage::Roles(None),
-                                            ServerSettingsPage::Invites,
-                                            ServerSettingsPage::Bans,
+                                            (permissions.has_channel_permission(ChannelPermission::ManageRole) || permissions.has_channel_permission(ChannelPermission::ManagePermissions)).then_some(ServerSettingsPage::Roles(None)),
+                                            permissions.has_channel_permission(ChannelPermission::ManageServer).then_some(ServerSettingsPage::Invites),
+                                            permissions.has_channel_permission(ChannelPermission::BanMembers).then_some(ServerSettingsPage::Bans),
                                         ],
                                     ))
                                     .maybe_child(owns_server.then(|| DeleteServerButton {
@@ -192,30 +209,26 @@ impl Component for ServerSettings {
                                                                         }
                                                                     }))
                                                     )
-                                                    .maybe_child(selected_role.is_some().then(
-                                                        || {
-                                                            MaterialIcon::new(chevron_right())
-                                                                .size(Size::px(14.))
-                                                                .color(theme.md.outline.as_argb_u32())
-                                                        },
-                                                    ))
+                                                    .maybe_child(selected_role.is_some().then(|| {
+                                                        MaterialIcon::new(chevron_right())
+                                                            .size(Size::px(14.))
+                                                            .color(theme.md.outline.as_argb_u32())
+                                                    }))
                                                     .maybe_child(selected_role.map(|role| {
-                                                                                                                label()
-                                                            .text(
-
-                                                        match role {
-                                                            SelectedRole::Default => {
-                                                                "Default Permissions".to_string()
-                                                            }
-                                                            SelectedRole::Role(id) => self
-                                                                .server
-                                                                .read()
-                                                                .roles
-                                                                .get(&id)
-                                                                .unwrap()
-                                                                .name
-                                                                .clone(),
-                                                        })
+                                                        label()
+                                                            .text(match role {
+                                                                SelectedRole::Default => {
+                                                                    "Default Permissions".to_string()
+                                                                }
+                                                                SelectedRole::Role(id) => self
+                                                                    .server
+                                                                    .read()
+                                                                    .roles
+                                                                    .get(&id)
+                                                                    .unwrap()
+                                                                    .name
+                                                                    .clone(),
+                                                            })
                                                     })),
                                             )
                                             .child(rect().offset_y(offset).opacity(opacity).child(match page {
@@ -338,25 +351,28 @@ impl Component for ServerSettingsButton {
 fn settings_category(
     title: impl Into<Cow<'static, str>>,
     theme: &Theme,
-    pages: &[ServerSettingsPage],
-) -> Rect {
-    rect()
-        .spacing(8.)
-        .child(
-            label()
-                .text(title)
-                .color(theme.md.outline.as_argb_u32())
-                .font_size(12)
-                .font_weight(FontWeight::BOLD)
-                .margin((0., 8.)),
-        )
-        .child(
-            rect().spacing(6.).children(
-                pages
-                    .into_iter()
-                    .map(|page| ServerSettingsButton { page: page.clone() }.into_element()),
-            ),
-        )
+    pages: &[Option<ServerSettingsPage>],
+) -> Option<Rect> {
+    pages.iter().any(|p| p.is_some()).then(|| {
+        rect()
+            .spacing(8.)
+            .child(
+                label()
+                    .text(title)
+                    .color(theme.md.outline.as_argb_u32())
+                    .font_size(12)
+                    .font_weight(FontWeight::BOLD)
+                    .margin((0., 8.)),
+            )
+            .child(
+                rect().spacing(6.).children(
+                    pages
+                        .into_iter()
+                        .flatten()
+                        .map(|page| ServerSettingsButton { page: page.clone() }.into_element()),
+                ),
+            )
+    })
 }
 
 #[derive(PartialEq)]

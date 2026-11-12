@@ -1,11 +1,16 @@
 use std::ops::Not;
 
-use freya::{prelude::*, radio::{use_radio, use_radio_station}};
+use freya::{
+    prelude::*,
+    radio::{use_radio, use_radio_station},
+};
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission};
+use stoat_permissions::ChannelPermission;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt, calculate_channel_permissions, components::{
+    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
+    calculate_channel_permissions,
+    components::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, UserCard,
         material::{
@@ -13,7 +18,9 @@ use crate::{
             outlined::{camera_alt, headset_mic, mic_off, screen_share},
         },
         use_floating, use_modals,
-    }, consume_material_theme, get_unread_badge, http, is_channel_muted, set_selected_channel, user_permissions_query,
+    },
+    consume_material_theme, get_unread_badge, http, is_channel_muted, set_selected_channel,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -98,16 +105,6 @@ impl Component for ChannelButton {
             .read()
             .as_ref()
             .is_some_and(|(id, _)| id == self.channel.read().id());
-
-        // let permissions = use_side_effect_value({
-        //     let channel = self.channel.clone();
-
-        //     move || {
-        //         let mut query = user_permissions_query(radio).channel(channel.read().clone());
-
-        //         calculate_channel_permissions(&mut query)
-        //     }
-        // });
 
         let permissions = {
             let mut query = user_permissions_query(radio).channel(self.channel.read().clone());
@@ -378,22 +375,13 @@ impl Component for VoiceParticipant {
             .on_press({
                 let user = user.clone();
                 let member = member.clone();
-                let server = self.server.clone();
 
                 move |_| {
                     if let Some(user) = user.clone() {
-                        let mut query = user_permissions_query(radio.clone())
-                            .user(user.clone())
-                            .member(member.clone())
-                            .server(server.read().clone());
-
-                        let permissions = calculate_server_permissions(&mut query);
-
                         floating.set(Some(
                             UserCard {
                                 user: user.into_readable(),
                                 member: member.clone().map(|m| m.into_readable()),
-                                permissions,
                             }
                             .into_element(),
                         ));

@@ -118,30 +118,12 @@ impl Component for Textbox {
             }
         });
 
-        let permissions = use_state(|| PermissionValue::from_raw(0));
+        let permissions = {
+            let mut query = user_permissions_query(radio).channel(self.channel.read().clone());
+            calculate_channel_permissions(&mut query)
+        };
 
-        use_side_effect({
-            let radio = radio.clone();
-            let channel = self.channel.clone();
-
-            move || {
-                let radio = radio.clone();
-                let channel = channel.read().clone();
-
-                if get_channel_server(&channel).is_some() {
-                    members.read();
-                }
-
-                let mut query = user_permissions_query(radio.clone()).channel(channel);
-
-                let value = calculate_channel_permissions(&mut query);
-                permissions.clone().set(value);
-            }
-        });
-
-        let can_send_messages = permissions
-            .read()
-            .has_channel_permission(ChannelPermission::SendMessage);
+        let can_send_messages = permissions.has_channel_permission(ChannelPermission::SendMessage);
 
         use_hook(|| a11y_id.request_focus());
 
@@ -337,7 +319,7 @@ impl Component for Textbox {
                     .on_sized(move |evt: Event<SizedEventData>| height.set(evt.area.height()))
                     .child(
                         if !can_send_messages
-                            || permissions().has_channel_permission(ChannelPermission::UploadFiles)
+                            || permissions.has_channel_permission(ChannelPermission::UploadFiles)
                         {
                             rect()
                                 .horizontal()
@@ -348,7 +330,7 @@ impl Component for Textbox {
                                     MaterialIcon::new(do_not_disturb())
                                         .size(Size::px(24.))
                                         .into_element()
-                                } else if permissions()
+                                } else if permissions
                                     .has_channel_permission(ChannelPermission::UploadFiles)
                                 {
                                     rect()

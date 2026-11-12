@@ -3,23 +3,21 @@ use std::rc::Rc;
 use freya::{prelude::*, radio::use_radio};
 use itertools::Itertools;
 use stoat_models::v0;
-use stoat_permissions::PermissionValue;
 
 use crate::{
-    AppChannel,
+    AppChannel, calculate_server_permissions,
     components::{
-        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined,
-        ProfilePronouns, ProfileRoles,
-        ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, row, use_floating,
+        ProfileBadges, ProfileBanner, ProfileBio, ProfileButtons, ProfileJoined, ProfilePronouns,
+        ProfileRoles, ProfileStatus, StoatButton, StoatButtonLayoutThemePartialExt, row,
+        use_floating,
     },
-    consume_material_theme, http,
+    consume_material_theme, http, user_permissions_query,
 };
 
 #[derive(PartialEq)]
 pub struct UserCard {
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
-    pub permissions: PermissionValue,
 }
 
 impl Component for UserCard {
@@ -27,11 +25,6 @@ impl Component for UserCard {
         let radio = use_radio(AppChannel::UserProfile);
         let open_profile = radio.slice_mut_current(|state| &mut state.user_profile);
         let theme = consume_material_theme();
-
-        let user = use_memo({
-            let user = self.user.clone();
-            move || user.read().clone()
-        });
 
         let mut profile = use_state(|| None);
 
@@ -53,9 +46,15 @@ impl Component for UserCard {
 
         let mut tiles = Vec::new();
 
-        let user_ref = user.read();
+        let user_ref = self.user.read();
         let member_ref = self.member.as_ref().map(|m| m.read());
 
+        let permissions = {
+            let mut query = user_permissions_query(radio)
+                .user(user_ref.clone())
+                .member(member_ref.as_ref().map(|m| (*m).clone()));
+            calculate_server_permissions(&mut query)
+        };
 
         if let Some(member) = &self.member
             && member_ref.as_ref().is_some_and(|m| !m.roles.is_empty())
@@ -78,12 +77,18 @@ impl Component for UserCard {
         }
 
         if let Some(text) = user_ref.status.as_ref().and_then(|s| s.text.clone()) {
-            tiles.push(ProfileStatus { text, member: self.member.clone() }.into_element());
+            tiles.push(
+                ProfileStatus {
+                    text,
+                    member: self.member.clone(),
+                }
+                .into_element(),
+            );
         }
 
         tiles.push(
             ProfileJoined {
-                user: user.into_readable(),
+                user: self.user.clone(),
                 member: self.member.clone(),
             }
             .into_element(),
@@ -93,7 +98,7 @@ impl Component for UserCard {
         {
             tiles.push(
                 ProfilePronouns {
-                    user: user.into_readable(),
+                    user: self.user.clone(),
                     member: self.member.clone(),
                 }
                 .into_element(),
@@ -123,20 +128,22 @@ impl Component for UserCard {
                                 }))
                                 .on_press({
                                     let member = self.member.clone();
+                                    let user = self.user.clone();
+
                                     move |_| {
-                                        floating.set(None);
                                         let user_id = user.read().id.clone();
                                         open_profile.clone().set(Some((
                                             user_id,
                                             member.as_ref().map(|m| m.read().id.server.clone()),
                                         )));
+                                        floating.set(None);
                                     }
                                 }),
                         )
                         .child(ProfileButtons {
                             user: self.user.clone(),
                             member: self.member.clone(),
-                            permissions: self.permissions,
+                            permissions,
                             close: Rc::new(move || floating.clone().set(None)),
                         })
                         .children(

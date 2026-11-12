@@ -7,7 +7,7 @@ use freya::{
     radio::use_radio,
 };
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission, PermissionValue};
+use stoat_permissions::ChannelPermission;
 
 use crate::{
     AppChannel, calculate_channel_permissions,
@@ -118,23 +118,11 @@ impl Component for MessageActions {
             }
         });
 
-        let permissions = use_state(|| PermissionValue::from_raw(0));
-
-        use_side_effect({
-            let radio = radio.clone();
-            let channel = self.channel.clone();
-
-            move || {
-                let radio = radio.clone();
-                let channel = channel.clone();
-
-                let mut query =
-                    user_permissions_query(radio.clone()).channel(channel.read().clone());
-
-                let value = calculate_channel_permissions(&mut query);
-                permissions.clone().set(value);
-            }
-        });
+        let permissions = {
+            let mut query =
+                user_permissions_query(radio.clone()).channel(self.channel.read().clone());
+            calculate_channel_permissions(&mut query)
+        };
 
         let mut shift = use_state(|| false);
 
@@ -168,7 +156,7 @@ impl Component for MessageActions {
                     ContextMenu::open_from_down(Menu::new().child(MessageContextMenu {
                         message: message.clone(),
                         replies,
-                        current_permissions: permissions(),
+                        current_permissions: permissions,
                     }));
                 }
             })
@@ -194,7 +182,6 @@ impl Component for MessageActions {
                     .layer(Layer::Relative(3))
                     .maybe_child(
                         permissions
-                            .read()
                             .has_channel_permission(ChannelPermission::SendMessage)
                             .then(|| {
                                 message_actions_button(reply(), &theme).on_press({
@@ -209,7 +196,6 @@ impl Component for MessageActions {
                     )
                     .maybe_child(
                         permissions
-                            .read()
                             .has_channel_permission(ChannelPermission::React)
                             .then(|| {
                                 message_actions_button(insert_emoticon(), &theme).on_press({
@@ -262,7 +248,6 @@ impl Component for MessageActions {
                     .maybe_child(
                         (&self.message.message.author == &*user_id.read()
                             || permissions
-                                .read()
                                 .has_channel_permission(ChannelPermission::ManageMessages))
                         .then(|| {
                             message_actions_button(delete(), &theme).on_press({
@@ -299,7 +284,7 @@ impl Component for MessageActions {
                                 MessageContextMenu {
                                     message: message.clone(),
                                     replies,
-                                    current_permissions: permissions(),
+                                    current_permissions: permissions,
                                 },
                             ));
                         }

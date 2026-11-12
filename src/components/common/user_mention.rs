@@ -2,9 +2,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, calculate_server_permissions,
+    AppChannel,
     components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, use_floating},
-    consume_material_theme, member_display_color, user_permissions_query,
+    consume_material_theme, member_display_color,
 };
 
 #[derive(PartialEq)]
@@ -90,21 +90,15 @@ impl Component for UserMention {
             .on_press({
                 let user = user.cloned();
                 let member = member.clone();
-                let server = self.server.clone();
 
                 move |_| {
                     if let Some(user) = user.clone() {
                         let member = member.read().cloned().map(|m| m.into_readable());
-                        let server = server.as_ref().map(|s| s.read().clone());
-
-                        let mut query = user_permissions_query(radio.clone()).server(server);
-                        let permissions = calculate_server_permissions(&mut query);
 
                         floating.set(Some(
                             UserCard {
                                 user: user.into_readable(),
                                 member,
-                                permissions,
                             }
                             .into_element(),
                         ));

@@ -9,7 +9,7 @@ use stoat_models::v0;
 use tokio::time::sleep;
 
 use crate::{
-    AppChannel, ConnectionState, Room, Selection, SizeExt, calculate_server_permissions,
+    AppChannel, ConnectionState, Room, Selection, SizeExt,
     components::{
         AttachmentController, ChannelSettings, Discover, FloatingManager, FloatingVoiceContainer,
         Home, MaterialIcon, Server, ServerList, ServerSettings, Settings, UserProfile,
@@ -142,43 +142,6 @@ impl Component for Client {
         });
 
         let room = consume_context::<Room>();
-
-        let mut user_profile_perms = use_state(|| None);
-
-        use_side_effect({
-            let servers = servers.clone();
-            move || {
-                let user_profile = user_profile.read().cloned();
-
-                if let Some((user_id, server_id)) = user_profile {
-                    let Some(user) = users.read().get(&user_id).cloned() else {
-                        return;
-                    };
-
-                    let server = server_id
-                        .as_ref()
-                        .and_then(|server_id| servers.read().get(server_id).cloned());
-
-                    let member = server_id.as_ref().and_then(|server_id| {
-                        members
-                            .read()
-                            .get(server_id)
-                            .as_ref()
-                            .and_then(|m| m.get(&user_id).cloned())
-                    });
-
-                    let mut query = user_permissions_query(radio.clone())
-                        .user(user.clone())
-                        .member(member.clone())
-                        .server(server);
-
-                    let permissions = calculate_server_permissions(&mut query);
-                    user_profile_perms.set(Some((user, member, permissions)));
-                } else {
-                    user_profile_perms.set(None);
-                }
-            }
-        });
 
         rect()
             .on_global_pointer_up(move |e: Event<PointerEventData>| {
@@ -348,24 +311,25 @@ impl Component for Client {
                             .into_element()
                     }),
             )
-            .maybe_child(
-                user_profile_perms
-                    .read()
-                    .cloned()
-                    .map(|(user, member, permissions)| {
-                        rect()
-                            .position(Position::new_global())
-                            .width(Size::window_percent(100.))
-                            .height(Size::window_percent(100.))
-                            .layer(Layer::OverlayLevel(6))
-                            .child(UserProfile {
-                                user: user.into_readable(),
-                                member: member.map(|m| m.into_readable()),
-                                permissions,
-                            })
-                            .into_element()
-                    }),
-            )
+            .maybe_child(user_profile.read().clone().map(|(user_id, server_id)| {
+                let user = users.read().get(&user_id).unwrap().clone().into_readable();
+                let member = server_id
+                    .and_then(|server_id| {
+                        members
+                            .read()
+                            .get(&server_id)
+                            .and_then(|m| m.get(&user_id).cloned())
+                    })
+                    .map(|m| m.into_readable());
+
+                rect()
+                    .position(Position::new_global())
+                    .width(Size::window_percent(100.))
+                    .height(Size::window_percent(100.))
+                    .layer(Layer::OverlayLevel(6))
+                    .child(UserProfile { user: user, member })
+                    .into_element()
+            }))
             .child(FloatingManager {})
     }
 }

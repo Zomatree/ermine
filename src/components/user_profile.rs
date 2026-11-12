@@ -27,20 +27,15 @@ use crate::{
 pub struct UserProfile {
     pub user: Readable<v0::User>,
     pub member: Option<Readable<v0::Member>>,
-    pub permissions: PermissionValue,
 }
 
 impl Component for UserProfile {
     fn render(&self) -> impl IntoElement {
         let radio = use_radio(AppChannel::UserProfile);
+
         let theme = consume_material_theme();
 
         let close_profile = move || radio.clone().write().user_profile = None;
-
-        let user = use_memo({
-            let user = self.user.clone();
-            move || user.read().clone()
-        });
 
         let mut profile = use_state(|| None);
         let mut mutuals = use_state(|| None);
@@ -75,11 +70,24 @@ impl Component for UserProfile {
 
         let mut tiles = Vec::new();
 
-        let user_ref = user.read();
+        let user_ref = self.user.read();
         let member_ref = self.member.as_ref().map(|m| m.read());
 
+        let permissions = {
+            let mut query = user_permissions_query(radio)
+                .user(user_ref.clone())
+                .member(member_ref.as_ref().map(|m| (*m).clone()));
+            calculate_server_permissions(&mut query)
+        };
+
         if let Some(text) = user_ref.status.as_ref().and_then(|s| s.text.clone()) {
-            tiles.push(ProfileStatus { text, member: self.member.clone() }.into_element());
+            tiles.push(
+                ProfileStatus {
+                    text,
+                    member: self.member.clone(),
+                }
+                .into_element(),
+            );
         }
 
         if user_ref.badges != 0 {
@@ -93,7 +101,7 @@ impl Component for UserProfile {
 
         tiles.push(
             ProfileJoined {
-                user: user.into_readable(),
+                user: self.user.clone(),
                 member: self.member.clone(),
             }
             .into_element(),
@@ -114,7 +122,7 @@ impl Component for UserProfile {
         {
             tiles.push(
                 ProfilePronouns {
-                    user: user.into_readable(),
+                    user: self.user.clone(),
                     member: self.member.clone(),
                 }
                 .into_element(),
@@ -125,7 +133,7 @@ impl Component for UserProfile {
             if !mutuals.users.is_empty() {
                 tiles.push(
                     ProfileMutualFriends {
-                        user: user.into_readable(),
+                        user: self.user.clone(),
                         users: mutuals.users.clone(),
                     }
                     .into_element(),
@@ -135,7 +143,7 @@ impl Component for UserProfile {
             if !mutuals.servers.is_empty() || !mutuals.channels.is_empty() {
                 tiles.push(
                     ProfileMutualServersGroups {
-                        user: user.into_readable(),
+                        user: self.user.clone(),
                         servers: mutuals.servers.clone(),
                         channels: mutuals.channels.clone(),
                     }
@@ -179,7 +187,7 @@ impl Component for UserProfile {
                                         .child(ProfileButtons {
                                             user: self.user.clone(),
                                             member: self.member.clone(),
-                                            permissions: self.permissions,
+                                            permissions,
                                             close: Rc::new(close_profile),
                                         })
                                         .children(
@@ -561,33 +569,14 @@ impl Component for ProfileButtons {
             .child(
                 StoatButton::new()
                     .on_press({
-                        let user = user.clone();
-                        let member = self.member.clone();
-                        let radio = radio.clone();
+                        let user_id = user.id.clone();
+                        let server_id = self.member.as_ref().map(|m| m.read().id.server.clone());
 
                         move |_| {
-                            let user_id = user.id.clone();
-
-                            let member = member.as_ref().map(|member| member.read().clone());
-
-                            let mut query = user_permissions_query(radio.clone()).user(user.clone());
-
-                            let server_id = if let Some(member) = member {
-                                query = query.member(member.clone());
-                                Some(member.id.server)
-                            } else {
-                                None
-                            };
-
-                            let permissions = calculate_server_permissions(&mut query);
-
-                            ContextMenu::open(Menu::new().key(&user.id).child(
-                                UserContextMenu {
-                                    user_id: user_id,
-                                    server_id,
-                                    permissions,
-                                },
-                            ));
+                            ContextMenu::open(Menu::new().key(&user_id).child(UserContextMenu {
+                                user_id: user_id.clone(),
+                                server_id: server_id.clone(),
+                            }));
                         }
                     })
                     .corner_radius(40.)

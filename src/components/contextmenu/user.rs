@@ -5,10 +5,10 @@ use freya::{
 };
 use iso8601_timestamp::Timestamp;
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission, PermissionValue};
+use stoat_permissions::ChannelPermission;
 
 use crate::{
-    AppChannel, AppState, Selection,
+    AppChannel, AppState, Selection, calculate_server_permissions,
     components::{
         ContextMenuButton, ContextMenuDivider, ModalValue,
         material::outlined::{
@@ -18,14 +18,13 @@ use crate::{
         },
         use_modals,
     },
-    http, insert_channel, is_inferior,
+    http, insert_channel, is_inferior, user_permissions_query,
 };
 
 #[derive(PartialEq)]
 pub struct UserContextMenu {
     pub user_id: String,
     pub server_id: Option<String>,
-    pub permissions: PermissionValue,
 }
 
 impl Component for UserContextMenu {
@@ -75,6 +74,14 @@ impl Component for UserContextMenu {
                     .unwrap()
             })
         });
+
+        let permissions = {
+            let mut query = user_permissions_query(radio)
+                .user(user.read().cloned())
+                .member(member.as_ref().map(|m| m.read().cloned()))
+                .server(server.as_ref().map(|s| s.read().cloned()));
+            calculate_server_permissions(&mut query)
+        };
 
         let editable = try_consume_root_context::<Option<UseEditable>>().flatten();
 
@@ -141,44 +148,29 @@ impl Component for UserContextMenu {
                     let is_inferior = is_inferior(&current_member, &member, &server);
 
                     let edit_identity = !is_ourself
-                        && (self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::ManageNicknames)
-                            || self
-                                .permissions
+                        && (permissions.has_channel_permission(ChannelPermission::ManageNicknames)
+                            || permissions
                                 .has_channel_permission(ChannelPermission::RemoveAvatars))
                         && is_inferior;
 
                     let edit_own_identity = is_ourself
-                        && (self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::ChangeNickname)
-                            || self
-                                .permissions
-                                .has_channel_permission(ChannelPermission::ChangeAvatar));
+                        && (permissions.has_channel_permission(ChannelPermission::ChangeNickname)
+                            || permissions.has_channel_permission(ChannelPermission::ChangeAvatar));
 
                     let edit_roles = &server.owner == &current_member.id.user
-                        || (self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::AssignRoles)
+                        || (permissions.has_channel_permission(ChannelPermission::AssignRoles)
                             && is_inferior);
 
                     let kick_members = !is_ourself
-                        && self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::KickMembers)
+                        && permissions.has_channel_permission(ChannelPermission::KickMembers)
                         && is_inferior;
 
                     let ban_members = !is_ourself
-                        && self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::BanMembers)
+                        && permissions.has_channel_permission(ChannelPermission::BanMembers)
                         && is_inferior;
 
                     let timeout_members = !is_ourself
-                        && self
-                            .permissions
-                            .has_channel_permission(ChannelPermission::TimeoutMembers)
+                        && permissions.has_channel_permission(ChannelPermission::TimeoutMembers)
                         && is_inferior;
 
                     let is_timed_out = member.timeout.is_some_and(|ts| ts > Timestamp::now_utc());

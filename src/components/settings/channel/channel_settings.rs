@@ -8,9 +8,10 @@ use freya::{
     radio::use_radio,
 };
 use stoat_models::v0;
+use stoat_permissions::ChannelPermission;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt,
+    AppChannel, ChannelSettingsPage, SelectedRole, SizeExt, calculate_channel_permissions,
     components::{
         MaterialIcon, ModalValue, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
@@ -25,6 +26,7 @@ use crate::{
     },
     consume_material_theme, settings_func,
     theme::Theme,
+    user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -63,6 +65,11 @@ impl Component for ChannelSettings {
         });
 
         let (opacity, offset) = anim.read().value();
+
+        let permissions = {
+            let mut query = user_permissions_query(radio).channel(self.channel.read().clone());
+            calculate_channel_permissions(&mut query)
+        };
 
         rect()
             .expanded()
@@ -107,7 +114,7 @@ impl Component for ChannelSettings {
                                 rect()
                                     .padding((24., 16., 16., 16.))
                                     .spacing(15.)
-                                    .child(settings_category(
+                                    .maybe_child(settings_category(
                                         match &*self.channel.read() {
                                             v0::Channel::TextChannel { name, .. }
                                             | v0::Channel::Group { name, .. } => name.clone(),
@@ -115,9 +122,17 @@ impl Component for ChannelSettings {
                                         },
                                         &theme,
                                         &[
-                                            ChannelSettingsPage::Overview,
-                                            ChannelSettingsPage::Permissions(None),
-                                            ChannelSettingsPage::Webhooks(None),
+                                            Some(ChannelSettingsPage::Overview),
+                                            permissions
+                                                .has_channel_permission(
+                                                    ChannelPermission::ManagePermissions,
+                                                )
+                                                .then_some(ChannelSettingsPage::Permissions(None)),
+                                            permissions
+                                                .has_channel_permission(
+                                                    ChannelPermission::ManageWebhooks,
+                                                )
+                                                .then_some(ChannelSettingsPage::Webhooks(None)),
                                         ],
                                     ))
                                     .child(DeleteChannelButton {
@@ -334,28 +349,31 @@ impl Component for ChannelSettingsButton {
 fn settings_category(
     title: impl Into<Cow<'static, str>>,
     theme: &Theme,
-    pages: &[ChannelSettingsPage],
-) -> Rect {
-    rect()
-        .spacing(8.)
-        .child(
-            label()
-                .text(title)
-                .max_lines(1)
-                .text_overflow(TextOverflow::Clip)
-                .color(theme.md.outline.as_argb_u32())
-                .font_size(12)
-                .font_weight(FontWeight::BOLD)
-                .margin((0., 8.)),
-        )
-        .child(
-            rect().spacing(6.).children(
-                pages
-                    .into_iter()
-                    .cloned()
-                    .map(|page| ChannelSettingsButton { page }.into_element()),
-            ),
-        )
+    pages: &[Option<ChannelSettingsPage>],
+) -> Option<Rect> {
+    pages.iter().any(|p| p.is_some()).then(|| {
+        rect()
+            .spacing(8.)
+            .child(
+                label()
+                    .text(title)
+                    .max_lines(1)
+                    .text_overflow(TextOverflow::Clip)
+                    .color(theme.md.outline.as_argb_u32())
+                    .font_size(12)
+                    .font_weight(FontWeight::BOLD)
+                    .margin((0., 8.)),
+            )
+            .child(
+                rect().spacing(6.).children(
+                    pages
+                        .into_iter()
+                        .flatten()
+                        .cloned()
+                        .map(|page| ChannelSettingsButton { page }.into_element()),
+                ),
+            )
+    })
 }
 
 #[derive(PartialEq)]

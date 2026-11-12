@@ -3,7 +3,7 @@ use std::{borrow::Cow, ops::Not};
 use freya::{prelude::*, radio::use_radio};
 use indexmap::IndexMap;
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission, PermissionValue};
+use stoat_permissions::ChannelPermission;
 
 use crate::{
     AppChannel, ChannelSettingsPage, Room, SizeExt, VoiceConnectionStatus,
@@ -88,19 +88,10 @@ impl Component for Channel {
             None
         };
 
-        let mut permissions = use_state(|| PermissionValue::from_raw(0));
-
-        use_side_effect({
-            let channel = self.channel.clone();
-
-            move || {
-                let channel = channel.read().clone();
-
-                let mut query = user_permissions_query(radio.clone()).channel(channel);
-
-                permissions.set(calculate_channel_permissions(&mut query));
-            }
-        });
+        let permissions = {
+            let mut query = user_permissions_query(radio).channel(channel.clone());
+            calculate_channel_permissions(&mut query)
+        };
 
         rect()
             .child(
@@ -204,9 +195,9 @@ impl Component for Channel {
                         (matches!(
                             &channel,
                             v0::Channel::Group { .. } | v0::Channel::TextChannel { .. }
-                        ) && (permissions()
+                        ) && (permissions
                             .has_channel_permission(ChannelPermission::ManageChannel)
-                            || permissions()
+                            || permissions
                                 .has_channel_permission(ChannelPermission::ManagePermissions)))
                         .then(|| {
                             StoatTooltip::new(
