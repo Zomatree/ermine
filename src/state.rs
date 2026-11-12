@@ -327,6 +327,19 @@ pub struct Slowmode {
     pub duration: u64,
 }
 
+#[derive(Default, Clone, Copy, PartialEq, Debug)]
+pub enum HomeSelection {
+    #[default]
+    Welcome,
+    Friends,
+}
+
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct PageHistory {
+    pub back: VecDeque<(Selection, Option<(String, Option<String>)>, HomeSelection)>,
+    pub forward: VecDeque<(Selection, Option<(String, Option<String>)>, HomeSelection)>,
+}
+
 #[derive(Debug, Default)]
 pub struct AppState {
     pub state: ConnectionState,
@@ -354,6 +367,8 @@ pub struct AppState {
     pub file_hover: bool,
     pub slowmodes: HashMap<String, Slowmode>,
     pub voice_states: HashMap<String, ChannelVoiceState>,
+    pub history: PageHistory,
+    pub home_selection: HomeSelection,
 }
 
 impl AppState {
@@ -411,6 +426,8 @@ pub enum AppChannel {
     FileHover,
     Slowmodes,
     VoiceStates,
+    HomeSelection,
+    History,
 }
 
 impl RadioChannel<AppState> for AppChannel {
@@ -542,15 +559,15 @@ pub fn update_channel(channel_id: &str, mut station: AppStation, f: impl FnOnce(
     }
 }
 
-pub fn set_selection(selection: Selection, mut station: AppStation) {
-    station.write_channel(AppChannel::Selection).selection = selection;
-}
+// pub fn set_selection(selection: Selection, mut station: AppStation) {
+//     station.write_channel(AppChannel::Selection).selection = selection;
+// }
 
-pub fn set_selected_channel(channel_id: Option<String>, mut station: AppStation) {
-    station
-        .write_channel(AppChannel::SelectedChannel)
-        .selected_channel = channel_id.map(|id| (id, None));
-}
+// pub fn set_selected_channel(channel_id: Option<String>, mut station: AppStation) {
+//     station
+//         .write_channel(AppChannel::SelectedChannel)
+//         .selected_channel = channel_id.map(|id| (id, None));
+// }
 
 pub fn update_settings(settings: UserSettings, mut station: AppStation) {
     for (key, (_ts, payload)) in settings.into_iter() {
@@ -787,6 +804,168 @@ pub fn delete_voice_state(channel_id: &str, mut station: AppStation) {
         .remove(channel_id);
 }
 
+pub fn get_current_page(
+    station: AppStation,
+) -> (Selection, Option<(String, Option<String>)>, HomeSelection) {
+    let state = station.peek();
+
+    (
+        state.selection.clone(),
+        state.selected_channel.clone(),
+        state.home_selection,
+    )
+}
+
+pub fn go_back_page(mut station: AppStation) {
+    let current_page = get_current_page(station);
+
+    let last = {
+        let mut state = station.write_channel(AppChannel::History);
+        let last = state.history.back.pop_back();
+
+        if last.is_some() {
+            state.history.forward.push_back(current_page);
+            if state.history.forward.len() > 50 {
+                state.history.forward.pop_front();
+            }
+        }
+
+        last
+    };
+
+    if let Some((selection, channel, home)) = last {
+        station.write_channel(AppChannel::Selection).selection = selection;
+        station
+            .write_channel(AppChannel::SelectedChannel)
+            .selected_channel = channel;
+        station
+            .write_channel(AppChannel::HomeSelection)
+            .home_selection = home;
+    }
+}
+
+pub fn go_forward_page(mut station: AppStation) {
+    let current_page = get_current_page(station);
+
+    let next = {
+        let mut state = station.write_channel(AppChannel::History);
+        let next = state.history.forward.pop_back();
+
+        if next.is_some() {
+            state.history.back.push_back(current_page);
+            if state.history.back.len() > 50 {
+                state.history.back.pop_front();
+            }
+        }
+
+        next
+    };
+
+    if let Some((selection, channel, home)) = next {
+        station.write_channel(AppChannel::Selection).selection = selection;
+        station
+            .write_channel(AppChannel::SelectedChannel)
+            .selected_channel = channel;
+        station
+            .write_channel(AppChannel::HomeSelection)
+            .home_selection = home;
+    }
+}
+
+pub fn set_selection(selection: Selection, mut station: AppStation) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station.write_channel(AppChannel::Selection).selection = selection;
+}
+
+pub fn set_selection_and_channel(
+    selection: Selection,
+    channel: Option<(String, Option<String>)>,
+    mut station: AppStation,
+) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station.write_channel(AppChannel::Selection).selection = selection;
+    station
+        .write_channel(AppChannel::SelectedChannel)
+        .selected_channel = channel;
+}
+
+pub fn set_selected_channel(channel: Option<(String, Option<String>)>, mut station: AppStation) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station
+        .write_channel(AppChannel::SelectedChannel)
+        .selected_channel = channel;
+}
+
+pub fn set_home_selection(home_selection: HomeSelection, mut station: AppStation) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station
+        .write_channel(AppChannel::HomeSelection)
+        .home_selection = home_selection;
+}
+
+pub fn set_home_and_channel(
+    home_selection: HomeSelection,
+    channel: Option<(String, Option<String>)>,
+    mut station: AppStation,
+) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station
+        .write_channel(AppChannel::SelectedChannel)
+        .selected_channel = channel;
+    station
+        .write_channel(AppChannel::HomeSelection)
+        .home_selection = home_selection;
+}
 pub async fn update_state(
     event: EventV1,
     mut config: State<Config>,

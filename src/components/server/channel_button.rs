@@ -1,13 +1,11 @@
 use std::ops::Not;
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::{use_radio, use_radio_station}};
 use stoat_models::v0;
 use stoat_permissions::{ChannelPermission};
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
-    calculate_channel_permissions, calculate_server_permissions,
-    components::{
+    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt, calculate_channel_permissions, components::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, StoatTooltip, UserCard,
         material::{
@@ -15,9 +13,7 @@ use crate::{
             outlined::{camera_alt, headset_mic, mic_off, screen_share},
         },
         use_floating, use_modals,
-    },
-    consume_material_theme, get_unread_badge, http, is_channel_muted,
-    user_permissions_query,
+    }, consume_material_theme, get_unread_badge, http, is_channel_muted, set_selected_channel, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -33,7 +29,8 @@ impl Component for ChannelButton {
         let mut modals = use_modals();
         let room = consume_context::<Room>();
 
-        let mut radio = use_radio(AppChannel::SelectedChannel);
+        let station = use_radio_station();
+        let radio = use_radio(AppChannel::SelectedChannel);
         let selected = radio.slice_current(|state| &state.selected_channel);
         let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
         let mutes = radio.slice(AppChannel::Settings("notifications"), |state| {
@@ -171,9 +168,7 @@ impl Component for ChannelButton {
                             let channel_id = channel_id.clone();
 
                             move |_| {
-                                radio
-                                    .write_channel(AppChannel::SelectedChannel)
-                                    .selected_channel = Some((channel_id.clone(), None));
+                                set_selected_channel(Some((channel_id.clone(), None)), station);
 
                                 let server_id = server.read().id.clone();
 

@@ -1,13 +1,11 @@
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::{use_radio, use_radio_station}};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, Selection, SizeExt,
-    components::{
+    AppChannel, Selection, SizeExt, components::{
         StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{MaterialIcon, filled::home},
-    },
-    consume_material_theme,
+    }, consume_material_theme, set_selected_channel, set_selection,
 };
 
 #[derive(PartialEq)]
@@ -15,7 +13,8 @@ pub struct HomeButton {}
 
 impl Component for HomeButton {
     fn render(&self) -> impl IntoElement {
-        let mut radio = use_radio(AppChannel::Selection);
+        let station = use_radio_station();
+        let radio = use_radio(AppChannel::Selection);
         let user = radio.slice(AppChannel::Users, |state| {
             state.users.get(state.user_id.as_ref().unwrap()).unwrap()
         });
@@ -70,10 +69,8 @@ impl Component for HomeButton {
                                         .background(theme.md.surface_container_low.as_argb_u32())
                                         .center()
                                         .on_press(move |_| {
-                                            radio.write().selection = Selection::Home;
-                                            radio
-                                                .write_channel(AppChannel::SelectedChannel)
-                                                .selected_channel = None;
+                                            set_selection(Selection::Home, station);
+                                            set_selected_channel(None, station);
                                         })
                                         .child(
                                             MaterialIcon::new(home())

@@ -1,37 +1,36 @@
 use std::borrow::Cow;
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::{use_radio, use_radio_station}};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{
-        DMButton, HomeSelection, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
+    AppChannel, HomeSelection, SizeExt, components::{
+        DMButton, ModalValue, StoatButton, StoatButtonLayoutThemePartialExt,
         material::{
             MaterialIcon,
             outlined::{add, group, home, sticky_note_2},
         },
         stoat_scrollbar, use_modals,
-    },
-    consume_material_theme, http,
+    }, consume_material_theme, http, set_home_and_channel, set_selected_channel,
 };
 
 #[derive(PartialEq)]
-pub struct DMList {
-    pub selection: State<HomeSelection>,
-}
+pub struct DMList {}
 
 impl Component for DMList {
     fn render(&self) -> impl IntoElement {
         let mut modals = use_modals();
+        let station = use_radio_station();
         let radio = use_radio(AppChannel::Channels);
-        let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
-            &mut state.selected_channel
+        let dm_channel = radio.slice(AppChannel::SelectedChannel, |state| {
+            &state.selected_channel
         });
 
         let user = radio.slice(AppChannel::Users, |state| {
             state.users.get(state.user_id.as_ref().unwrap()).unwrap()
         });
+
+        let selection = radio.slice(AppChannel::HomeSelection, |state| &state.home_selection);
 
         let friend_request_count = use_side_effect_value(move || {
             user.read()
@@ -131,16 +130,12 @@ impl Component for DMList {
                         DMListNavButton::new(
                             home(),
                             "Home",
-                            &*self.selection.read() == &HomeSelection::Welcome
+                            &*selection.read() == &HomeSelection::Welcome
                                 && dm_channel.read().is_none(),
                         )
                         .on_press({
-                            let mut selection = self.selection.clone();
-                            let mut dm_channel = dm_channel.clone();
-
                             move |_| {
-                                dm_channel.set(None);
-                                *selection.write() = HomeSelection::Welcome;
+                                set_home_and_channel(HomeSelection::Welcome, None, station);
                             }
                         }),
                     )
@@ -148,19 +143,15 @@ impl Component for DMList {
                         DMListNavButton::new(
                             group(),
                             "Friends",
-                            &*self.selection.read() == &HomeSelection::Friends
+                            &*selection.read() == &HomeSelection::Friends
                                 && dm_channel.read().is_none(),
                         )
                         .maybe(friend_request_count() > 0, |this| {
                             this.secondary(format!("{} requests", friend_request_count()))
                         })
                         .on_press({
-                            let mut selection = self.selection.clone();
-                            let mut dm_channel = dm_channel.clone();
-
                             move |_| {
-                                dm_channel.set(None);
-                                *selection.write() = HomeSelection::Friends;
+                                set_home_and_channel(HomeSelection::Friends, None, station);
                             }
                         }),
                     )
@@ -178,11 +169,8 @@ impl Component for DMList {
                         .on_press({
                             let mut radio = radio.clone();
                             let saved_messages = saved_messages.clone();
-                            let dm_channel = dm_channel.clone();
 
                             move |_| {
-                                let mut dm_channel = dm_channel.clone();
-
                                 spawn(async move {
                                     let id = if let Some(channel) = &*saved_messages.peek() {
                                         channel.id().to_string()
@@ -201,7 +189,7 @@ impl Component for DMList {
                                         id
                                     };
 
-                                    dm_channel.set(Some((id.clone(), None)));
+                                    set_selected_channel(Some((id.clone(), None)), station);
                                 });
                             }
                         }),

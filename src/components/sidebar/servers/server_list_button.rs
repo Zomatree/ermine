@@ -1,16 +1,12 @@
 use freya::{
-    animation::{AnimNum, use_animation_transition},
-    prelude::*,
-    radio::use_radio,
+    animation::{AnimNum, use_animation_transition}, prelude::*, radio::{use_radio, use_radio_station},
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, Config, NotificationBadge, Selection,
-    components::{
+    AppChannel, Config, NotificationBadge, Selection, components::{
         ServerContextMenu, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-    },
-    consume_material_theme, fast_func, get_unread_badge, is_server_muted,
+    }, consume_material_theme, fast_func, get_unread_badge, is_server_muted, set_selection_and_channel,
 };
 
 #[derive(PartialEq)]
@@ -21,7 +17,8 @@ pub struct ServerListButton {
 impl Component for ServerListButton {
     fn render(&self) -> impl IntoElement {
         let config = use_consume::<State<Config>>();
-        let mut radio = use_radio(AppChannel::Servers);
+        let station = use_radio_station();
+        let radio = use_radio(AppChannel::Servers);
         let theme = consume_material_theme();
         let mut hovering = use_state(|| false);
 
@@ -152,11 +149,6 @@ impl Component for ServerListButton {
                                                 let server = self.server.clone();
 
                                                 move |_| {
-                                                    radio
-                                                        .write_channel(AppChannel::Selection)
-                                                        .selection =
-                                                        Selection::Server(server.id.clone());
-
                                                     let channel_id = config
                                                         .read()
                                                         .last_channels
@@ -175,10 +167,7 @@ impl Component for ServerListButton {
                                                                 .cloned()
                                                         });
 
-                                                    radio
-                                                        .write_channel(AppChannel::SelectedChannel)
-                                                        .selected_channel =
-                                                        channel_id.map(|id| (id, None));
+                                                    set_selection_and_channel(Selection::Server(server.id.clone()), channel_id.map(|id| (id, None)), station);
                                                 }
                                             }),
                                     )

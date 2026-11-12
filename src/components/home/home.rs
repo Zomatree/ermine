@@ -3,17 +3,8 @@ use std::ops::Not;
 use freya::{prelude::*, radio::use_radio};
 
 use crate::{
-    AppChannel,
-    components::{Channel, DMList, Friends, Welcome},
-    consume_material_theme, use_config,
+    AppChannel, HomeSelection, components::{Channel, DMList, Friends, Welcome}, consume_material_theme, use_config,
 };
-
-#[derive(Default, Clone, PartialEq)]
-pub enum HomeSelection {
-    #[default]
-    Welcome,
-    Friends,
-}
 
 #[derive(PartialEq)]
 pub struct Home {}
@@ -26,7 +17,7 @@ impl Component for Home {
         let radio = use_radio(AppChannel::SelectedChannel);
         let channel = radio.slice_current(|state| &state.selected_channel);
         let channels = radio.slice(AppChannel::Channels, move |state| &state.channels);
-        let selection = use_state(HomeSelection::default);
+        let selection = radio.slice(AppChannel::HomeSelection, |state| &state.home_selection);
 
         rect()
             .corner_radius(CornerRadius::new(16., 0., 0., 16.))
@@ -36,7 +27,7 @@ impl Component for Home {
             .maybe_child(config.read().hide_channel_list.not().then(|| {
                 rect()
                     .width(Size::px(248.))
-                    .child(DMList { selection })
+                    .child(DMList { })
             }))
             .child(
                 if let Some((channel_id, jump_message)) = channel.read().cloned()
@@ -49,7 +40,7 @@ impl Component for Home {
                     }
                     .into_element()
                 } else {
-                    match selection.read().clone() {
+                    match *selection.read() {
                         HomeSelection::Welcome => Welcome {}.into_element(),
                         HomeSelection::Friends => Friends {}.into_element(),
                     }

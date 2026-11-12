@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use freya::{
     animation::{AnimNum, AnimatedValue, OnChange, OnCreation, ReadAnimatedValue, use_animation},
     prelude::*,
-    radio::use_radio,
+    radio::{use_radio, use_radio_station},
 };
 use stoat_models::v0;
 use tokio::time::sleep;
@@ -15,7 +15,7 @@ use crate::{
         Home, MaterialIcon, Server, ServerList, ServerSettings, Settings, UserProfile,
         material::filled::description, stoat_label,
     },
-    consume_material_theme, map_readable, settings_func, user_permissions_query,
+    consume_material_theme, go_back_page, go_forward_page, map_readable, settings_func,
 };
 
 #[derive(PartialEq)]
@@ -24,6 +24,7 @@ pub struct Client {}
 impl Component for Client {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
+        let station = use_radio_station();
         let radio = use_radio(AppChannel::Selection);
         let selected = radio.slice_current(|state| &state.selection);
         let selected_channel =
@@ -180,6 +181,13 @@ impl Component for Client {
         });
 
         rect()
+            .on_global_pointer_up(move |e: Event<PointerEventData>| {
+                if e.button() == Some(MouseButton::Back) {
+                    go_back_page(station);
+                } else if e.button() == Some(MouseButton::Forward) {
+                    go_forward_page(station);
+                }
+            })
             .child(
                 rect()
                     .direction(Direction::Horizontal)
