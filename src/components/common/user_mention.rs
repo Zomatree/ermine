@@ -3,7 +3,9 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel,
-    components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, use_floating},
+    components::{
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, UserCard, stoat_label, use_floating,
+    },
     consume_material_theme, member_display_color,
 };
 
@@ -122,7 +124,7 @@ impl Component for UserMention {
                         )
                     }))
                     .child(
-                        label()
+                        stoat_label()
                             .map(role_color.read().cloned(), |label, color| {
                                 label.color(color)
                             })

@@ -1,9 +1,8 @@
 use freya::prelude::*;
 
 use crate::{
-    Config,
     components::{App, Login},
-    http,
+    http, use_config,
 };
 
 #[derive(PartialEq)]
@@ -11,7 +10,7 @@ pub struct Root {}
 
 impl Component for Root {
     fn render(&self) -> impl IntoElement {
-        let mut config = use_consume::<State<Config>>();
+        let mut config = use_config();
 
         let session = use_reactive(&config.read().session);
 

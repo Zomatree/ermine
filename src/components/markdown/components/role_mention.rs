@@ -1,6 +1,9 @@
 use freya::prelude::*;
 
-use crate::{components::markdown::components::consume_server, consume_material_theme, parse_fill};
+use crate::{
+    components::{markdown::components::consume_server, stoat_label},
+    consume_material_theme, parse_fill,
+};
 
 #[derive(PartialEq)]
 pub struct RoleMention {
@@ -50,7 +53,7 @@ impl Component for RoleMention {
                     .height(Size::px(size)),
             )
             .child(
-                label()
+                stoat_label()
                     .line_height(1.5)
                     .max_lines(1)
                     .font_size(self.font_size)

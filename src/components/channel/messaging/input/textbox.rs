@@ -10,7 +10,7 @@ use freya_components::cursor_blink::use_cursor_blink;
 use jiff::Timestamp;
 use regex::Regex;
 use stoat_models::v0;
-use stoat_permissions::{ChannelPermission, PermissionValue};
+use stoat_permissions::ChannelPermission;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
@@ -25,8 +25,8 @@ use crate::{
         },
         stoat_scrollbar, use_floating,
     },
-    consume_material_theme, get_channel_server, get_unicode_emoji_set, http, use_changed,
-    use_clipboard, user_permissions_query,
+    consume_material_theme, get_unicode_emoji_set, http, use_changed, use_clipboard,
+    user_permissions_query,
 };
 
 static SED_REGEX: LazyLock<Regex> =
@@ -62,7 +62,6 @@ impl Component for Textbox {
         });
         let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
         let slowmodes = radio.slice(AppChannel::Slowmodes, |state| &state.slowmodes);
-        let members = radio.slice(AppChannel::Members, |state| &state.members);
         let unreads = radio.slice_mut(AppChannel::ChannelUnreads, |state| {
             &mut state.channel_unreads
         });

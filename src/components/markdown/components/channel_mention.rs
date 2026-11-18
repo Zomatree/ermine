@@ -5,7 +5,9 @@ use stoat_models::v0;
 
 use crate::{
     AppChannel, Selection, SizeExt,
-    components::{StoatButton, StoatButtonLayoutThemePartialExt, material::filled::grid_3x3},
+    components::{
+        StoatButton, StoatButtonLayoutThemePartialExt, material::filled::grid_3x3, stoat_label,
+    },
     consume_material_theme, get_channel_server, map_optional_readable,
 };
 
@@ -67,7 +69,7 @@ impl Component for ChannelMention {
                     .font_weight(FontWeight::SEMI_BOLD)
                     .child(SvgViewer::new(grid_3x3()).size(Size::px(size)))
                     .child(
-                        label()
+                        stoat_label()
                             .line_height(1.5)
                             .max_lines(1)
                             .font_size(self.font_size)

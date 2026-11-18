@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{Config, http};
+use crate::{Config, consume_config, http};
 use freya::prelude::*;
 use futures::channel::oneshot;
 use livekit::{
@@ -55,7 +55,7 @@ pub struct Room {
 impl Room {
     pub fn new() -> Self {
         Self {
-            config: consume_context(),
+            config: consume_config(),
             status: State::create(VoiceConnectionStatus::Disconnected),
             room: State::create(None),
             audio: State::create(None),
@@ -215,7 +215,7 @@ impl Room {
     }
 
     pub fn is_deafened(&self) -> bool {
-        consume_context::<State<Config>>().read().audio.deafened
+        consume_config().read().audio.deafened
     }
 
     pub fn toggle_deafen(&self) {

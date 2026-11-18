@@ -8,9 +8,9 @@ use crate::{
         StoatButtonLayoutThemePartialExt,
         material::{
             MaterialIcon,
-            filled::{alternate_email, description},
-            outlined::cancel,
+            filled::{alternate_email, cancel, description},
         },
+        stoat_label,
     },
     consume_material_theme, member_display_color,
 };
@@ -92,10 +92,10 @@ impl Component for MessageReplyPreview {
             .horizontal()
             .content(Content::Flex)
             .font_size(14)
-            .spacing(4.)
+            .spacing(8.)
             .cross_align(Alignment::Center)
             .child(
-                label()
+                stoat_label()
                     .font_size(12)
                     .color(theme.md.on_primary_container.as_argb_u32())
                     .text("Replying to"),

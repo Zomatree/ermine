@@ -163,7 +163,7 @@ impl Component for CategoryHeader {
 
                     let permissions = calculate_server_permissions(&mut query);
 
-                    ContextMenu::open(Menu::new().key(&category_id).child(
+                    ContextMenu::open_from_down(Menu::new().key(&category_id).child(
                         CategoryContextMenu {
                             server_id: server.id.clone(),
                             category_id: category_id.clone(),

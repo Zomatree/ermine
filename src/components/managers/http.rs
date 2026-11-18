@@ -43,7 +43,11 @@ impl Component for HttpManager {
 
         rect = match *future.state() {
             FutureState::Fulfilled(_) => rect.children(self.children.clone()),
-            _ => rect.child(CircularLoader::new().primary_color(theme.md.on_surface.as_argb_u32())),
+            _ => rect.child(
+                CircularLoader::new()
+                    .size(48.)
+                    .primary_color(theme.md.primary),
+            ),
         };
 
         rect

@@ -1,11 +1,11 @@
-use freya::{prelude::*, radio::{use_radio, use_radio_station}};
+use freya::{animation::{AnimNum, use_animation_transition}, prelude::*, radio::{use_radio, use_radio_station}};
 use stoat_models::v0;
 
 use crate::{
     AppChannel, Selection, SizeExt, components::{
         StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
         material::{MaterialIcon, filled::home},
-    }, consume_material_theme, set_selected_channel, set_selection,
+    }, consume_material_theme, fast_func, set_selected_channel, set_selection,
 };
 
 #[derive(PartialEq)]
@@ -13,13 +13,16 @@ pub struct HomeButton {}
 
 impl Component for HomeButton {
     fn render(&self) -> impl IntoElement {
+        let theme = consume_material_theme();
+
         let station = use_radio_station();
         let radio = use_radio(AppChannel::Selection);
+        let selection = radio.slice_current(|state| &state.selection);
         let user = radio.slice(AppChannel::Users, |state| {
             state.users.get(state.user_id.as_ref().unwrap()).unwrap()
         });
 
-        let theme = consume_material_theme();
+        let mut hovering = use_state(|| false);
 
         let friend_request_count = use_memo(move || {
             user.read()
@@ -27,6 +30,18 @@ impl Component for HomeButton {
                 .iter()
                 .filter(|rel| rel.status == v0::RelationshipStatus::Incoming)
                 .count()
+        });
+
+        let indicator_height = if &*selection.read() == &Selection::Home {
+            32.
+        } else if hovering() {
+            16.
+        } else {
+            0.
+        };
+
+        let indicator_anim = use_animation_transition(indicator_height, move |before, after| {
+            AnimNum::new(before, after).time(100).function(fast_func())
         });
 
         StoatTooltip::new(
@@ -43,18 +58,23 @@ impl Component for HomeButton {
             rect()
                 .width(Size::px(56.))
                 .height(Size::px(56.))
+                .on_pointer_over(move |_| {
+                    hovering.set(true);
+                })
+                .on_pointer_out(move |_| hovering.set_if_modified(false))
                 .child(
                     rect()
-                        .position(Position::new_absolute().left(-8.).top(12.))
-                        .width(Size::px(12.))
-                        .height(Size::px(32.))
-                        .corner_radius(4.)
-                        .background(theme.md.on_surface.as_argb_u32())
-                        .opacity(if radio.read().selection == Selection::Home {
-                            1.
-                        } else {
-                            0.
-                        }),
+                        .center()
+                        .position(Position::new_absolute().left(0.))
+                        .height(Size::px(56.))
+                        .layer(Layer::Relative(1))
+                        .child(
+                            rect()
+                                .width(Size::px(4.))
+                                .height(Size::px(indicator_anim.read().value()))
+                                .corner_radius(CornerRadius::new(0., 4., 4., 0.))
+                                .background(theme.md.on_surface.as_argb_u32()),
+                        ),
                 )
                 .child(
                     rect().expanded().center().child(

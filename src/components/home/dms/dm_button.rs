@@ -43,14 +43,13 @@ impl Component for DMButton {
             .as_ref()
             .is_some_and(|(id, _)| id == self.channel.read().id());
 
-        let color = if selected {
-            theme.md.on_primary_container
+        let (color, link_color) = if selected {
+            (theme.md.on_primary_container, theme.md.primary)
         } else if unread_badge.read().is_some() {
-            theme.md.on_surface
+            (theme.md.on_surface, theme.md.primary)
         } else {
-            theme.md.outline
-        }
-        .as_argb_u32();
+            (theme.md.outline, theme.md.inverse_primary)
+        };
 
         rect()
             .on_secondary_down({
@@ -65,7 +64,7 @@ impl Component for DMButton {
 
                     let permissions = calculate_channel_permissions(&mut query);
 
-                    ContextMenu::open(Menu::new().key(channel.id()).child(
+                    ContextMenu::open_from_down(Menu::new().key(channel.id()).child(
                         ChannelContextMenu {
                             channel_id: channel.id().to_string(),
                             current_permissions: permissions,
@@ -104,6 +103,8 @@ impl Component for DMButton {
 
                                             DMDirectMessageButton {
                                                 user: user.into_readable(),
+                                                foreground: color.into(),
+                                                link_foreground: link_color.into(),
                                             }
                                             .into_element()
                                         }
@@ -155,6 +156,8 @@ impl Component for DMButton {
 #[derive(PartialEq)]
 pub struct DMDirectMessageButton {
     pub user: Readable<v0::User>,
+    pub foreground: Color,
+    pub link_foreground: Color,
 }
 
 impl Component for DMDirectMessageButton {
@@ -206,6 +209,8 @@ impl Component for DMDirectMessageButton {
                                     .max_lines(1)
                                     .font_weight(500)
                                     .text_overflow(TextOverflow::Ellipsis)
+                                    .foreground(self.foreground)
+                                    .link_foreground(self.link_foreground)
                             }),
                     ),
             )

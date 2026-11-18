@@ -1,12 +1,9 @@
 use freya::prelude::*;
 
-use crate::{
-    components::{
-        ModalValue,
-        markdown::{components::MessageUrl, parser::Inline, render::render_content},
-        use_modals,
-    },
-    consume_material_theme,
+use crate::components::{
+    ModalValue, StoatTooltip,
+    markdown::{components::MessageUrl, parser::Inline, render::render_content},
+    stoat_paragraph, use_modals,
 };
 
 #[derive(PartialEq)]
@@ -16,47 +13,58 @@ pub struct Link {
     pub title: Option<String>,
     pub bold: bool,
     pub font_size: f32,
+    pub foreground: Color,
 }
 
 impl Component for Link {
     fn render(&self) -> impl IntoElement {
-        let theme = consume_material_theme();
         let mut modals = use_modals();
         let mut hover = use_state(|| false);
 
-        rect()
-            .on_secondary_down({
-                let url = self.url.clone();
-                move |_| {
-                    provide_root_context(Some(MessageUrl(url.clone())));
-                }
-            })
-            .cursor(CursorIcon::Pointer)
-            .child(
-                render_content(
-                    paragraph(),
-                    &self.content,
-                    self.font_size,
-                    theme,
-                    self.bold,
-                    true,
-                    hover(),
-                )
-                .on_press({
-                    let url = self.url.clone();
+        let holder = use_hook(ParagraphHolder::default);
 
-                    move |_| {
-                        modals
-                            .write()
-                            .push_modal(ModalValue::OpenLink { url: url.clone() });
-                    }
-                })
-                .on_pointer_enter(move |_| {
-                    hover.set_if_modified(true);
-                })
-                .on_pointer_leave(move |_| {
-                    hover.set_if_modified(false);
-                }),
-            )
+        let element = render_content(
+            stoat_paragraph(),
+            &self.content,
+            self.font_size,
+            self.foreground,
+            self.foreground,
+            self.bold,
+            true,
+            hover(),
+        )
+        .cursor(CursorIcon::Pointer)
+        .holder(holder)
+        .on_pointer_over(move |_| {
+            hover.set_if_modified(true);
+        })
+        .on_pointer_out(move |_| {
+            hover.set_if_modified(false);
+        })
+        .on_secondary_down({
+            let url = self.url.clone();
+            move |_| {
+                provide_root_context(Some(MessageUrl(url.clone())));
+            }
+        })
+        .on_press({
+            let url = self.url.clone();
+
+            move |_| {
+                modals
+                    .write()
+                    .push_modal(ModalValue::OpenLink { url: url.clone() });
+            }
+        });
+
+        if let Some(title) = self.title.clone() {
+            StoatTooltip::new(label().font_size(11.).max_lines(1).text(title))
+                .compact(true)
+                .position(AttachedPosition::Top)
+                .child(element)
+                .into_element()
+        } else {
+            element.into_element()
+        }
     }
 }

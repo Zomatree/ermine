@@ -1,22 +1,19 @@
 use freya::prelude::*;
 
-use crate::{
-    components::{
-        ModalValue,
-        markdown::components::{Invite, MessageUrl},
-        use_modals,
-    },
-    consume_material_theme,
+use crate::components::{
+    ModalValue,
+    markdown::components::{Invite, MessageUrl},
+    stoat_paragraph, use_modals,
 };
 
 #[derive(PartialEq)]
 pub struct Hyperlink {
     pub span: Span<'static>,
+    pub foreground: Color,
 }
 
 impl Component for Hyperlink {
     fn render(&self) -> impl IntoElement {
-        let theme = consume_material_theme();
         let mut modals = use_modals();
         let mut hover = use_state(|| false);
 
@@ -40,6 +37,8 @@ impl Component for Hyperlink {
             None
         };
 
+        let holder = use_hook(|| ParagraphHolder::default());
+
         rect()
             .on_secondary_down({
                 let url = self.span.text.to_string();
@@ -53,18 +52,16 @@ impl Component for Hyperlink {
                 rect()
                     .cursor(CursorIcon::Pointer)
                     .child(
-                        paragraph()
+                        stoat_paragraph()
+                            .holder(holder)
                             .line_height(1.5)
-                            .span(
-                                self.span
-                                    .clone()
-                                    .color(theme.md.primary)
-                                    .text_decoration(if hover() {
-                                        TextDecoration::Underline
-                                    } else {
-                                        TextDecoration::None
-                                    }),
-                            )
+                            .span(self.span.clone().color(self.foreground).text_decoration(
+                                if hover() {
+                                    TextDecoration::Underline
+                                } else {
+                                    TextDecoration::None
+                                },
+                            ))
                             .on_press({
                                 let url = self.span.text.to_string();
 

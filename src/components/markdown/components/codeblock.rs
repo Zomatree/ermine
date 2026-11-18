@@ -5,7 +5,7 @@ use syntect::{easy::HighlightLines, util::LinesWithEndings};
 
 use crate::{
     SyntaxSet, ThemeSet,
-    components::{StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
+    components::{StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, stoat_label},
     consume_material_theme, use_config,
 };
 
@@ -107,7 +107,7 @@ impl Component for Codeblock {
                                     .font_size(12.)
                                     .cursor(CursorIcon::Pointer)
                                     .child(
-                                        label()
+                                        stoat_label()
                                             .line_height(1.5)
                                             .font_family("Fira Code Bold")
                                             .text(
@@ -125,6 +125,7 @@ impl Component for Codeblock {
                         selectable_text
                             .font_family("Fira Code")
                             .line_height(1.5)
+                            .text_height(TextHeightBehavior::All)
                             .font_size(14.),
                     ),
                 ),

@@ -63,22 +63,17 @@ pub fn link_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserElemen
             none_of(" )")
                 .repeated()
                 .collect::<String>()
-                // .then(
-                //     just(' ').repeated().at_least(1).ignore_then(
-                //         none_of("\"")
-                //             .repeated()
-                //             .collect::<String>()
-                //             .delimited_by(just("\""), just("\""))
-                //             .or_not(),
-                //     ),
-                // )
+                .then(
+                    none_of("\"")
+                        .repeated()
+                        .collect::<String>()
+                        .delimited_by(just("\""), just("\""))
+                        .padded()
+                        .or_not(),
+                )
                 .delimited_by(just('('), just(')')),
         )
-        .map(|(text, url)| InlineParserElement::Link {
-            url,
-            title: None,
-            text,
-        })
+        .map(|(text, (url, title))| InlineParserElement::Link { url, title, text })
 }
 
 pub fn spoiler_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserElement> {

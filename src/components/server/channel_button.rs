@@ -8,7 +8,7 @@ use stoat_models::v0;
 use stoat_permissions::ChannelPermission;
 
 use crate::{
-    AppChannel, ChannelSettingsPage, Config, NotificationBadge, Room, SizeExt,
+    AppChannel, ChannelSettingsPage, NotificationBadge, Room, SizeExt,
     calculate_channel_permissions,
     components::{
         Avatar, ChannelContextMenu, MaterialIcon, ModalValue, StoatButton,
@@ -17,10 +17,10 @@ use crate::{
             filled::{grid_3x3, person_add_alt_1, settings},
             outlined::{camera_alt, headset_mic, mic_off, screen_share},
         },
-        use_floating, use_modals,
+        stoat_label, use_floating, use_modals,
     },
     consume_material_theme, get_unread_badge, http, is_channel_muted, set_selected_channel,
-    user_permissions_query,
+    use_config, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -32,7 +32,7 @@ pub struct ChannelButton {
 impl Component for ChannelButton {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
-        let mut config = use_consume::<State<Config>>();
+        let mut config = use_config();
         let mut modals = use_modals();
         let room = consume_context::<Room>();
 
@@ -204,11 +204,12 @@ impl Component for ChannelButton {
                                     .size(Size::px(24.)),
                                 )
                                 .child(
-                                    label()
+                                    stoat_label()
                                         .text(self.channel.read().name().unwrap().to_string())
                                         .text_overflow(TextOverflow::Ellipsis)
                                         .width(Size::flex(1.))
                                         .font_weight(500)
+                                        .font_size(15.)
                                         .max_lines(1),
                                 )
                                 .maybe_child(

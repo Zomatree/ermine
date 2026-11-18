@@ -11,6 +11,7 @@ use crate::{
             filled::grid_3x3,
             outlined::{chevron_right, message},
         },
+        stoat_label,
     },
     consume_material_theme, get_channel_name, get_channel_server, map_optional_readable,
 };
@@ -79,12 +80,12 @@ impl Component for MessageMention {
                             .horizontal()
                             .cross_align(Alignment::Center)
                             .spacing(4.)
-                            .child(get_channel_name(&radio, &channel))
+                            .child(stoat_label().text(get_channel_name(&radio, &channel)))
                             .child(MaterialIcon::new(chevron_right()).size(Size::px(14.)))
                             .child(MaterialIcon::new(message()).size(Size::px(14.)))
                             .into_element()
                     } else {
-                        label()
+                        stoat_label()
                             .line_height(1.5)
                             .max_lines(1)
                             .font_size(self.font_size)

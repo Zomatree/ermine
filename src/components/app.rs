@@ -95,7 +95,7 @@ impl Component for App {
                 .width(Size::Fill)
                 .height(Size::Fill)
                 .center()
-                .child(CircularLoader::new().primary_color(theme.md.on_surface.as_argb_u32()))
+                .child(CircularLoader::new().size(48.).primary_color(theme.md.primary))
                 .into_element()
         }
     }

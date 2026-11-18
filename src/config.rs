@@ -3,8 +3,13 @@ use std::{
     path::PathBuf,
 };
 
+use dpi::PhysicalPosition;
 use etcetera::{AppStrategy, AppStrategyArgs, app_strategy::choose_native_strategy};
-use freya::prelude::{State, use_consume};
+use freya::{
+    prelude::{State, use_hook},
+    winit::dpi::PhysicalSize,
+};
+use freya_core::integration::GlobalContexts;
 use serde::{Deserialize, Serialize};
 
 use crate::{Session, ThemeVariant, default_theme_source};
@@ -66,6 +71,10 @@ fn default_deafened() -> bool {
     true
 }
 
+fn default_size() -> PhysicalSize<u32> {
+    PhysicalSize::new(1280, 720)
+}
+
 impl Default for AudioConfig {
     fn default() -> Self {
         Self {
@@ -96,6 +105,10 @@ pub struct Config {
     pub audio: AudioConfig,
     #[serde(default = "default_code_theme")]
     pub code_theme: String,
+    #[serde(default = "default_size")]
+    pub size: PhysicalSize<u32>,
+    #[serde(default)]
+    pub position: Option<PhysicalPosition<i32>>,
 }
 
 impl Default for Config {
@@ -111,6 +124,8 @@ impl Default for Config {
             drafts: Default::default(),
             audio: Default::default(),
             code_theme: default_code_theme(),
+            size: default_size(),
+            position: Default::default(),
         }
     }
 }
@@ -151,6 +166,10 @@ pub fn write_config(config: &Config) {
     std::fs::write(path, serde_json::to_string(config).unwrap()).unwrap();
 }
 
+pub fn consume_config() -> State<Config> {
+    GlobalContexts::get().get_context()
+}
+
 pub fn use_config() -> State<Config> {
-    use_consume()
+    use_hook(consume_config)
 }

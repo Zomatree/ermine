@@ -9,6 +9,7 @@ pub struct StoatTooltip {
     children: Vec<Element>,
     position: AttachedPosition,
     layout: LayoutData,
+    compact: bool,
     key: DiffKey,
 }
 
@@ -37,12 +38,18 @@ impl StoatTooltip {
             children: vec![],
             position: AttachedPosition::Bottom,
             layout: LayoutData::default(),
+            compact: false,
             key: DiffKey::None,
         }
     }
 
     pub fn position(mut self, position: AttachedPosition) -> Self {
         self.position = position;
+        self
+    }
+
+    pub fn compact(mut self, compact: bool) -> Self {
+        self.compact = compact;
         self
     }
 }
@@ -79,11 +86,15 @@ impl Component for StoatTooltip {
 
         let is_visible = opacity > 0. && !ContextMenu::is_open();
 
-        let padding = match self.position {
-            AttachedPosition::Top => (0., 0., 5., 0.),
-            AttachedPosition::Bottom => (5., 0., 0., 0.),
-            AttachedPosition::Left => (0., 5., 0., 0.),
-            AttachedPosition::Right => (0., 0., 0., 5.),
+        let padding = if !self.compact {
+            match self.position {
+                AttachedPosition::Top => (0., 0., 5., 0.),
+                AttachedPosition::Bottom => (5., 0., 0., 0.),
+                AttachedPosition::Left => (0., 5., 0., 0.),
+                AttachedPosition::Right => (0., 0., 0., 5.),
+            }
+        } else {
+            (0., 0., 0., 0.)
         };
 
         rect()

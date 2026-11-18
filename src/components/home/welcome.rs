@@ -61,7 +61,7 @@ impl Component for Welcome {
                                 .padding((48., 8.))
                                 .spacing(32.)
                                 .center()
-                                .child(label().text("Stoat").color(theme.md.on_surface.as_argb_u32()).font_size(48.))
+                                .child(label().font_weight(1000).font_width(8).text("Stoat").color(theme.md.on_surface.as_argb_u32()).font_size(40.))
                                 .child(
                                     rect()
                                         .spacing(8.)

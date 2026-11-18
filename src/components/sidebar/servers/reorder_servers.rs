@@ -698,12 +698,13 @@ impl Component for FolderEntry {
         });
 
         let indicator_height = if let Selection::Server(id) = &*selection.read()
+            && folder.collapsed
             && folder.servers.contains(id)
         {
             32.
         } else if hovering() {
             16.
-        } else if badge.read().is_some() {
+        } else if badge.read().is_some() && folder.collapsed {
             8.
         } else {
             0.
@@ -712,6 +713,8 @@ impl Component for FolderEntry {
         let indicator_anim = use_animation_transition(indicator_height, move |before, after| {
             AnimNum::new(before, after).time(100).function(fast_func())
         });
+
+        let collapsed = folder.collapsed;
 
         rect()
             .center()
@@ -723,10 +726,6 @@ impl Component for FolderEntry {
                 Size::Inner
             })
             .border(drag_hovering().then(|| Border::new().fill(theme.md.primary).width(2.)))
-            .on_pointer_over(move |_| {
-                hovering.set(true);
-            })
-            .on_pointer_out(move |_| hovering.set_if_modified(false))
             .on_secondary_down({
                 let id = self.id.clone();
                 move |_| {
@@ -735,7 +734,13 @@ impl Component for FolderEntry {
                     }));
                 }
             })
-            .maybe_child(folder.collapsed.then(|| {
+            .on_pointer_over(move |_| {
+                if collapsed {
+                    hovering.set(true)
+                };
+            })
+            .on_pointer_out(move |_| hovering.set_if_modified(false))
+            .child(
                 rect()
                     .center()
                     .position(Position::new_absolute().left(0.))
@@ -746,8 +751,8 @@ impl Component for FolderEntry {
                             .height(Size::px(indicator_anim.read().value()))
                             .corner_radius(CornerRadius::new(0., 4., 4., 0.))
                             .background(theme.md.on_surface.as_argb_u32()),
-                    )
-            }))
+                    ),
+            )
             .child(
                 DragZone::new(Entry::Folder {
                     id: self.id.clone(),
@@ -760,33 +765,39 @@ impl Component for FolderEntry {
                     StoatTooltip::new(stoat_label().max_lines(1).text(folder.name.clone()))
                         .position(AttachedPosition::Right)
                         .child(
-                            rect()
-                                .size(Size::px(42.))
-                                .child(FolderPreview {
-                                    id: self.id.clone(),
-                                    opacity,
-                                    dragging: self.dragging,
-                                })
-                                .maybe_child(badge().and_then(|badge| badge.mention_count()).map(
-                                    |count| {
-                                        rect()
-                                            .position(Position::new_absolute().right(0.).top(0.))
-                                            .layer(Layer::Relative(10))
-                                            .width(Size::px(13.))
-                                            .height(Size::px(13.))
-                                            .corner_radius(13.)
-                                            .center()
-                                            .background(theme.md.error.as_argb_u32())
-                                            .color(theme.md.on_error.as_argb_u32())
-                                            .font_size(8.)
-                                            .font_weight(FontWeight::SEMI_BOLD)
-                                            .child(if count <= 9 {
-                                                count.to_string()
-                                            } else {
-                                                "+".to_string()
-                                            })
-                                    },
-                                )),
+                            rect().size(Size::px(56.)).center().child(
+                                rect()
+                                    .size(Size::px(42.))
+                                    .child(FolderPreview {
+                                        id: self.id.clone(),
+                                        opacity,
+                                        dragging: self.dragging,
+                                    })
+                                    .maybe_child(
+                                        badge().and_then(|badge| badge.mention_count()).map(
+                                            |count| {
+                                                rect()
+                                                    .position(
+                                                        Position::new_absolute().right(0.).top(0.),
+                                                    )
+                                                    .layer(Layer::Relative(10))
+                                                    .width(Size::px(13.))
+                                                    .height(Size::px(13.))
+                                                    .corner_radius(13.)
+                                                    .center()
+                                                    .background(theme.md.error.as_argb_u32())
+                                                    .color(theme.md.on_error.as_argb_u32())
+                                                    .font_size(8.)
+                                                    .font_weight(FontWeight::SEMI_BOLD)
+                                                    .child(if count <= 9 {
+                                                        count.to_string()
+                                                    } else {
+                                                        "+".to_string()
+                                                    })
+                                            },
+                                        ),
+                                    ),
+                            ),
                         )
                         .into_element()
                 } else {
@@ -821,6 +832,10 @@ impl Component for FolderEntry {
                                                 folder.collapsed = true;
                                             }
                                         })
+                                        .on_pointer_over(move |_| {
+                                            hovering.set(true);
+                                        })
+                                        .on_pointer_out(move |_| hovering.set_if_modified(false))
                                         .child(
                                             MaterialIcon::new(filled_folder())
                                                 .size(Size::px(32.))

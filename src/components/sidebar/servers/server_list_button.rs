@@ -1,12 +1,17 @@
 use freya::{
-    animation::{AnimNum, use_animation_transition}, prelude::*, radio::{use_radio, use_radio_station},
+    animation::{AnimNum, use_animation_transition},
+    prelude::*,
+    radio::{use_radio, use_radio_station},
 };
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, Config, NotificationBadge, Selection, components::{
+    AppChannel, NotificationBadge, Selection,
+    components::{
         ServerContextMenu, ServerIcon, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip,
-    }, consume_material_theme, fast_func, get_unread_badge, is_server_muted, set_selection_and_channel,
+    },
+    consume_material_theme, fast_func, get_unread_badge, is_server_muted,
+    set_selection_and_channel, use_config,
 };
 
 #[derive(PartialEq)]
@@ -16,7 +21,7 @@ pub struct ServerListButton {
 
 impl Component for ServerListButton {
     fn render(&self) -> impl IntoElement {
-        let config = use_consume::<State<Config>>();
+        let config = use_config();
         let station = use_radio_station();
         let radio = use_radio(AppChannel::Servers);
         let theme = consume_material_theme();
@@ -167,7 +172,11 @@ impl Component for ServerListButton {
                                                                 .cloned()
                                                         });
 
-                                                    set_selection_and_channel(Selection::Server(server.id.clone()), channel_id.map(|id| (id, None)), station);
+                                                    set_selection_and_channel(
+                                                        Selection::Server(server.id.clone()),
+                                                        channel_id.map(|id| (id, None)),
+                                                        station,
+                                                    );
                                                 }
                                             }),
                                     )

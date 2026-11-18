@@ -179,7 +179,7 @@ impl Component for Message {
                                                 let user_id = user.read().id.clone();
                                                 let server_id = server_id.clone();
 
-                                                ContextMenu::open(Menu::new().key(&user_id).child(
+                                                ContextMenu::open_from_down(Menu::new().key(&user_id).child(
                                                     UserContextMenu {
                                                         user_id,
                                                         server_id,

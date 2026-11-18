@@ -8,7 +8,8 @@ use stoat_permissions::{ChannelPermission, PermissionValue};
 use crate::{
     AppChannel, EditingMessage,
     components::{
-        ContextMenuButton, EmojiPicker, MessageModel, ModalValue, ReplyController,
+        ContextMenuButton, ContextMenuDivider, EmojiPicker, MessageModel, ModalValue,
+        ReplyController,
         markdown::components::MessageUrl,
         material::{
             filled::reply,
@@ -49,6 +50,18 @@ impl Component for MessageContextMenu {
             provide_root_context(None::<MessageUrl>);
         });
 
+        let can_react = self
+            .current_permissions
+            .has_channel_permission(ChannelPermission::React);
+        let can_edit = &self.message.message.author == &*user_id.read();
+        let can_pin = self
+            .current_permissions
+            .has_channel_permission(ChannelPermission::ManageMessages);
+        let can_delete = self
+            .current_permissions
+            .has_channel_permission(ChannelPermission::ManageMessages)
+            || &self.message.message.author == &*user_id.read();
+
         rect()
             .content(Content::Fit)
             .on_global_key_down(move |e: Event<KeyboardEventData>| {
@@ -60,6 +73,23 @@ impl Component for MessageContextMenu {
                 if e.key == Key::Named(NamedKey::Shift) {
                     shift.set(false);
                 }
+            })
+            .map(current_url, |this, MessageUrl(url)| {
+                this.child(ContextMenuButton::new(link(), "Copy Link").on_press({
+                    let url = url.clone();
+                    move |_| {
+                        Clipboard::set(url.clone()).unwrap();
+                    }
+                }))
+                .child(
+                    ContextMenuButton::new(open_in_browser(), "Open Link").on_press({
+                        let url = url.clone();
+                        move |_| {
+                            open::that_in_background(&url);
+                        }
+                    }),
+                )
+                .child(ContextMenuDivider)
             })
             .child(ContextMenuButton::new(reply(), "Reply").on_press({
                 let message = self.message.clone();
@@ -92,40 +122,37 @@ impl Component for MessageContextMenu {
                     }
                 }),
             )
-            .maybe_child(
-                self.current_permissions
-                    .has_channel_permission(ChannelPermission::React)
-                    .then(|| {
-                        ContextMenuButton::new(insert_emoticon(), "React").on_press({
-                            let message_id = self.message.message.id.clone();
-                            let channel_id = self.message.message.channel.clone();
+            .child(ContextMenuDivider)
+            .maybe_child(can_react.then(|| {
+                ContextMenuButton::new(insert_emoticon(), "React").on_press({
+                    let message_id = self.message.message.id.clone();
+                    let channel_id = self.message.message.channel.clone();
 
-                            move |_| {
-                                let message_id = message_id.clone();
-                                let channel_id = channel_id.clone();
+                    move |_| {
+                        let message_id = message_id.clone();
+                        let channel_id = channel_id.clone();
 
-                                *floating.write() = Some(
-                                    EmojiPicker::new({
-                                        move |id: String| {
-                                            let message_id = message_id.clone();
-                                            let channel_id = channel_id.clone();
-                                            floating.set(None);
+                        *floating.write() = Some(
+                            EmojiPicker::new({
+                                move |id: String| {
+                                    let message_id = message_id.clone();
+                                    let channel_id = channel_id.clone();
+                                    floating.set(None);
 
-                                            spawn_in_window(async move {
-                                                http()
-                                                    .react_message(&channel_id, &message_id, &id)
-                                                    .await
-                                                    .unwrap();
-                                            });
-                                        }
-                                    })
-                                    .into_element(),
-                                )
-                            }
-                        })
-                    }),
-            )
-            .maybe_child((&self.message.message.author == &*user_id.read()).then(|| {
+                                    spawn_in_window(async move {
+                                        http()
+                                            .react_message(&channel_id, &message_id, &id)
+                                            .await
+                                            .unwrap();
+                                    });
+                                }
+                            })
+                            .into_element(),
+                        )
+                    }
+                })
+            }))
+            .maybe_child(can_edit.then(|| {
                 ContextMenuButton::new(edit(), "Edit Message").on_press({
                     let message = self.message.clone();
 
@@ -138,11 +165,7 @@ impl Component for MessageContextMenu {
                 })
             }))
             .maybe_child(
-                (self
-                    .current_permissions
-                    .has_channel_permission(ChannelPermission::ManageMessages)
-                    && self.message.message.pinned.is_none_or(|pinned| !pinned))
-                .then(|| {
+                (can_pin && self.message.message.pinned.is_none_or(|pinned| !pinned)).then(|| {
                     ContextMenuButton::new(pin_invoke(), "Pin Message").on_press({
                         let message_id = self.message.message.id.clone();
                         let channel_id = self.message.message.channel.clone();
@@ -159,11 +182,7 @@ impl Component for MessageContextMenu {
                 }),
             )
             .maybe_child(
-                (self
-                    .current_permissions
-                    .has_channel_permission(ChannelPermission::ManageMessages)
-                    && self.message.message.pinned == Some(true))
-                .then(|| {
+                (can_pin && self.message.message.pinned == Some(true)).then(|| {
                     ContextMenuButton::new(pin_invoke(), "Unpin Message").on_press({
                         let message_id = self.message.message.id.clone();
                         let channel_id = self.message.message.channel.clone();
@@ -182,55 +201,36 @@ impl Component for MessageContextMenu {
                     })
                 }),
             )
-            .maybe_child(
-                (self
-                    .current_permissions
-                    .has_channel_permission(ChannelPermission::ManageMessages)
-                    || &self.message.message.author == &*user_id.read())
-                    .then(|| {
-                        ContextMenuButton::new(delete(), "Delete Message")
-                            .danger()
-                            .on_press({
-                                let message = self.message.clone();
-                                let channel_id = self.message.message.channel.clone();
+            .maybe_child(can_delete.then(|| {
+                ContextMenuButton::new(delete(), "Delete Message")
+                    .danger()
+                    .on_press({
+                        let message = self.message.clone();
+                        let channel_id = self.message.message.channel.clone();
 
-                                move |_| {
-                                    let message = message.clone();
-                                    let channel_id = channel_id.clone();
-
-                                    if shift() {
-                                        spawn_in_window(async move {
-                                            http()
-                                                .delete_message(&channel_id, &message.message.id)
-                                                .await
-                                                .unwrap();
-                                        });
-                                    } else {
-                                        modals.write().push_modal(ModalValue::DeleteMessage {
-                                            channel: channel_id.clone(),
-                                            message,
-                                        });
-                                    }
-                                }
-                            })
-                    }),
-            )
-            .map(current_url, |this, MessageUrl(url)| {
-                this.child(ContextMenuButton::new(link(), "Copy Link").on_press({
-                    let url = url.clone();
-                    move |_| {
-                        Clipboard::set(url.clone()).unwrap();
-                    }
-                }))
-                .child(
-                    ContextMenuButton::new(open_in_browser(), "Open Link").on_press({
-                        let url = url.clone();
                         move |_| {
-                            open::that_in_background(&url);
+                            let message = message.clone();
+                            let channel_id = channel_id.clone();
+
+                            if shift() {
+                                spawn_in_window(async move {
+                                    http()
+                                        .delete_message(&channel_id, &message.message.id)
+                                        .await
+                                        .unwrap();
+                                });
+                            } else {
+                                modals.write().push_modal(ModalValue::DeleteMessage {
+                                    channel: channel_id.clone(),
+                                    message,
+                                });
+                            }
                         }
-                    }),
-                )
-            })
+                    })
+            }))
+            .maybe_child(
+                (can_react || can_edit || can_pin || can_delete).then_some(ContextMenuDivider),
+            )
             .child(
                 ContextMenuButton::new(share(), "Copy Message Link").on_press({
                     let message_id = self.message.message.id.clone();

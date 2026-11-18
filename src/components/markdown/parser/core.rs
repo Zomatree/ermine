@@ -6,7 +6,7 @@ use crate::components::markdown::parser::parse_elements;
 
 /// Represents different markdown elements for rendering.
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MarkdownElement {
     Heading {
         level: HeadingLevel,
@@ -20,19 +20,13 @@ pub enum MarkdownElement {
         #[allow(dead_code)]
         language: Option<String>,
     },
-    UnorderedList {
-        items: Vec<Vec<Inline>>,
-    },
-    OrderedList {
-        start: u64,
-        items: Vec<Vec<Inline>>,
-    },
+    List(List),
     Image {
         url: String,
         alt: String,
     },
     Blockquote {
-        content: Vec<Inline>,
+        content: Vec<MarkdownElement>,
     },
     Table {
         headers: Vec<Vec<Inline>>,
@@ -69,6 +63,20 @@ pub enum Inline {
     Spoiler(Vec<Inline>),
 }
 
+/// A markdown list, ordered when `start` is present.
+#[derive(Clone, Debug, PartialEq)]
+pub struct List {
+    pub start: Option<u64>,
+    pub items: Vec<ListItem>,
+}
+
+/// A list item's inline content plus the lists nested under it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ListItem {
+    pub content: Vec<Inline>,
+    pub nested_lists: Vec<List>,
+}
+
 /// Represents styled text spans within markdown.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TextSpan {
@@ -97,8 +105,6 @@ impl TextSpan {
 
 /// Parse markdown content into a list of elements.
 pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
-    // return vec![MarkdownElement::Paragraph { content: vec![Inline::Span(TextSpan { text: content.to_string(), bold: false, italic: false, strikethrough: false, code: false, link: false, spoiler: false })] }];
-
     let mut options = Options::empty();
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TABLES);
@@ -106,18 +112,15 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
     let parser = Parser::new_ext(content, options);
     let mut elements = Vec::new();
     let mut current_content: Vec<Inline> = Vec::new();
-    let mut list_items: Vec<Vec<Inline>> = Vec::new();
-    let mut current_list_item: Vec<Inline> = Vec::new();
+    let mut list_stack: Vec<List> = Vec::new();
+    let mut item_stack: Vec<ListItem> = Vec::new();
 
     let mut in_heading: Option<HeadingLevel> = None;
     let mut in_paragraph = false;
     let mut in_code_block = false;
     let mut code_block_content = String::new();
     let mut code_block_language: Option<String> = None;
-    let mut ordered_list_start: Option<u64> = None;
-    let mut in_list_item = false;
-    let mut in_blockquote = false;
-    let mut blockquote_spans: Vec<Inline> = Vec::new();
+    let mut blockquotes: Vec<Vec<MarkdownElement>> = Vec::new();
 
     let mut in_table_cell = false;
     let mut table_headers: Vec<Vec<Inline>> = Vec::new();
@@ -142,9 +145,7 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
                     current_content.clear();
                 }
                 Tag::Paragraph => {
-                    if in_blockquote {
-                        // Paragraphs inside blockquotes
-                    } else if in_list_item {
+                    if !item_stack.is_empty() {
                         // Paragraphs inside list items
                     } else {
                         in_paragraph = true;
@@ -167,27 +168,36 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
                     };
                 }
                 Tag::List(start) => {
-                    ordered_list_start = start;
-                    list_items.clear();
+                    list_stack.push(List {
+                        start,
+                        items: Vec::new(),
+                    });
                 }
                 Tag::Item => {
-                    in_list_item = true;
-                    current_list_item.clear();
+                    item_stack.push(ListItem {
+                        content: Vec::new(),
+                        nested_lists: Vec::new(),
+                    });
                 }
                 Tag::Strong => bold = true,
                 Tag::Emphasis => italic = true,
                 Tag::Strikethrough => strikethrough = true,
                 Tag::BlockQuote(_) => {
-                    in_blockquote = true;
-                    blockquote_spans.clear();
+                    blockquotes.push(Vec::new());
                 }
                 Tag::Image {
                     dest_url, title, ..
                 } => {
-                    elements.push(MarkdownElement::Image {
+                    let element = MarkdownElement::Image {
                         url: dest_url.to_string(),
                         alt: title.to_string(),
-                    });
+                    };
+
+                    if let Some(block) = blockquotes.last_mut() {
+                        block.push(element);
+                    } else {
+                        elements.push(element);
+                    }
                 }
                 Tag::Link {
                     dest_url, title, ..
@@ -215,57 +225,94 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
             Event::End(tag_end) => match tag_end {
                 TagEnd::Heading(_) => {
                     if let Some(level) = in_heading.take() {
-                        elements.push(MarkdownElement::Heading {
+                        let element = MarkdownElement::Heading {
                             level,
                             content: mem::take(&mut current_content),
-                        });
+                        };
+
+                        if let Some(block) = blockquotes.last_mut() {
+                            block.push(element);
+                        } else {
+                            elements.push(element);
+                        }
                     }
                 }
                 TagEnd::Paragraph => {
-                    if in_blockquote {
-                        blockquote_spans.append(&mut current_content)
-                    } else if in_list_item {
-                        current_list_item.append(&mut current_content)
+                    if let Some(item) = item_stack.last_mut() {
+                        item.content.extend(current_content.drain(..));
                     } else if in_paragraph {
                         in_paragraph = false;
-                        elements.push(MarkdownElement::Paragraph {
+                        let element = MarkdownElement::Paragraph {
                             content: mem::take(&mut current_content),
-                        });
+                        };
+
+                        if let Some(block) = blockquotes.last_mut() {
+                            block.push(element);
+                        } else {
+                            elements.push(element);
+                        }
                     }
                 }
                 TagEnd::CodeBlock => {
                     in_code_block = false;
-                    elements.push(MarkdownElement::CodeBlock {
+
+                    let element = MarkdownElement::CodeBlock {
                         code: mem::take(&mut code_block_content),
                         language: code_block_language.take(),
-                    });
+                    };
+
+                    if let Some(block) = blockquotes.last_mut() {
+                        block.push(element);
+                    } else {
+                        elements.push(element);
+                    }
                 }
                 TagEnd::List(_) => {
-                    let items = mem::take(&mut list_items);
-                    if let Some(start) = ordered_list_start.take() {
-                        elements.push(MarkdownElement::OrderedList { start, items });
-                    } else {
-                        elements.push(MarkdownElement::UnorderedList { items });
+                    if let Some(list) = list_stack.pop() {
+                        if let Some(item) = item_stack.last_mut() {
+                            item.nested_lists.push(list);
+                        } else {
+                            let element = MarkdownElement::List(list);
+
+                            if let Some(block) = blockquotes.last_mut() {
+                                block.push(element);
+                            } else {
+                                elements.push(element);
+                            }
+                        }
                     }
                 }
                 TagEnd::Item => {
-                    in_list_item = false;
-                    list_items.push(mem::take(&mut current_list_item));
+                    if let (Some(item), Some(list)) = (item_stack.pop(), list_stack.last_mut()) {
+                        list.items.push(item);
+                    }
                 }
                 TagEnd::Strong => bold = false,
                 TagEnd::Emphasis => italic = false,
                 TagEnd::Strikethrough => strikethrough = false,
                 TagEnd::BlockQuote(_) => {
-                    in_blockquote = false;
-                    elements.push(MarkdownElement::Blockquote {
-                        content: mem::take(&mut blockquote_spans),
-                    });
+                    let blockquote_spans = blockquotes.pop().unwrap();
+                    let element = MarkdownElement::Blockquote {
+                        content: blockquote_spans,
+                    };
+
+                    if let Some(block) = blockquotes.last_mut() {
+                        block.push(element);
+                    } else {
+                        elements.push(element);
+                    }
                 }
                 TagEnd::Table => {
-                    elements.push(MarkdownElement::Table {
+                    let element = MarkdownElement::Table {
                         headers: mem::take(&mut table_headers),
                         rows: mem::take(&mut table_rows),
-                    });
+                    };
+
+                    if let Some(block) = blockquotes.last_mut() {
+                        block.push(element);
+                    } else {
+                        elements.push(element);
+                    }
                 }
                 TagEnd::TableHead => {
                     // TableHead contains cells directly (no TableRow), so save headers here
@@ -284,24 +331,17 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
                     if let Some(url) = link_url.take() {
                         let title = link_title.take();
                         let text = mem::take(&mut link_spans);
+                        let element = Inline::Link { url, title, text };
 
                         if in_table_cell {
-                            current_cell_spans.push(Inline::Link { url, title, text });
-                        } else if in_blockquote {
-                            blockquote_spans.push(Inline::Link { url, title, text });
-                        } else if in_list_item {
-                            current_list_item.push(Inline::Link { url, title, text });
+                            current_cell_spans.push(element);
+                        } else if let Some(item) = item_stack.last_mut() {
+                            item.content.push(element);
                         } else if in_link {
-                            link_spans.push(Inline::Link { url, title, text });
+                            link_spans.push(element);
                         } else {
-                            current_content.push(Inline::Link { url, title, text });
+                            current_content.push(element);
                         }
-
-                        // if in_paragraph || in_heading.is_some() {
-                        //     current_content.push(Inline::Link { url, title, text });
-                        // } else {
-                        //     elements.push(MarkdownElement::Link { url, title, text });
-                        // }
                     }
                 }
                 _ => {}
@@ -325,40 +365,23 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
 
                     current_cell_spans.extend(parse_elements(&text, bold, italic, strikethrough));
                 } else {
-                    if in_blockquote && !in_paragraph {
-                        let text = if let Some(Inline::Span(last)) = blockquote_spans.last()
+                    if let Some(item) = item_stack.last_mut()
+                        && !in_paragraph
+                    {
+                        let text = if let Some(Inline::Span(last)) = item.content.last()
                             && last.code == false
                             && last.italic == italic
                             && last.bold == bold
                             && last.strikethrough == strikethrough
                         {
                             let output = last.text.to_string() + &*text;
-                            blockquote_spans.pop();
+                            item.content.pop();
                             output
                         } else {
                             text.to_string()
                         };
-
-                        blockquote_spans.extend(parse_elements(&text, bold, italic, strikethrough));
-                    } else if in_list_item && !in_paragraph {
-                        let text = if let Some(Inline::Span(last)) = current_list_item.last()
-                            && last.code == false
-                            && last.italic == italic
-                            && last.bold == bold
-                            && last.strikethrough == strikethrough
-                        {
-                            let output = last.text.to_string() + &*text;
-                            current_list_item.pop();
-                            output
-                        } else {
-                            text.to_string()
-                        };
-                        current_list_item.extend(parse_elements(
-                            &text,
-                            bold,
-                            italic,
-                            strikethrough,
-                        ));
+                        item.content
+                            .extend(parse_elements(&text, bold, italic, strikethrough));
                     } else if in_link {
                         let text = if let Some(Inline::Span(last)) = link_spans.last()
                             && last.code == false
@@ -404,10 +427,8 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
 
                 if in_table_cell {
                     current_cell_spans.push(span);
-                } else if in_blockquote {
-                    blockquote_spans.push(span);
-                } else if in_list_item {
-                    current_list_item.push(span);
+                } else if let Some(item) = item_stack.last_mut() {
+                    item.content.push(span);
                 } else if in_link {
                     link_spans.push(span);
                 } else {
@@ -416,10 +437,9 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownElement> {
             }
             Event::SoftBreak | Event::HardBreak => {
                 let span = Inline::Span(TextSpan::new("\n"));
-                if in_blockquote {
-                    blockquote_spans.push(span);
-                } else if in_list_item {
-                    current_list_item.push(span);
+
+                if let Some(item) = item_stack.last_mut() {
+                    item.content.push(span);
                 } else if in_link {
                     link_spans.push(span);
                 } else {

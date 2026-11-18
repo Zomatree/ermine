@@ -181,6 +181,8 @@ impl Component for MessageEdit {
                                         let save_message = save_message.clone();
                                         let mut editing_message = editing_message.clone();
                                         move |e: Event<KeyboardEventData>| {
+                                            e.stop_propagation();
+
                                             if autocomplete_visible()
                                                 && matches!(
                                                     e.key,

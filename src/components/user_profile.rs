@@ -1,14 +1,13 @@
 use std::{rc::Rc, time::SystemTime};
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{prelude::*, radio::{use_radio, use_radio_station}};
 use itertools::Itertools;
 use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 use stoat_permissions::{ChannelPermission, PermissionValue};
 
 use crate::{
-    AppChannel, SizeExt, calculate_server_permissions,
-    components::{
+    AppChannel, Selection, SizeExt, calculate_server_permissions, components::{
         Avatar, GroupDMIcon, MarkdownViewer, MaterialIcon, ModalValue, ServerIcon, StoatButton,
         StoatButtonColorsThemePartialExt, StoatButtonLayoutThemePartialExt, UserContextMenu,
         file_image,
@@ -17,10 +16,7 @@ use crate::{
             outlined::more_vert,
         },
         stoat_label, stoat_scrollbar, use_modals,
-    },
-    consume_material_theme, format_autumn_url, http, is_inferior, parse_fill,
-    theme::Theme,
-    user_permissions_query,
+    }, consume_material_theme, format_autumn_url, http, is_inferior, parse_fill, set_selection_home_and_channel, theme::Theme, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -347,6 +343,7 @@ impl PartialEq for ProfileButtons {
 
 impl Component for ProfileButtons {
     fn render(&self) -> impl IntoElement {
+        let station = use_radio_station();
         let radio = use_radio(AppChannel::Users);
         let theme = consume_material_theme();
         let mut modals = use_modals();
@@ -356,6 +353,7 @@ impl Component for ProfileButtons {
             radio.slice(AppChannel::UserId, |state| state.user_id.as_ref().unwrap());
         let members = radio.slice(AppChannel::Members, |state| &state.members);
         let servers = radio.slice(AppChannel::Servers, |state| &state.servers);
+        let channels = radio.slice(AppChannel::Channels, |state| &state.channels);
 
         let (main_action, mut secondary_action): (
             Option<(&str, Rc<dyn Fn()>)>,
@@ -404,7 +402,29 @@ impl Component for ProfileButtons {
                     )),
                     None,
                 ),
-                v0::RelationshipStatus::Friend => (Some(("Message", Rc::new(move || {}))), None),
+                v0::RelationshipStatus::Friend => (
+                    Some((
+                        "Message",
+                        Rc::new({
+                            let user_id = user.id.clone();
+                            let close = self.close.clone();
+
+                            move || {
+                                let channel_id = channels
+                                    .read()
+                                    .values()
+                                    .find(|c| matches!(c, v0::Channel::DirectMessage { recipients, .. } if recipients.contains(&user_id)))
+                                    .map(|c| c.id().to_string());
+
+                                if let Some(channel_id) = channel_id {
+                                    close();
+                                    set_selection_home_and_channel(Selection::Home, crate::HomeSelection::Friends, Some((channel_id, None)), station);
+                                }
+                            }
+                        }),
+                    )),
+                    None,
+                ),
                 v0::RelationshipStatus::Outgoing => (
                     Some((
                         "Cancel Friend Request",
@@ -557,7 +577,7 @@ impl Component for ProfileButtons {
                         rect()
                             .horizontal()
                             .height(Size::px(40.))
-                            .padding((0., 8.))
+                            .padding((0., 12.))
                             .center()
                             .child(
                                 MaterialIcon::new(icon)

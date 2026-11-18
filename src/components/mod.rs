@@ -19,6 +19,7 @@ mod sidebar;
 mod user_card;
 mod user_profile;
 mod voice;
+mod window;
 
 pub use app::*;
 pub use channel::*;
@@ -41,3 +42,4 @@ pub use sidebar::*;
 pub use user_card::*;
 pub use user_profile::*;
 pub use voice::*;
+pub use window::*;

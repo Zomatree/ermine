@@ -966,6 +966,33 @@ pub fn set_home_and_channel(
         .write_channel(AppChannel::HomeSelection)
         .home_selection = home_selection;
 }
+
+pub fn set_selection_home_and_channel(
+    selection: Selection,
+    home_selection: HomeSelection,
+    channel: Option<(String, Option<String>)>,
+    mut station: AppStation,
+) {
+    let current = get_current_page(station);
+
+    {
+        let mut state = station.write_channel(AppChannel::History);
+        state.history.back.push_back(current);
+        if state.history.back.len() > 50 {
+            state.history.back.pop_front();
+        }
+        state.history.forward.clear();
+    };
+
+    station.write_channel(AppChannel::Selection).selection = selection;
+    station
+        .write_channel(AppChannel::SelectedChannel)
+        .selected_channel = channel;
+    station
+        .write_channel(AppChannel::HomeSelection)
+        .home_selection = home_selection;
+}
+
 pub async fn update_state(
     event: EventV1,
     mut config: State<Config>,

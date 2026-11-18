@@ -457,7 +457,7 @@ impl Component for MemberListMember {
                                     let user_id = user.read().id.clone();
                                     let server_id = server.as_ref().map(|s| s.read().id.clone());
 
-                                    ContextMenu::open(
+                                    ContextMenu::open_from_down(
                                         Menu::new()
                                             .key(&user_id)
                                             .child(UserContextMenu { user_id, server_id }),

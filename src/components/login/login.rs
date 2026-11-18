@@ -1,7 +1,7 @@
 use freya::prelude::*;
 
 use crate::{
-    Config, SizeExt,
+    SizeExt,
     components::{
         MaterialIcon, ModalValue, SingleLineEntry, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt,
@@ -10,6 +10,7 @@ use crate::{
     },
     consume_material_theme, format_error, http,
     types::{DataLogin, MFAResponse, ResponseLogin},
+    use_config,
 };
 
 #[derive(PartialEq)]
@@ -17,7 +18,7 @@ pub struct Login {}
 
 impl Component for Login {
     fn render(&self) -> impl IntoElement {
-        let mut config = use_consume::<State<Config>>();
+        let mut config = use_config();
         let theme = consume_material_theme();
         let mut modals = use_modals();
 

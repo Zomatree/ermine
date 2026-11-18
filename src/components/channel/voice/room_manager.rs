@@ -1,4 +1,6 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Mutex, RwLock}, time::Duration,
+};
 
 use bytes::BytesMut;
 use freya::{elements::image::ImageHandle, prelude::*, radio::use_radio};
@@ -277,63 +279,152 @@ impl PartialEq for RoomVideoCard {
     }
 }
 
-impl Component for RoomVideoCard {
-    fn render(&self) -> impl IntoElement {
-        let mut buffer = use_state(BytesMut::new);
+/*
+        // let mut buffer = use_state(BytesMut::new);
         let mut handle = use_state(|| None);
 
         use_hook(|| {
             let mut stream = NativeVideoStream::new(self.track.rtc_track());
             spawn(async move {
+                let buffer = Arc::new(Mutex::new(BytesMut::new()));
+
                 while let Some(frame) = stream.next().await {
-                    let buf = frame.buffer.to_i420();
-                    let (stride_y, stride_u, stride_v) = buf.strides();
+                    let buffer = buffer.clone();
+                    let h = thread(move || {
+                        let buf = frame.buffer.to_i420();
+                        let (stride_y, stride_u, stride_v) = buf.strides();
 
-                    let (y, u, v) = buf.data();
+                        let (y, u, v) = buf.data();
 
-                    let mut rgba_buf = buffer.write();
+                        let mut rgba_buf = buffer.lock().unwrap();
 
-                    let y_size = buf.width() * buf.height();
+                        let y_size = buf.width() * buf.height();
 
-                    rgba_buf.resize((y_size * 4) as usize, 0);
+                        rgba_buf.resize((y_size * 4) as usize, 0);
 
-                    /*
-                    livekit::webrtc::native::yuv_helper::i420_to_abgr(
-                        y,
-                        stride_y,
-                        u,
-                        stride_u,
-                        v,
-                        stride_v,
-                        &mut rgba_buf,
-                        buf.width() * 4,
-                        buf.width() as i32,
-                        buf.height() as i32,
-                    );
-                    */
+                        /*
+                        livekit::webrtc::native::yuv_helper::i420_to_abgr(
+                            y,
+                            stride_y,
+                            u,
+                            stride_u,
+                            v,
+                            stride_v,
+                            &mut rgba_buf,
+                            buf.width() * 4,
+                            buf.width() as i32,
+                            buf.height() as i32,
+                        );
+                        */
 
-                    yuv::yuv420_to_rgba(
-                        &yuv::YuvPlanarImage {
-                            y_plane: y,
-                            y_stride: stride_y,
-                            u_plane: u,
-                            u_stride: stride_u,
-                            v_plane: v,
-                            v_stride: stride_v,
-                            width: buf.width(),
-                            height: buf.height(),
-                        },
-                        &mut rgba_buf,
-                        buf.width() * 4,
-                        yuv::YuvRange::Limited,
-                        yuv::YuvStandardMatrix::Bt601,
-                    )
-                    .unwrap();
-                    let bytes = Bytes::copy_from_slice(&rgba_buf);
-                    let h =
-                        ImageHandle::from_rgba(buf.width(), buf.height(), bytes, AlphaType::Opaque);
+                        yuv::yuv420_to_rgba(
+                            &yuv::YuvPlanarImage {
+                                y_plane: y,
+                                y_stride: stride_y,
+                                u_plane: u,
+                                u_stride: stride_u,
+                                v_plane: v,
+                                v_stride: stride_v,
+                                width: buf.width(),
+                                height: buf.height(),
+                            },
+                            &mut rgba_buf,
+                            buf.width() * 4,
+                            yuv::YuvRange::Limited,
+                            yuv::YuvStandardMatrix::Bt601,
+                        )
+                        .unwrap();
+                        let bytes = Bytes::copy_from_slice(&rgba_buf);
+                        ImageHandle::from_rgba(buf.width(), buf.height(), bytes, AlphaType::Opaque)
+                    })
+                    .await;
                     handle.set(h);
-                    sleep(Duration::from_secs_f64(1. / 30.)).await
+                    sleep(Duration::from_secs_f64(1. / 15.)).await
+                }
+            });
+        });
+
+*/
+
+impl Component for RoomVideoCard {
+    fn render(&self) -> impl IntoElement {
+        // let mut handle = use_state(|| None);
+        let handle = use_hook(|| Arc::new(RwLock::new(None)));
+        let current_frame: Arc<Mutex<Option<livekit::webrtc::prelude::VideoFrame<Box<dyn VideoBuffer>>>>> = use_hook(|| Arc::new(Mutex::new(None)));
+
+        use_hook(|| {
+            let current_frame = current_frame.clone();
+            let handle = handle.clone();
+
+            spawn(async move {
+                thread(move || {
+                    let mut buffer = BytesMut::new();
+
+                    loop {
+                        let frame = current_frame.lock().unwrap().take();
+
+                        if let Some(frame) = frame {
+                            let buf = frame.buffer.to_i420();
+                            let (stride_y, stride_u, stride_v) = buf.strides();
+
+                            let (y, u, v) = buf.data();
+
+                            let y_size = buf.width() * buf.height();
+
+                            buffer.resize((y_size * 4) as usize, 0);
+
+                            yuv::yuv420_to_rgba(
+                                &yuv::YuvPlanarImage {
+                                    y_plane: y,
+                                    y_stride: stride_y,
+                                    u_plane: u,
+                                    u_stride: stride_u,
+                                    v_plane: v,
+                                    v_stride: stride_v,
+                                    width: buf.width(),
+                                    height: buf.height(),
+                                },
+                                &mut buffer,
+                                buf.width() * 4,
+                                yuv::YuvRange::Limited,
+                                yuv::YuvStandardMatrix::Bt601,
+                            )
+                            .unwrap();
+
+                            let bytes = Bytes::copy_from_slice(&buffer);
+                            let h = ImageHandle::from_rgba(
+                                buf.width(),
+                                buf.height(),
+                                bytes,
+                                AlphaType::Opaque,
+                            );
+
+                            *handle.write().unwrap() = h;
+                        }
+
+                        // std::thread::sleep(Duration::from_secs_f64(1. / 30.));
+                    }
+                })
+                .await;
+            });
+        });
+
+        use_hook(|| {
+            let mut stream = NativeVideoStream::new(self.track.rtc_track());
+            spawn(async move {
+                while let Some(frame) = stream.next().await {
+                    *current_frame.lock().unwrap() = Some(frame);
+                }
+            });
+        });
+
+        let mut img = use_state(|| None);
+
+        use_hook(|| {
+            spawn(async move {
+                loop {
+                    img.set(handle.read().unwrap().clone());
+                    sleep(Duration::from_secs_f64(1. / 30.)).await;
                 }
             });
         });
@@ -345,7 +436,7 @@ impl Component for RoomVideoCard {
             .width(Size::px(384.))
             .height(Size::px(216.))
             .center()
-            .maybe_child(handle.read().cloned().map(|handle| {
+            .maybe_child(img.read().cloned().map(|handle| {
                 image(handle)
                     // .aspect_ratio(AspectRatio::Fit)
                     .corner_radius(8.)
