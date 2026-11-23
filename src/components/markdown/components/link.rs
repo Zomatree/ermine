@@ -2,7 +2,7 @@ use freya::prelude::*;
 
 use crate::components::{
     ModalValue, StoatTooltip,
-    markdown::{components::MessageUrl, parser::Inline, render::render_content},
+    markdown::{MarkdownColours, components::MessageUrl, parser::Inline, render::render_content},
     stoat_paragraph, use_modals,
 };
 
@@ -13,7 +13,7 @@ pub struct Link {
     pub title: Option<String>,
     pub bold: bool,
     pub font_size: f32,
-    pub foreground: Color,
+    pub colours: MarkdownColours,
 }
 
 impl Component for Link {
@@ -21,20 +21,19 @@ impl Component for Link {
         let mut modals = use_modals();
         let mut hover = use_state(|| false);
 
-        let holder = use_hook(ParagraphHolder::default);
-
         let element = render_content(
             stoat_paragraph(),
             &self.content,
             self.font_size,
-            self.foreground,
-            self.foreground,
+            MarkdownColours {
+                foreground: self.colours.link_foreground,
+                ..self.colours
+            },
             self.bold,
             true,
             hover(),
         )
         .cursor(CursorIcon::Pointer)
-        .holder(holder)
         .on_pointer_over(move |_| {
             hover.set_if_modified(true);
         })
@@ -57,7 +56,7 @@ impl Component for Link {
             }
         });
 
-        if let Some(title) = self.title.clone() {
+        if let Some(title) = self.title.clone() && !title.is_empty() {
             StoatTooltip::new(label().font_size(11.).max_lines(1).text(title))
                 .compact(true)
                 .position(AttachedPosition::Top)

@@ -23,25 +23,25 @@ devtools = ["freya/devtools", "freya-devtools"]
 serde_qs = { git = "https://github.com/Zomatree/serde_qs.git", rev = "b7497ee" }
 
 # add freya Color/Fill conversion for Rgb
-material-colors = { git = "https://github.com/Zomatree/material-colors.git", rev = "7a219dd" }
+material-colors = { git = "https://github.com/Zomatree/material-colors.git", rev = "ec8accd" }
 # material-colors = { path = "../material-colors" }
 
 [dependencies]
-freya = { version = "0.5.2", features = [
+freya = { version = "0.6.0-alpha.2", features = [
     "radio",
     "remote-asset",
     "markdown",
     "zoom-shortcuts",
 ] }
-freya-engine = { version = "0.5.2" }
-freya-core = { version = "0.5.2" }
-freya-components = { version = "0.5.2", features = [
+freya-engine = { version = "0.6.0-alpha.2" }
+freya-core = { version = "0.6.0-alpha.2" }
+freya-components = { version = "0.6.0-alpha.2", features = [
     "remote-asset",
     "gif",
 ] }
-freya-devtools = { version = "0.5.2", optional = true }
-freya-metrics-plugin = { version = "0.5.2", optional = true }
-freya-winit = { version = "0.5.2" }
+freya-devtools = { version = "0.6.0-alpha.2", optional = true }
+freya-metrics-plugin = { version = "0.6.0-alpha.2", optional = true }
+freya-winit = { version = "0.6.0-alpha.2" }
 # freya = { git = "https://github.com/marc2332/freya.git", features = [
 #     "radio",
 #     "remote-asset",
@@ -114,6 +114,7 @@ cameras = "0.3.2"
 bezier_easing = "0.3"
 qrcode-generator = "6.1.2"
 dpi = { version = "*", features = ["serde"] }
+latex-rust = "3.0.3"
 
 stoat-models = { package = "revolt-models", version = "0.16.5", default-features = false, features = [
     "serde",
@@ -130,3 +131,6 @@ stoat-config = { package = "revolt-config", default-features = false, version = 
 inherits = "release"
 lto = "thin"
 strip = "symbols"
+
+[lints.cargo]
+redundant_homepage = "allow"

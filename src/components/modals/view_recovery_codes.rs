@@ -38,7 +38,7 @@ impl Component for ViewRecoveryCodes {
                 let codes = self.codes.clone();
 
                 move || {
-                    Clipboard::set(codes.join("\n")).unwrap();
+                    Clipboard::set_text_deferred(codes.join("\n"));
 
                     false
                 }

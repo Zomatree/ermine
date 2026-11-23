@@ -8,6 +8,7 @@ use crate::{
         MaterialIcon, StoatButton, StoatButtonColorsThemePartialExt,
         StoatButtonLayoutThemePartialExt, file_image,
         material::filled::{description, download},
+        stoat_label,
     },
     consume_material_theme, http,
 };
@@ -112,22 +113,21 @@ impl Component for MessageAttachment {
                     .padding(8.)
                     .corner_radius(12.)
                     .overflow(Overflow::Clip)
-                    .width(Size::Fill)
                     .max_width(Size::px(420.))
-                    .background(theme.md.inverse_surface.as_argb_u32())
-                    .color(theme.md.inverse_on_surface.as_argb_u32())
+                    .background(theme.md.secondary_container)
+                    .color(theme.md.on_secondary_container)
                     .horizontal()
                     .cross_align(Alignment::Center)
                     .spacing(8.)
-                    .content(Content::Flex)
                     .child(MaterialIcon::new(description()).size(Size::px(24.)))
                     .child(
                         rect()
-                            .width(Size::flex(1.))
                             .spacing(8.)
-                            .child(label().text(self.file.filename.clone()).font_size(14))
+                            .font_weight(500)
+                            .child(stoat_label().text(self.file.filename.clone()).font_size(14))
                             .child(
-                                label()
+                                stoat_label()
+                                    .line_height(1.3)
                                     .text(format!("{:.2} KB", self.file.size as f32 / 1000.))
                                     .font_size(11),
                             ),
@@ -135,7 +135,7 @@ impl Component for MessageAttachment {
                     .child(
                         StoatButton::new()
                             .corner_radius(20.)
-                            .color(theme.md.inverse_on_surface.as_argb_u32())
+                            .color(theme.md.on_secondary_container)
                             .on_press({
                                 let file = self.file.clone();
                                 move |_| {

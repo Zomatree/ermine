@@ -78,7 +78,7 @@ impl Component for MessageContextMenu {
                 this.child(ContextMenuButton::new(link(), "Copy Link").on_press({
                     let url = url.clone();
                     move |_| {
-                        Clipboard::set(url.clone()).unwrap();
+                        Clipboard::set_text_deferred(url.clone());
                     }
                 }))
                 .child(
@@ -117,7 +117,7 @@ impl Component for MessageContextMenu {
                     let message = self.message.clone();
                     move |_| {
                         if let Some(content) = message.message.content.clone() {
-                            Clipboard::set(content).unwrap();
+                            Clipboard::set_text_deferred(content);
                         }
                     }
                 }),
@@ -237,10 +237,9 @@ impl Component for MessageContextMenu {
                     let channel_id = self.message.message.channel.clone();
 
                     move |_| {
-                        Clipboard::set(format!(
+                        Clipboard::set_text_deferred(format!(
                             "https://stoat.chat/channel/{channel_id}/{message_id}"
-                        ))
-                        .unwrap();
+                        ));
                     }
                 }),
             )
@@ -249,7 +248,7 @@ impl Component for MessageContextMenu {
                     let message_id = self.message.message.id.clone();
 
                     move |_| {
-                        Clipboard::set(message_id.clone()).unwrap();
+                        Clipboard::set_text_deferred(message_id.clone());
                     }
                 }),
             )

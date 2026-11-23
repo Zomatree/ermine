@@ -33,7 +33,7 @@ impl Component for CreateChannel {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Channel Name", name))
+                    .child(SingleLineEntry::new("Channel Name", name).max_length(32))
                     .child(
                         rect()
                             .spacing(4.)

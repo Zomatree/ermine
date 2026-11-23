@@ -27,7 +27,7 @@ impl Component for CategoryServerSettings {
     fn render(&self) -> impl IntoElement {
         let theme = consume_material_theme();
 
-        let categories = use_side_effect_value({
+        let categories = use_derived({
             let server = self.server.clone();
             move || {
                 let server = server.read();

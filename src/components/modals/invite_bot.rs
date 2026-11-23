@@ -140,7 +140,7 @@ impl Component for InviteBot {
             }
         });
 
-        let filtered = use_side_effect_value({
+        let filtered = use_derived({
             move || {
                 let mut filtered = Vec::new();
                 let query = query.read().to_lowercase();

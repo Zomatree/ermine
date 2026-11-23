@@ -194,7 +194,7 @@ impl Component for ChannelContextMenu {
                     });
 
                     move |_| {
-                        Clipboard::set(user.read().id.clone()).unwrap();
+                        Clipboard::set_text_deferred(user.read().id.clone());
                     }
                 }))
             }
@@ -203,7 +203,7 @@ impl Component for ChannelContextMenu {
                     let id = id.clone();
 
                     move |_| {
-                        Clipboard::set(format!("https://stoat.chat/channel/{id}")).unwrap();
+                        Clipboard::set_text_deferred(format!("https://stoat.chat/channel/{id}"));
                     }
                 }))
                 .child(
@@ -211,7 +211,7 @@ impl Component for ChannelContextMenu {
                         let id = id.clone();
 
                         move |_| {
-                            Clipboard::set(id.clone()).unwrap();
+                            Clipboard::set_text_deferred(id.clone());
                         }
                     }),
                 ),

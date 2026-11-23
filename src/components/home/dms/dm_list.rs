@@ -32,7 +32,7 @@ impl Component for DMList {
 
         let selection = radio.slice(AppChannel::HomeSelection, |state| &state.home_selection);
 
-        let friend_request_count = use_side_effect_value(move || {
+        let friend_request_count = use_derived(move || {
             user.read()
                 .relations
                 .iter()
@@ -40,7 +40,7 @@ impl Component for DMList {
                 .count()
         });
 
-        let saved_messages = use_side_effect_value({
+        let saved_messages = use_derived({
             let radio = radio.clone();
 
             move || {
@@ -53,7 +53,7 @@ impl Component for DMList {
             }
         });
 
-        let channels = use_side_effect_value(move || {
+        let channels = use_derived(move || {
             let mut channels = radio
                 .read()
                 .channels

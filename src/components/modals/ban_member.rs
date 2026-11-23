@@ -56,7 +56,7 @@ impl Component for BanMember {
                         "You are about to ban {}",
                         user.read().username.clone()
                     )))
-                    .child(SingleLineEntry::new("Reason", reason))
+                    .child(SingleLineEntry::new("Reason", reason).max_length(1024))
                     .child(Dropdown::new(
                         "Delete Message History",
                         delete_message_history.into_writable(),

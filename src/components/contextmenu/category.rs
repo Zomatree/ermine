@@ -61,7 +61,7 @@ impl Component for CategoryContextMenu {
                     let category_id = self.category_id.clone();
 
                     move |_| {
-                        Clipboard::set(category_id.clone()).unwrap();
+                        Clipboard::set_text_deferred(category_id.clone());
                     }
                 }),
             )

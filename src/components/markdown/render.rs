@@ -2,8 +2,9 @@ use freya::prelude::*;
 
 use crate::components::{
     markdown::{
+        MarkdownColours,
         components::{
-            ChannelMention, Emoji, Hyperlink, Link, MessageMention, RoleMention, Spoiler,
+            ChannelMention, Emoji, Hyperlink, Latex, Link, MessageMention, RoleMention, Spoiler,
             UserMention,
         },
         parser::{Inline, List},
@@ -15,8 +16,7 @@ pub fn render_content(
     mut p: Paragraph,
     content: &[Inline],
     base_font_size: f32,
-    foreground: Color,
-    link_foreground: Color,
+    colours: MarkdownColours,
     bold: bool,
     link: bool,
     underline: bool,
@@ -41,7 +41,7 @@ pub fn render_content(
                 } else {
                     let mut styled = Span::new(span.text.replace('\t', " ").clone())
                         .font_size(base_font_size)
-                        .color(foreground);
+                        .color(colours.foreground);
 
                     if span.bold || bold {
                         styled = styled.font_weight(FontWeight::BOLD);
@@ -59,11 +59,12 @@ pub fn render_content(
                     if span.link {
                         p.child(Hyperlink {
                             span: styled,
-                            foreground: link_foreground,
+                            font_size: base_font_size,
+                            colours,
                         })
                     } else {
                         if link {
-                            styled = styled.color(link_foreground)
+                            styled = styled.color(colours.link_foreground)
                         };
 
                         p.span(styled)
@@ -76,7 +77,7 @@ pub fn render_content(
                 title: title.clone(),
                 bold,
                 font_size: base_font_size,
-                foreground: link_foreground,
+                colours,
             }),
             Inline::UserMention { id } => p.child(UserMention {
                 id: id.clone(),
@@ -102,8 +103,12 @@ pub fn render_content(
             Inline::Spoiler(text) => p.child(Spoiler {
                 content: text.clone(),
                 font_size: base_font_size,
-                foreground,
-                link_foreground,
+                colours,
+            }),
+            Inline::Latex(content) => p.child(Latex {
+                content: content.clone(),
+                font_size: base_font_size,
+                colours,
             }),
         };
     }
@@ -114,8 +119,7 @@ pub fn render_content(
 pub fn render_list(
     list: &List,
     base_font_size: f32,
-    foreground: Color,
-    link_foreground: Color,
+    colours: MarkdownColours,
     bold: bool,
     link: bool,
     underline: bool,
@@ -130,7 +134,7 @@ pub fn render_list(
                 .spacing(8.)
                 .child(
                     stoat_label()
-                        .color(foreground)
+                        .color(colours.foreground)
                         .line_height(1.5)
                         .text(match list.start {
                             Some(start) => format!("{}.", start + item_idx as u64),
@@ -145,22 +149,13 @@ pub fn render_list(
                             stoat_paragraph(),
                             &item.content,
                             base_font_size,
-                            foreground,
-                            link_foreground,
+                            colours,
                             bold,
                             link,
                             underline,
                         ))
                         .children(item.nested_lists.iter().map(|nested_list| {
-                            render_list(
-                                nested_list,
-                                base_font_size,
-                                foreground,
-                                link_foreground,
-                                bold,
-                                link,
-                                underline,
-                            )
+                            render_list(nested_list, base_font_size, colours, bold, link, underline)
                         })),
                 )
         }))

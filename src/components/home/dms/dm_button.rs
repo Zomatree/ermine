@@ -274,28 +274,22 @@ impl Component for GroupDMIcon {
                         .collect::<String>();
 
                     rect()
-                        .background(
-                            if self.invert {
-                                theme.md.surface_container
-                            } else {
-                                theme.md.primary
-                            }
-                            .as_argb_u32(),
-                        )
+                        .background(if self.invert {
+                            theme.md.surface_container_low
+                        } else {
+                            theme.md.primary
+                        })
                         .width(Size::Fill)
                         .height(Size::Fill)
                         .center()
                         .font_size((12. / 32.) * self.size)
                         .font_weight(600)
                         .child(initials)
-                        .color(
-                            if self.invert {
-                                theme.md.on_surface
-                            } else {
-                                theme.md.on_primary
-                            }
-                            .as_argb_u32(),
-                        )
+                        .color(if self.invert {
+                            theme.md.on_surface
+                        } else {
+                            theme.md.on_primary
+                        })
                         .into_element()
                 }
             })

@@ -37,7 +37,7 @@ impl Component for ServerList {
 
         let user_id = radio.read().user_id.clone().unwrap();
 
-        let unread_channels = use_side_effect_value({
+        let unread_channels = use_derived({
             let channels = channels.clone();
 
             move || {

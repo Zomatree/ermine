@@ -260,8 +260,9 @@ impl Component for StoatColorPicker {
                                                         e.stop_propagation();
                                                         e.prevent_default();
                                                         ContextMenu::close();
-                                                        let _ =
-                                                            Clipboard::set(color().to_rgb_string());
+                                                        Clipboard::set_text_deferred(
+                                                            color().to_rgb_string(),
+                                                        );
                                                     })
                                                     .child("Copy as RGB"),
                                             )
@@ -271,8 +272,9 @@ impl Component for StoatColorPicker {
                                                         e.stop_propagation();
                                                         e.prevent_default();
                                                         ContextMenu::close();
-                                                        let _ =
-                                                            Clipboard::set(color().to_hex_string());
+                                                        Clipboard::set_text_deferred(
+                                                            color().to_hex_string(),
+                                                        );
                                                     })
                                                     .child("Copy as HEX"),
                                             ),

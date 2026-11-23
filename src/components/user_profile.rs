@@ -765,7 +765,7 @@ impl Component for ProfileRoles {
             move |state| state.servers.get(&member.read().id.server).unwrap()
         });
 
-        let roles = use_side_effect_value({
+        let roles = use_derived({
             let member = self.member.clone();
             let theme = theme.clone();
 

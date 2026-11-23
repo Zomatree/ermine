@@ -1,15 +1,14 @@
 use std::{io::Cursor, rc::Rc};
 
-use dpi::{PhysicalPosition, PhysicalSize};
-use freya::{
-    prelude::*, radio::use_init_radio_station, winit::platform::macos::WindowAttributesExtMacOS,
-};
-use freya_winit::plugins::{FreyaPlugin, PluginEvent};
+#[cfg(target_os = "macos")]
+use freya::winit::platform::macos::WindowAttributesMacOS;
+use freya::{prelude::*, radio::use_init_radio_station};
 use tokio::runtime::Builder;
 
 pub mod components;
 pub mod config;
 pub mod error;
+pub mod plugin;
 pub mod state;
 pub mod stoat;
 pub mod theme;
@@ -84,80 +83,6 @@ fn app() -> impl IntoElement {
         )
 }
 
-struct Plugin {
-    pub size: State<PhysicalSize<u32>>,
-    pub position: State<Option<PhysicalPosition<i32>>>,
-}
-
-impl Plugin {
-    pub fn new(config: State<Config>) -> Self {
-        Self {
-            size: State::create_global(config.read().size),
-            position: State::create_global(config.read().position),
-        }
-    }
-}
-
-impl FreyaPlugin for Plugin {
-    fn plugin_id(&self) -> &'static str {
-        "win-size-plugin"
-    }
-
-    fn on_event(
-        &mut self,
-        event: &mut freya_winit::plugins::PluginEvent,
-        _handle: freya_winit::plugins::PluginHandle,
-    ) {
-        if let PluginEvent::AfterRender { window, .. } = event {
-            let Ok(pos) = window.outer_position() else {
-                return;
-            };
-            let size = window.inner_size();
-
-            let has_changed = { Some(pos) != *self.position.read() || size != *self.size.read() };
-
-            if has_changed {
-                self.position.set(Some(pos));
-                self.size.set(size);
-            }
-        }
-    }
-
-    fn root_component(&self, root: Element) -> Element {
-        #[derive(PartialEq)]
-        struct Inner {
-            pub size: State<PhysicalSize<u32>>,
-            pub position: State<Option<PhysicalPosition<i32>>>,
-            pub inner: Element,
-        }
-
-        impl Component for Inner {
-            fn render(&self) -> impl IntoElement {
-                let mut config = use_config();
-
-                let size = self.size;
-                let position = self.position;
-
-                use_changed((size(), position()), move |(size, position)| {
-                    if let Some(mut config) = config.try_write() {
-                        config.size = *size;
-                        config.position = *position;
-                    }
-                });
-
-                self.inner.clone()
-            }
-        }
-
-        Inner {
-            size: self.size,
-            position: self.position,
-            inner: root,
-        }
-        .into_element()
-    }
-}
-
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
         unsafe {
@@ -191,10 +116,21 @@ fn main() {
                     };
 
                     #[cfg(target_os = "macos")]
-                    let attrs = attrs
-                        .with_fullsize_content_view(true)
-                        .with_titlebar_transparent(true)
-                        .with_title_hidden(true);
+                    {
+                        let plat_attrs = attrs
+                            .platform
+                            .as_ref()
+                            .and_then(|attrs| attrs.cast_ref::<WindowAttributesMacOS>())
+                            .cloned()
+                            .unwrap_or_default();
+
+                        attrs = attrs.with_platform_attributes(Box::new(
+                            plat_attrs
+                                .with_fullsize_content_view(true)
+                                .with_titlebar_transparent(true)
+                                .with_title_hidden(true),
+                        ));
+                    };
 
                     attrs
                 }),
@@ -213,7 +149,7 @@ fn main() {
             include_bytes!("./assets/fonts/FiraCode-Medium.ttf") as &[u8],
         )
         .with_global_context(config_state)
-        .with_plugin(Plugin::new(config_state))
+        .with_plugin(plugin::Plugin::new(config_state))
         .with_default_font("Inter");
 
     #[cfg(feature = "performance")]

@@ -330,7 +330,7 @@ impl Component for UserContextMenu {
                 let user_id = self.user_id.clone();
 
                 move |_| {
-                    Clipboard::set(user_id.clone()).unwrap();
+                    Clipboard::set_text_deferred(user_id.clone());
                 }
             }))
     }

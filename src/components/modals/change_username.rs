@@ -27,7 +27,7 @@ impl Component for ChangeUsername {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Username", username))
+                    .child(SingleLineEntry::new("Username", username).max_length(32))
                     .child(
                         SingleLineEntry::new("Current Password", password)
                             .placeholder("Enter your current password")

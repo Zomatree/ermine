@@ -75,7 +75,7 @@ impl Component for ReorderServers {
             }
         });
 
-        let entries = use_side_effect_value({
+        let entries = use_derived({
             let order_settings = order_settings.clone();
             let server_folder_settings = server_folder_settings.clone();
             let servers = servers.clone();

@@ -16,8 +16,16 @@ use crate::{
         stoat_paragraph,
     },
     consume_material_theme,
-    theme::Theme,
 };
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct MarkdownColours {
+    pub foreground: Color,
+    pub link_foreground: Color,
+    pub blockquote_border: Color,
+    pub blockquote_foreground: Color,
+    pub blockquote_background: Color,
+}
 
 #[derive(PartialEq)]
 pub struct MarkdownViewer {
@@ -31,8 +39,13 @@ pub struct MarkdownViewer {
     text_overflow: TextOverflow,
     font_size: f32,
     font_weight: FontWeight,
+
     foreground: Option<Color>,
     link_foreground: Option<Color>,
+    blockquote_border: Option<Color>,
+    blockquote_foreground: Option<Color>,
+    blockquote_background: Option<Color>,
+
     cursor_index: Option<usize>,
     cursor_style: CursorStyle,
     highlights: Vec<(usize, usize)>,
@@ -58,8 +71,12 @@ impl MarkdownViewer {
             text_overflow: TextOverflow::default(),
             font_size: 14.,
             font_weight: FontWeight::default(),
+
             foreground: None,
             link_foreground: None,
+            blockquote_border: None,
+            blockquote_foreground: None,
+            blockquote_background: None,
 
             cursor_index: None,
             cursor_style: CursorStyle::Line,
@@ -123,6 +140,21 @@ impl MarkdownViewer {
         self.link_foreground = Some(color.into());
         self
     }
+
+    pub fn blockquote_foreground(mut self, color: impl Into<Color>) -> Self {
+        self.blockquote_foreground = Some(color.into());
+        self
+    }
+
+    pub fn blockquote_background(mut self, color: impl Into<Color>) -> Self {
+        self.blockquote_background = Some(color.into());
+        self
+    }
+
+    pub fn blockquote_border(mut self, color: impl Into<Color>) -> Self {
+        self.blockquote_border = Some(color.into());
+        self
+    }
 }
 
 impl KeyExt for MarkdownViewer {
@@ -158,21 +190,30 @@ impl Component for MarkdownViewer {
         use_hook(|| provide_context(self.server.clone()));
 
         let deps = use_reactive(&self.content);
-        let elements = use_hook(move || {
-            Effect::create_value(move || {
-                let deps = deps.read();
-                parse_markdown(&deps)
-            })
+        let elements = use_derived(move || {
+            let deps = deps.read();
+            parse_markdown(&deps)
         })
         .read()
         .cloned();
 
-        let foreground = self
-            .foreground
-            .unwrap_or_else(|| theme.md.on_surface.into());
-        let link_foreground = self
-            .link_foreground
-            .unwrap_or_else(|| theme.md.primary.into());
+        let colours = MarkdownColours {
+            foreground: self
+                .foreground
+                .unwrap_or_else(|| theme.md.on_surface.into()),
+            link_foreground: self
+                .link_foreground
+                .unwrap_or_else(|| theme.md.primary.into()),
+            blockquote_foreground: self
+                .blockquote_foreground
+                .unwrap_or_else(|| theme.md.on_secondary_container.into()),
+            blockquote_background: self
+                .blockquote_background
+                .unwrap_or_else(|| theme.md.secondary_container.into()),
+            blockquote_border: self
+                .blockquote_border
+                .unwrap_or_else(|| theme.md.secondary.into()),
+        };
 
         let p_container = stoat_paragraph()
             .layout(self.layout.clone())
@@ -184,20 +225,13 @@ impl Component for MarkdownViewer {
             .cursor_index(self.cursor_index)
             .cursor_style(self.cursor_style)
             .highlights(self.highlights.clone())
-            // .holder(self.holder.clone())
+            .holder(self.holder.clone())
             .event_handlers(self.event_handlers.clone())
             .line_height(1.5)
             .cursor_color(0xFFFFFFFF)
-            .color(foreground);
+            .color(colours.foreground);
 
-        render_elements(
-            p_container,
-            elements,
-            self.font_size,
-            theme,
-            foreground,
-            link_foreground,
-        )
+        render_elements(p_container, elements, self.font_size, colours)
     }
 
     fn render_key(&self) -> DiffKey {
@@ -209,9 +243,7 @@ fn render_elements(
     mut p_container: Paragraph,
     elements: Vec<MarkdownElement>,
     font_size: f32,
-    theme: Theme,
-    foreground: Color,
-    link_foreground: Color,
+    colours: MarkdownColours,
 ) -> Paragraph {
     let element_count = elements.len();
 
@@ -232,8 +264,7 @@ fn render_elements(
                     p_container,
                     &content,
                     (multiplier * font_size).round(),
-                    foreground,
-                    link_foreground,
+                    colours,
                     true,
                     false,
                     false,
@@ -248,8 +279,7 @@ fn render_elements(
                     p_container,
                     &content,
                     font_size,
-                    foreground,
-                    link_foreground,
+                    colours,
                     false,
                     false,
                     false,
@@ -263,15 +293,8 @@ fn render_elements(
                 p_container = p_container.child(Codeblock { code, language })
             }
             MarkdownElement::List(list) => {
-                p_container = p_container.child(render_list(
-                    &list,
-                    font_size,
-                    foreground,
-                    link_foreground,
-                    false,
-                    false,
-                    false,
-                ));
+                p_container =
+                    p_container.child(render_list(&list, font_size, colours, false, false, false));
 
                 if !is_last {
                     p_container = p_container.span("\n\n")
@@ -294,17 +317,18 @@ fn render_elements(
                                     left: 4.,
                                     bottom: 0.,
                                 })
-                                .fill(theme.md.secondary.as_argb_u32())
+                                .fill(colours.blockquote_border)
                                 .alignment(BorderAlignment::Inner),
                         )
-                        .background(theme.md.secondary_container.as_argb_u32())
+                        .background(colours.blockquote_background)
                         .child(render_elements(
                             stoat_paragraph().font_size(font_size),
                             content,
                             font_size,
-                            theme,
-                            foreground,
-                            link_foreground,
+                            MarkdownColours {
+                                foreground: colours.blockquote_foreground,
+                                ..colours
+                            },
                         )),
                 )
             }
@@ -313,7 +337,7 @@ fn render_elements(
                     rect()
                         .width(Size::fill())
                         .height(Size::px(1.))
-                        .background(foreground),
+                        .background(colours.foreground),
                 )
             }
             MarkdownElement::Table { headers, rows } => {
@@ -327,8 +351,7 @@ fn render_elements(
                                 stoat_paragraph(),
                                 &header_spans,
                                 font_size,
-                                foreground,
-                                link_foreground,
+                                colours,
                                 true,
                                 false,
                                 false,
@@ -362,8 +385,7 @@ fn render_elements(
                                                 stoat_paragraph(),
                                                 &cell_spans,
                                                 font_size,
-                                                foreground,
-                                                link_foreground,
+                                                colours,
                                                 false,
                                                 false,
                                                 false,

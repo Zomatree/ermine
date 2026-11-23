@@ -24,7 +24,7 @@ impl Component for CreateWebhook {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Webhook Name", name))
+                    .child(SingleLineEntry::new("Webhook Name", name).max_length(32))
                     .maybe_child(
                         error
                             .read()

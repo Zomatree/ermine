@@ -61,6 +61,7 @@ pub enum Inline {
         text: Vec<Inline>,
     },
     Spoiler(Vec<Inline>),
+    Latex(String),
 }
 
 /// A markdown list, ordered when `start` is present.

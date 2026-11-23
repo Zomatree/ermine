@@ -2,8 +2,10 @@ use freya::prelude::*;
 use stoat_models::v0;
 
 use crate::{
+    SizeExt,
     components::{
-        AnimatedImage, MarkdownViewer, MessageAttachment, MessageModel, ModalValue, use_modals,
+        AnimatedImage, MarkdownViewer, MessageAttachment, MessageModel, ModalValue, stoat_label,
+        use_modals,
     },
     consume_material_theme, parse_fill, proxy_url,
 };
@@ -111,7 +113,7 @@ impl Component for WebsiteEmbed {
                                     .height(Size::px(14.))
                             }))
                             .maybe_child(self.metadata.site_name.clone().map(|site_name| {
-                                label()
+                                stoat_label()
                                     .max_lines(1)
                                     .text_overflow(TextOverflow::Ellipsis)
                                     .font_size(11.)
@@ -128,7 +130,7 @@ impl Component for WebsiteEmbed {
                         this.cursor(CursorIcon::Pointer)
                     })
                     .child(
-                        label()
+                        stoat_label()
                             .font_size(16.)
                             .max_lines(1)
                             .text_overflow(TextOverflow::Ellipsis)
@@ -149,12 +151,11 @@ impl Component for WebsiteEmbed {
                             }),
                     )
             }))
-            .maybe_child(
-                self.metadata
-                    .description
-                    .clone()
-                    .map(|description| MarkdownViewer::new(description, None).font_size(12.)),
-            )
+            .maybe_child(self.metadata.description.clone().map(|description| {
+                MarkdownViewer::new(description, None)
+                    .font_size(12.)
+                    .foreground(theme.md.on_primary_container)
+            }))
             .maybe_child(self.metadata.image.clone().map(|image| {
                 let new_width = image.width.min(400) as f32;
                 let new_height = (new_width / image.width as f32) * image.height as f32;
@@ -223,18 +224,27 @@ impl Component for TextEmbed {
             .spacing(8.)
             .maybe_child(self.text.title.clone().map(|title| {
                 rect()
-                    .on_pointer_enter(move |_| hover_title.set_if_modified(true))
-                    .on_pointer_out(move |_| hover_title.set_if_modified(false))
-                    .maybe(self.text.url.is_some(), |this| {
-                        this.cursor(CursorIcon::Pointer)
-                            .text_decoration(if hover_title() {
-                                TextDecoration::Underline
-                            } else {
-                                TextDecoration::None
-                            })
-                    })
+                    .horizontal()
+                    .spacing(8.)
+                    .cross_align(Alignment::Center)
+                    .maybe_child(
+                        self.text
+                            .icon_url
+                            .clone()
+                            .map(|url| AnimatedImage::new(proxy_url(&url)).size(Size::px(14.))),
+                    )
                     .child(
-                        label()
+                        stoat_label()
+                            .on_pointer_enter(move |_| hover_title.set_if_modified(true))
+                            .on_pointer_out(move |_| hover_title.set_if_modified(false))
+                            .maybe(self.text.url.is_some(), |this| {
+                                this.cursor(CursorIcon::Pointer)
+                                    .text_decoration(if hover_title() {
+                                        TextDecoration::Underline
+                                    } else {
+                                        TextDecoration::None
+                                    })
+                            })
                             .font_size(16.)
                             .max_lines(1)
                             .text_overflow(TextOverflow::Ellipsis)
@@ -250,12 +260,11 @@ impl Component for TextEmbed {
                             }),
                     )
             }))
-            .maybe_child(
-                self.text
-                    .description
-                    .clone()
-                    .map(|description| MarkdownViewer::new(description, None).font_size(12.)),
-            )
+            .maybe_child(self.text.description.clone().map(|description| {
+                MarkdownViewer::new(description, None)
+                    .font_size(12.)
+                    .foreground(theme.md.on_primary_container)
+            }))
             .maybe_child(
                 self.text
                     .media

@@ -4,13 +4,9 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, CUSTOM_EMOJI_REGEX, OptionalReadable, SizeExt,
-    components::{
-        Avatar, MarkdownViewer, MaterialIcon, MessageModel, UserCard,
-        material::filled::description, use_floating,
-    },
-    http, map_optional_readable, member_display_color,
-    types::Tag,
+    AppChannel, CUSTOM_EMOJI_REGEX, OptionalReadable, SizeExt, components::{
+        Avatar, MarkdownViewer, MaterialIcon, MessageModel, UserCard, material::filled::description, stoat_label, use_floating,
+    }, http, map_optional_readable, member_display_color, types::Tag,
 };
 
 #[derive(PartialEq)]
@@ -111,7 +107,7 @@ impl Component for MessageReply {
             }
         });
 
-        let member = use_side_effect_value(move || {
+        let member = use_derived(move || {
             let message = reply.read();
             if let Some(message) = message.cloned()
                 && let Some(server_id) = server_id.clone()
@@ -233,7 +229,6 @@ impl Component for MessageReply {
         });
 
         rect()
-            .height(Size::px(22.))
             .horizontal()
             .font_size(14)
             .spacing(4.)
@@ -259,32 +254,39 @@ impl Component for MessageReply {
                         .is_some_and(|files| !files.is_empty());
 
                     rect()
-                        .height(Size::px(22.))
                         .horizontal()
                         .spacing(4.)
                         .cross_align(Alignment::Center)
                         .child(
                             rect()
-                                .height(Size::px(22.))
                                 .horizontal()
                                 .spacing(4.)
                                 .cross_align(Alignment::Center)
                                 .map(role_color.read().cloned(), |this, color| this.color(color))
+                                .cursor(CursorIcon::Pointer)
                                 .on_press({
-                                    let user = self.message.user.clone();
-                                    let member = self.message.member.clone();
+                                    let user = user.clone();
+                                    let member = member.clone();
 
                                     move |_| {
-                                        let user = user.clone();
-                                        let member = member.clone();
+                                        let user = user.clone().into_readable();
+                                        let member = member
+                                            .clone()
+                                            .read()
+                                            .read()
+                                            .map(|m| m.clone().into_readable());
 
                                         floating
                                             .clone()
                                             .set(Some(UserCard { user, member }.into_element()));
                                     }
                                 })
-                                .child(Avatar::new(user.clone().into_readable(), None, 14.))
-                                .child(label().line_height(1.25).text({
+                                .child(Avatar::new(
+                                    user.clone().into_readable(),
+                                    member.read().read().map(|m| m.clone().into_readable()),
+                                    14.,
+                                ))
+                                .child(stoat_label().font_weight(500).line_height(1.25).text({
                                     let user = user.read();
 
                                     if self
@@ -303,7 +305,6 @@ impl Component for MessageReply {
                         .child(
                             rect()
                                 .interactive(false)
-                                .height(Size::px(22.))
                                 .horizontal()
                                 .spacing(8.)
                                 .cross_align(Alignment::Center)
@@ -315,7 +316,7 @@ impl Component for MessageReply {
                                         .cross_align(Alignment::Center)
                                         .child(MaterialIcon::new(description()).size(Size::px(16.)))
                                         .child(
-                                            label()
+                                            stoat_label()
                                                 .font_size(14.)
                                                 .text("Sent an attachment")
                                                 .font_slant(FontSlant::Italic),

@@ -5,14 +5,9 @@ use jiff::{Timestamp, tz::TimeZone};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel, SizeExt,
-    components::{
-        Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip,
-        SystemMessage, UserCard, UserContextMenu, file_image,
-        material::{filled::smart_toy, outlined::timer_off},
-        use_floating,
-    },
-    consume_material_theme, get_channel_server, member_display_color, member_role_icon,
+    AppChannel, SizeExt, components::{
+        Avatar, MaterialIcon, MessageContent, MessageModel, MessageReply, StoatTooltip, SystemMessage, UserCard, UserContextMenu, file_image, material::{filled::smart_toy, outlined::timer_off}, stoat_label, use_floating,
+    }, consume_material_theme, get_channel_server, member_display_color, member_role_icon,
 };
 
 #[derive(PartialEq)]
@@ -201,12 +196,12 @@ impl Component for Message {
                                 .child(
                                     rect()
                                         .horizontal()
-                                        .spacing(4.)
+                                        .spacing(6.)
                                         .cross_align(Alignment::Center)
                                         .font_size(14)
                                         .child(
                                             rect().cursor(CursorIcon::Pointer).child(
-                                                label()
+                                                stoat_label()
                                                     .max_lines(1)
                                                     .text(display_name.read().clone())
                                                     .font_weight(500)
@@ -286,8 +281,8 @@ impl Component for Message {
                                                 .color(theme.md.outline.as_argb_u32())
                                                 .font_size(12)
                                                 .spacing(4.)
-                                                .child(label().max_lines(1).text(pronouns))
-                                                .child(label().max_lines(1).text("·"))
+                                                .child(stoat_label().max_lines(1).text(pronouns))
+                                                .child(stoat_label().max_lines(1).text("·"))
                                         }))
                                         .child({
                                             let datetime = Timestamp::try_from(
@@ -312,7 +307,7 @@ impl Component for Message {
                                             )
                                             .position(AttachedPosition::Top)
                                             .child(
-                                                label()
+                                                stoat_label()
                                                     .max_lines(1)
                                                     .font_weight(500)
                                                     .text({
@@ -355,7 +350,7 @@ impl Component for Message {
                                             )
                                             .position(AttachedPosition::Top)
                                             .child(
-                                                label()
+                                                stoat_label()
                                                     .max_lines(1)
                                                     .text("(edited)")
                                                     .font_size(12)

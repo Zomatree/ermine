@@ -51,7 +51,7 @@ impl Component for RoleServerSettings {
             }
         };
 
-        let ordered_roles = use_side_effect_value({
+        let ordered_roles = use_derived({
             let server = self.server.clone();
             move || {
                 let mut roles = server
@@ -70,7 +70,7 @@ impl Component for RoleServerSettings {
             }
         });
 
-        let roles = use_side_effect_value({
+        let roles = use_derived({
             let member = member.clone();
             move || {
                 let roles = ordered_roles.read();
@@ -467,7 +467,7 @@ impl Component for SelectedRoleServerSettings {
 
         rect()
             .spacing(15.)
-            .child(SingleLineEntry::new("Role Name", name))
+            .child(SingleLineEntry::new("Role Name", name).max_length(32))
             .child(
                 rect()
                     .content(Content::wrap_spacing(15.))
@@ -519,7 +519,7 @@ impl Component for SelectedRoleServerSettings {
                                                             .line_height(1.25)
                                                             .font_size(14.)
                                                             .font_weight(600)
-                                                            .text("Admin")
+                                                            .text(current_role.name.clone())
                                                             .color(
                                                                 color
                                                                     .read()

@@ -50,7 +50,7 @@ impl Component for CreateServer {
                                 ),
                             ),
                     )
-                    .child(SingleLineEntry::new("Server Name", name))
+                    .child(SingleLineEntry::new("Server Name", name).max_length(32))
                     .maybe_child(
                         error
                             .read()

@@ -791,7 +791,7 @@ impl Component for SelectedBotsSettings {
                             let id = self.id.clone();
 
                             move |_| {
-                                Clipboard::set(format!("https://stoat.chat/bot/{id}")).unwrap();
+                                Clipboard::set_text_deferred(format!("https://stoat.chat/bot/{id}"));
                             }
                         })
                         .child(
@@ -838,7 +838,7 @@ impl Component for SelectedBotsSettings {
                             let id = self.id.clone();
 
                             move |_| {
-                                Clipboard::set(id.clone()).unwrap();
+                                Clipboard::set_text_deferred(id.clone());
                             }
                         })
                         .child(
@@ -885,7 +885,7 @@ impl Component for SelectedBotsSettings {
                             let bot = bot.clone();
 
                             move |_| {
-                                Clipboard::set(bot.read().token.clone()).unwrap();
+                                Clipboard::set_text_deferred(bot.read().token.clone());
                             }
                         })
                         .child(

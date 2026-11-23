@@ -32,7 +32,7 @@ impl Component for CreateCategory {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Category Name", name))
+                    .child(SingleLineEntry::new("Category Name", name).max_length(32))
                     .maybe_child(
                         error
                             .read()

@@ -45,9 +45,9 @@ impl Component for Client {
         let members = radio.slice(AppChannel::Members, |state| &state.members);
         let users = radio.slice(AppChannel::Users, |state| &state.users);
 
-        let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
 
         let show_connection_state_banner = use_state(|| false);
+        let mut file_hover = use_state(|| false);
 
         let show_settings = use_reactive(&settings.read().is_some());
 
@@ -151,6 +151,30 @@ impl Component for Client {
                     go_forward_page(station);
                 }
             })
+            .on_drag_over(move |e: Event<DragEventData>| {
+                if e.data.has_files() {
+                    file_hover.set_if_modified(true);
+                    e.accept(DropAction::Copy);
+                }
+            })
+            .on_drag_leave(move |_| file_hover.set(false))
+            .on_drop({
+                move |e: Event<DragEventData>| {
+                    spawn(async move {
+                        if let Ok(file_paths) = e.data().data.read_files().await
+                            && !file_paths.is_empty()
+                            && let Some(controller) =
+                                try_consume_root_context::<Option<AttachmentController>>().flatten()
+                        {
+                            file_hover.set(false);
+
+                            for path in file_paths {
+                                controller.add(path).await;
+                            }
+                        };
+                    });
+                }
+            })
             .child(
                 rect()
                     .direction(Direction::Horizontal)
@@ -219,26 +243,6 @@ impl Component for Client {
                     .layer(Layer::OverlayLevel(2))
                     .background(0xcc000000)
                     .center()
-                    .on_file_drop({
-                        let file_hover = file_hover.clone();
-
-                        move |e: Event<FileEventData>| {
-                            if !e.file_paths.is_empty()
-                                && let Some(controller) =
-                                    try_consume_root_context::<Option<AttachmentController>>()
-                                        .flatten()
-                            {
-                                file_hover.clone().set(false);
-                                let paths = e.file_paths.clone();
-
-                                spawn(async move {
-                                    for path in paths {
-                                        controller.add(path).await;
-                                    }
-                                });
-                            };
-                        }
-                    })
                     .child(
                         rect()
                             .spacing(16.)

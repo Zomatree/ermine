@@ -68,7 +68,7 @@ impl Component for CreateGroup {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Group Name", name))
+                    .child(SingleLineEntry::new("Group Name", name).max_length(32))
                     .child(
                         stoat_label()
                             .color(theme.md.on_surface_variant)

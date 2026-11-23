@@ -27,35 +27,33 @@ impl Component for Codeblock {
 
         let deps = use_reactive(&(self.code.clone(), self.language.clone(), code_theme.clone()));
 
-        let spans = use_hook(move || {
-            Effect::create_value(move || {
-                let (code, lang, theme) = &*deps.read();
+        let spans = use_derived(move || {
+            let (code, lang, theme) = &*deps.read();
 
-                let mut spans = Vec::new();
+            let mut spans = Vec::new();
 
-                if let Some(lang) = lang
-                    && let Some(syntax) = ps.find_syntax_by_token(lang)
-                {
-                    let mut highlight = HighlightLines::new(syntax, theme);
+            if let Some(lang) = lang
+                && let Some(syntax) = ps.find_syntax_by_token(lang)
+            {
+                let mut highlight = HighlightLines::new(syntax, theme);
 
-                    for line in LinesWithEndings::from(code) {
-                        let ranges = highlight.highlight_line(line, &ps).unwrap();
+                for line in LinesWithEndings::from(code) {
+                    let ranges = highlight.highlight_line(line, &ps).unwrap();
 
-                        for (style, text) in ranges {
-                            spans.push(Span::new(text.to_string()).color(Color::from_argb(
-                                style.foreground.a,
-                                style.foreground.r,
-                                style.foreground.g,
-                                style.foreground.b,
-                            )));
-                        }
+                    for (style, text) in ranges {
+                        spans.push(Span::new(text.to_string()).color(Color::from_argb(
+                            style.foreground.a,
+                            style.foreground.r,
+                            style.foreground.g,
+                            style.foreground.b,
+                        )));
                     }
-                } else {
-                    spans.push(Span::new(code.clone()));
                 }
+            } else {
+                spans.push(Span::new(code.clone()));
+            }
 
-                spans
-            })
+            spans
         });
 
         let mut selectable_text = SelectableText::new();
@@ -97,7 +95,7 @@ impl Component for Codeblock {
                             .corner_radius(3.)
                             .on_press({
                                 let code = self.code.clone();
-                                move |_| Clipboard::set(code.clone()).unwrap()
+                                move |_| Clipboard::set_text_deferred(code.clone())
                             })
                             .child(
                                 rect()

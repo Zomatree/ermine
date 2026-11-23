@@ -294,7 +294,7 @@ pub struct ChannelState {
     pub messages: VecDeque<Message>,
     pub at_start: bool,
     pub at_end: bool,
-    pub scroll_pos: Option<i32>,
+    pub scroll_pos: Option<f64>,
 }
 
 #[derive(Clone)]
@@ -364,11 +364,11 @@ pub struct AppState {
     pub channel_settings_page: Option<(String, ChannelSettingsPage)>,
     pub users_last_message: Option<EditingMessage>,
     pub typing: HashMap<String, HashSet<String>>,
-    pub file_hover: bool,
     pub slowmodes: HashMap<String, Slowmode>,
     pub voice_states: HashMap<String, ChannelVoiceState>,
     pub history: PageHistory,
     pub home_selection: HomeSelection,
+    pub previous_channels: VecDeque<String>,
 }
 
 impl AppState {
@@ -423,11 +423,11 @@ pub enum AppChannel {
     ChannelSettingsPage,
     UsersLastMessage,
     Typing,
-    FileHover,
     Slowmodes,
     VoiceStates,
     HomeSelection,
     History,
+    PreviousChannels,
 }
 
 impl RadioChannel<AppState> for AppChannel {
@@ -804,6 +804,20 @@ pub fn delete_voice_state(channel_id: &str, mut station: AppStation) {
         .remove(channel_id);
 }
 
+pub fn push_previous_channels(channel_id: String, mut station: AppStation) {
+    let mut state = station.write_channel(AppChannel::PreviousChannels);
+
+    if let Some(idx) = state.previous_channels.iter().position(|id| id == &channel_id) {
+        state.previous_channels.remove(idx);
+    };
+
+    state.previous_channels.push_back(channel_id);
+
+    if state.previous_channels.len() > 50 {
+        state.previous_channels.pop_front();
+    };
+}
+
 pub fn get_current_page(
     station: AppStation,
 ) -> (Selection, Option<(String, Option<String>)>, HomeSelection) {
@@ -892,6 +906,10 @@ pub fn set_selection_and_channel(
     channel: Option<(String, Option<String>)>,
     mut station: AppStation,
 ) {
+    if let Some((id, _)) = &channel {
+        push_previous_channels(id.clone(), station);
+    };
+
     let current = get_current_page(station);
 
     {
@@ -910,6 +928,10 @@ pub fn set_selection_and_channel(
 }
 
 pub fn set_selected_channel(channel: Option<(String, Option<String>)>, mut station: AppStation) {
+    if let Some((id, _)) = &channel {
+        push_previous_channels(id.clone(), station);
+    };
+
     let current = get_current_page(station);
 
     {
@@ -948,6 +970,10 @@ pub fn set_home_and_channel(
     channel: Option<(String, Option<String>)>,
     mut station: AppStation,
 ) {
+    if let Some((id, _)) = &channel {
+        push_previous_channels(id.clone(), station);
+    };
+
     let current = get_current_page(station);
 
     {
@@ -973,6 +999,10 @@ pub fn set_selection_home_and_channel(
     channel: Option<(String, Option<String>)>,
     mut station: AppStation,
 ) {
+    if let Some((id, _)) = &channel {
+        push_previous_channels(id.clone(), station);
+    };
+
     let current = get_current_page(station);
 
     {

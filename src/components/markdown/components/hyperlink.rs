@@ -1,15 +1,14 @@
 use freya::prelude::*;
 
 use crate::components::{
-    ModalValue,
-    markdown::components::{Invite, MessageUrl},
-    stoat_paragraph, use_modals,
+    ModalValue, markdown::{MarkdownColours, components::{Invite, MessageUrl}}, stoat_paragraph, use_modals,
 };
 
 #[derive(PartialEq)]
 pub struct Hyperlink {
     pub span: Span<'static>,
-    pub foreground: Color,
+    pub font_size: f32,
+    pub colours: MarkdownColours,
 }
 
 impl Component for Hyperlink {
@@ -37,8 +36,6 @@ impl Component for Hyperlink {
             None
         };
 
-        let holder = use_hook(|| ParagraphHolder::default());
-
         rect()
             .on_secondary_down({
                 let url = self.span.text.to_string();
@@ -53,9 +50,8 @@ impl Component for Hyperlink {
                     .cursor(CursorIcon::Pointer)
                     .child(
                         stoat_paragraph()
-                            .holder(holder)
-                            .line_height(1.5)
-                            .span(self.span.clone().color(self.foreground).text_decoration(
+                            // .font_size(self.font_size)
+                            .span(self.span.clone().color(self.colours.link_foreground).text_decoration(
                                 if hover() {
                                     TextDecoration::Underline
                                 } else {

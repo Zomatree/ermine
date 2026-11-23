@@ -149,8 +149,9 @@ impl AttachmentController {
 
     pub async fn add(&self, path: PathBuf) {
         let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+        let Ok(data) = tokio::fs::read(path).await else { return };
 
-        let contents = Bytes::from(tokio::fs::read(path).await.unwrap());
+        let contents = Bytes::from(data);
 
         let id = rand::random();
 
@@ -241,7 +242,7 @@ impl Component for MessageInput {
 
         let mut autocomplete_visible = use_state(|| false);
 
-        let autocomplete = use_side_effect_value(move || {
+        let autocomplete = use_derived(move || {
             let editor = editable.editor().read();
             let text = editor.rope().to_string();
             let section: &str = &text[0..text.floor_char_boundary(editor.cursor_pos())];

@@ -435,10 +435,9 @@ impl Component for SelectedWebhookChannelSettings {
                                     let token = self.webhook.token.clone().unwrap();
 
                                     move |_| {
-                                        Clipboard::set(format!(
+                                        Clipboard::set_text_deferred(format!(
                                             "https://stoat.chat/api/webhooks/{id}/{token}"
-                                        ))
-                                        .unwrap();
+                                        ));
                                     }
                                 })
                                 .child(

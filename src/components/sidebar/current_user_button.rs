@@ -2,8 +2,10 @@ use freya::{prelude::*, radio::use_radio};
 use stoat_models::v0;
 
 use crate::{
-    AppChannel,
-    components::{Avatar, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip},
+    AppChannel, SizeExt,
+    components::{
+        Avatar, StoatButton, StoatButtonLayoutThemePartialExt, StoatTooltip, UserPresence,
+    },
     consume_material_theme, http,
     theme::Theme,
 };
@@ -125,11 +127,11 @@ impl Component for CurrentUserButton {
                                 )
                             })
                             .child(seperator(&theme))
-                            .child(presence_button(v0::Presence::Online, &theme))
-                            .child(presence_button(v0::Presence::Idle, &theme))
-                            .child(presence_button(v0::Presence::Focus, &theme))
-                            .child(presence_button(v0::Presence::Busy, &theme))
-                            .child(presence_button(v0::Presence::Invisible, &theme))
+                            .child(presence_button(v0::Presence::Online))
+                            .child(presence_button(v0::Presence::Idle))
+                            .child(presence_button(v0::Presence::Focus))
+                            .child(presence_button(v0::Presence::Busy))
+                            .child(presence_button(v0::Presence::Invisible))
                             .child(seperator(&theme)),
                     )
             }))
@@ -144,7 +146,7 @@ fn seperator(theme: &Theme) -> Rect {
         .background(theme.md.outline_variant.as_argb_u32())
 }
 
-fn presence_button(value: v0::Presence, theme: &Theme) -> StoatButton {
+fn presence_button(value: v0::Presence) -> StoatButton {
     StoatButton::new().width(Size::Fill).child(
         rect()
             .padding((8., 16.))
@@ -181,20 +183,21 @@ fn presence_button(value: v0::Presence, theme: &Theme) -> StoatButton {
                     });
                 }
             })
-            .child(
-                rect()
-                    .width(Size::px(10.))
-                    .height(Size::px(10.))
-                    .corner_radius(10.)
-                    .overflow(Overflow::Clip)
-                    .background(match &value {
-                        v0::Presence::Online => theme.stoat.presence_online,
-                        v0::Presence::Idle => theme.stoat.presence_idle,
-                        v0::Presence::Focus => theme.stoat.presence_focus,
-                        v0::Presence::Busy => theme.stoat.presence_busy,
-                        v0::Presence::Invisible => theme.stoat.presence_invisible,
-                    }),
-            )
+            .child(UserPresence::new(value.clone()).size(Size::px(10.)))
+            // .child(
+            //     rect()
+            //         .width(Size::px(10.))
+            //         .height(Size::px(10.))
+            //         .corner_radius(10.)
+            //         .overflow(Overflow::Clip)
+            //         .background(match &value {
+            //             v0::Presence::Online => theme.stoat.presence_online,
+            //             v0::Presence::Idle => theme.stoat.presence_idle,
+            //             v0::Presence::Focus => theme.stoat.presence_focus,
+            //             v0::Presence::Busy => theme.stoat.presence_busy,
+            //             v0::Presence::Invisible => theme.stoat.presence_invisible,
+            //         }),
+            // )
             .child(match value {
                 v0::Presence::Online => "Online",
                 v0::Presence::Idle => "Idle",

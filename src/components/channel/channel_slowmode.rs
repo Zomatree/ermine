@@ -40,7 +40,7 @@ impl Component for ChannelSlowmode {
             }
         });
 
-        let channel_slowmode = use_side_effect_value({
+        let channel_slowmode = use_derived({
             let channel = self.channel.clone();
             move || {
                 if let v0::Channel::TextChannel {

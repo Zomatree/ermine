@@ -30,7 +30,7 @@ impl Component for CreateRole {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Role Name", name))
+                    .child(SingleLineEntry::new("Role Name", name).max_length(32))
                     .maybe_child(
                         error
                             .read()

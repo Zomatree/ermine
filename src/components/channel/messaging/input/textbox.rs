@@ -60,7 +60,6 @@ impl Component for Textbox {
                 .get_or_insert_default()
                 .hide_send_button
         });
-        let file_hover = radio.slice_mut(AppChannel::FileHover, |state| &mut state.file_hover);
         let slowmodes = radio.slice(AppChannel::Slowmodes, |state| &state.slowmodes);
         let unreads = radio.slice_mut(AppChannel::ChannelUnreads, |state| {
             &mut state.channel_unreads
@@ -333,14 +332,6 @@ impl Component for Textbox {
                                     .has_channel_permission(ChannelPermission::UploadFiles)
                                 {
                                     rect()
-                                        .on_global_file_hover({
-                                            let file_hover = file_hover.clone();
-
-                                            move |_| file_hover.clone().set(true)
-                                        })
-                                        .on_global_file_hover_cancelled(move |_| {
-                                            file_hover.clone().set(false)
-                                        })
                                         .child(
                                             StoatButton::new()
                                                 .corner_radius(40.)

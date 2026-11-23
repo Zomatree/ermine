@@ -17,22 +17,43 @@ pub struct MessageReactions {
 
 impl Component for MessageReactions {
     fn render(&self) -> impl IntoElement {
+        let required = self
+            .message
+            .message
+            .interactions
+            .reactions
+            .clone()
+            .unwrap_or_default();
+        let mut optional = IndexSet::new();
+
+        for reaction in self.message.message.reactions.keys() {
+            if !required.contains(reaction) {
+                optional.insert(reaction.clone());
+            };
+        }
+
         rect()
             .spacing(4.)
             .horizontal()
             .content(Content::wrap_spacing(4.))
-            .children(
-                self.message
-                    .message
-                    .reactions
-                    .iter()
-                    .map(|(emoji, users)| MessageReaction {
-                        emoji: emoji.clone(),
-                        users: users.clone(),
-                        channel: self.channel.clone(),
-                        message: self.message.clone(),
-                    }),
-            )
+            .children(required.into_iter().map(|emoji| {
+                let users = self.message.message.reactions.get(&emoji).cloned().unwrap_or_default();
+                MessageReaction {
+                    emoji,
+                    users,
+                    channel: self.channel.clone(),
+                    message: self.message.clone(),
+                }
+            }))
+            .children(optional.into_iter().map(|emoji| {
+                let users = self.message.message.reactions.get(&emoji).cloned().unwrap_or_default();
+                MessageReaction {
+                    emoji,
+                    users,
+                    channel: self.channel.clone(),
+                    message: self.message.clone(),
+                }
+            }))
     }
 }
 

@@ -214,10 +214,9 @@ impl Component for InviteServerSettings {
                                                         let code = invite.code.clone();
 
                                                         move |_| {
-                                                            Clipboard::set(format!(
+                                                            Clipboard::set_text_deferred(format!(
                                                                 "https://stt.gg/{code}"
-                                                            ))
-                                                            .unwrap();
+                                                            ));
                                                         }
                                                     })
                                                     .child(

@@ -903,7 +903,7 @@ impl Component for ChannelMessages {
 
             move || {
                 if *fetching.read() != Some(FetchDirection::Initial) {
-                    let (_, y): (i32, i32) = scroll_controller.into();
+                    let y = scroll_controller.position().y;
 
                     let state = ChannelState {
                         messages: messages.read().clone(),

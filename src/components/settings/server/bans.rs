@@ -90,7 +90,7 @@ impl Component for BanServerSettings {
         let mut user_filter = use_state(|| String::new());
         let mut reason_filter = use_state(|| String::new());
 
-        let filtered_bans = use_side_effect_value({
+        let filtered_bans = use_derived({
             move || {
                 let mut output = Vec::new();
 

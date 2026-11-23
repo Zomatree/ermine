@@ -40,7 +40,7 @@ impl Component for MessageEdit {
         let mut autocomplete_visible = use_state(|| false);
         let is_server = get_channel_server(&self.channel.read()).is_some();
 
-        let autocomplete = use_side_effect_value(move || {
+        let autocomplete = use_derived(move || {
             let editor = editable.editor().read();
             let text = editor.rope().to_string();
             let section: &str = &text[0..text.floor_char_boundary(editor.cursor_pos())];

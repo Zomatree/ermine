@@ -178,8 +178,8 @@ impl Component for EditOwnServerIdentity {
                                     ),
                             ),
                     )
-                    .child(SingleLineEntry::new("Nickname", nickname))
-                    .child(SingleLineEntry::new("Pronouns", pronouns)),
+                    .child(SingleLineEntry::new("Nickname", nickname).max_length(32))
+                    .child(SingleLineEntry::new("Pronouns", pronouns).max_length(24)),
             )
             .default_action("Cancel")
             .action("Save", move || {

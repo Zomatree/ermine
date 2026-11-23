@@ -74,7 +74,7 @@ impl Component for ServerContextMenu {
                 let server_id = self.server_id.clone();
 
                 move |_| {
-                    Clipboard::set(server_id.clone()).unwrap();
+                    Clipboard::set_text_deferred(server_id.clone());
                 }
             }))
     }

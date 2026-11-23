@@ -24,7 +24,7 @@ impl Component for CreateBot {
                 rect()
                     .spacing(8.)
                     .child("By creating this bot, you agree to the Acceptable Use Policy.")
-                    .child(SingleLineEntry::new("Username", name))
+                    .child(SingleLineEntry::new("Username", name).max_length(32))
                     .maybe_child(
                         error
                             .read()

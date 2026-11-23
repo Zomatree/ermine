@@ -11,10 +11,10 @@ use crate::{
         markdown::components::MessageMention,
         material::{
             filled::{
-                add, arrow_back, arrow_forward, cancel, clear, format_align_left, gpp_bad, image,
-                info, key, local_offer, push_pin,
+                add, arrow_forward, cancel, clear, format_align_left, gpp_bad, image, info, key,
+                local_offer, push_pin,
             },
-            outlined::phone,
+            outlined::{phone, remove},
         },
     },
     consume_material_theme, format_duration,
@@ -41,7 +41,7 @@ impl Component for SystemMessage {
                     v0::SystemMessage::UserAdded { .. } => (add(), theme.md.primary),
                     v0::SystemMessage::UserRemove { .. } => (clear(), theme.md.error),
                     v0::SystemMessage::UserJoined { .. } => (arrow_forward(), theme.md.primary),
-                    v0::SystemMessage::UserLeft { .. } => (arrow_back(), theme.md.error),
+                    v0::SystemMessage::UserLeft { .. } => (remove(), theme.md.error),
                     v0::SystemMessage::UserKicked { .. } => (cancel(), theme.md.error),
                     v0::SystemMessage::UserBanned { .. } => (gpp_bad(), theme.md.error),
                     v0::SystemMessage::ChannelRenamed { .. } => (local_offer(), theme.md.primary),

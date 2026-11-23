@@ -41,7 +41,7 @@ impl Component for HttpManager {
 
         let mut rect = rect().width(Size::Fill).height(Size::Fill).center();
 
-        rect = match *future.state() {
+        rect = match *future.read() {
             FutureState::Fulfilled(_) => rect.children(self.children.clone()),
             _ => rect.child(
                 CircularLoader::new()

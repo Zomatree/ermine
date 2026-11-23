@@ -18,6 +18,7 @@ pub enum InlineParserElement {
     },
     Hyperlink(String),
     Spoiler(String),
+    Latex(String),
 }
 
 pub fn id_parser<'a>() -> impl chumsky::Parser<'a, &'a str, String> {
@@ -85,6 +86,16 @@ pub fn spoiler_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserEle
         .map(InlineParserElement::Spoiler)
 }
 
+pub fn latex_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserElement> {
+    any()
+        .and_is(just("$$").not())
+        .repeated()
+        .collect::<String>()
+        .padded_by(just("$$"))
+        .map(InlineParserElement::Latex)
+}
+
+
 pub fn hyperlink_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlineParserElement> {
     any()
         .filter(|c: &char| !c.is_whitespace())
@@ -122,6 +133,7 @@ pub fn custom_element_parser<'a>() -> impl chumsky::Parser<'a, &'a str, InlinePa
         link_parser(),
         hyperlink_parser(),
         spoiler_parser(),
+        latex_parser(),
     ))
 }
 
@@ -173,6 +185,7 @@ pub fn map_element(
         InlineParserElement::Spoiler(text) => {
             Inline::Spoiler(parse_elements(&text, bold, italic, strikethrough))
         }
+        InlineParserElement::Latex(content) => Inline::Latex(content),
     }
 }
 

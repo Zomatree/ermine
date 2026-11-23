@@ -46,7 +46,7 @@ impl Component for EditServerIdentity {
             .body(
                 rect()
                     .spacing(8.)
-                    .child(SingleLineEntry::new("Nickname", nickname)),
+                    .child(SingleLineEntry::new("Nickname", nickname).max_length(32)),
             )
             .default_action("Cancel")
             .action("Save", {

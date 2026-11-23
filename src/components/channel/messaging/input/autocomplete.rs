@@ -81,91 +81,88 @@ impl Component for Autocomplete {
 
         let mut selected_idx = use_state(|| 0usize);
 
-        let entries = use_hook({
+        let entries = use_derived({
             let members = members.clone();
             let servers = servers.clone();
             let emojis = emojis.clone();
             let server = server.clone();
+            let autocomplete = self.autocomplete;
+            let channel = self.channel.clone();
 
             move || {
-                let autocomplete = self.autocomplete;
-                let channel = self.channel.clone();
+                let mut entries = Vec::new();
 
-                Effect::create_value(move || {
-                    let mut entries = Vec::new();
-
-                    match autocomplete {
-                        AutocompleteType::User => match &*channel.read() {
-                            v0::Channel::SavedMessages { user, .. } => {
+                match autocomplete {
+                    AutocompleteType::User => match &*channel.read() {
+                        v0::Channel::SavedMessages { user, .. } => {
+                            entries.push(AutocompleteEntry::User(user.clone()));
+                        }
+                        v0::Channel::DirectMessage { recipients, .. }
+                        | v0::Channel::Group { recipients, .. } => {
+                            for user in recipients {
                                 entries.push(AutocompleteEntry::User(user.clone()));
                             }
-                            v0::Channel::DirectMessage { recipients, .. }
-                            | v0::Channel::Group { recipients, .. } => {
-                                for user in recipients {
-                                    entries.push(AutocompleteEntry::User(user.clone()));
-                                }
-                            }
-                            v0::Channel::TextChannel { server, .. } => {
-                                entries.extend(
-                                    members
-                                        .read()
-                                        .get(server)
-                                        .unwrap()
-                                        .values()
-                                        .map(|m| AutocompleteEntry::User(m.id.user.clone())),
-                                );
-                            }
-                        },
-                        AutocompleteType::Channel => {
-                            let servers = servers.read();
-                            let server = servers.get(server.as_ref().unwrap()).unwrap();
-
-                            for channel in &server.channels {
-                                entries.push(AutocompleteEntry::Channel(channel.clone()));
-                            }
                         }
-                        AutocompleteType::Emoji => {
-                            let unicode_emojis = get_unicode_emojis();
-
-                            for (emoji_name, emoji) in unicode_emojis.iter() {
-                                entries.push(AutocompleteEntry::Emoji {
-                                    name: emoji_name.clone(),
-                                    value: emoji.clone(),
-                                });
-                            }
-
-                            let emojis = emojis.read();
-
-                            for emoji in emojis.values() {
-                                entries.push(AutocompleteEntry::Emoji {
-                                    name: emoji.name.clone(),
-                                    value: emoji.id.clone(),
-                                });
-                            }
+                        v0::Channel::TextChannel { server, .. } => {
+                            entries.extend(
+                                members
+                                    .read()
+                                    .get(server)
+                                    .unwrap()
+                                    .values()
+                                    .map(|m| AutocompleteEntry::User(m.id.user.clone())),
+                            );
                         }
-                        AutocompleteType::Role => {
-                            let servers = servers.read();
-                            let server = servers.get(server.as_ref().unwrap()).unwrap();
+                    },
+                    AutocompleteType::Channel => {
+                        let servers = servers.read();
+                        let server = servers.get(server.as_ref().unwrap()).unwrap();
 
-                            for role in server.roles.keys() {
-                                entries.push(AutocompleteEntry::Role(
-                                    AutocompleteRoleEntry::Custom(role.clone()),
-                                ))
-                            }
-
-                            if permissions()
-                                .has_channel_permission(ChannelPermission::MentionEveryone)
-                            {
-                                entries.extend([
-                                    AutocompleteEntry::Role(AutocompleteRoleEntry::Everyone),
-                                    AutocompleteEntry::Role(AutocompleteRoleEntry::Online),
-                                ]);
-                            }
+                        for channel in &server.channels {
+                            entries.push(AutocompleteEntry::Channel(channel.clone()));
                         }
-                    };
+                    }
+                    AutocompleteType::Emoji => {
+                        let unicode_emojis = get_unicode_emojis();
 
-                    entries
-                })
+                        for (emoji_name, emoji) in unicode_emojis.iter() {
+                            entries.push(AutocompleteEntry::Emoji {
+                                name: emoji_name.clone(),
+                                value: emoji.clone(),
+                            });
+                        }
+
+                        let emojis = emojis.read();
+
+                        for emoji in emojis.values() {
+                            entries.push(AutocompleteEntry::Emoji {
+                                name: emoji.name.clone(),
+                                value: emoji.id.clone(),
+                            });
+                        }
+                    }
+                    AutocompleteType::Role => {
+                        let servers = servers.read();
+                        let server = servers.get(server.as_ref().unwrap()).unwrap();
+
+                        for role in server.roles.keys() {
+                            entries.push(AutocompleteEntry::Role(
+                                AutocompleteRoleEntry::Custom(role.clone()),
+                            ))
+                        }
+
+                        if permissions()
+                            .has_channel_permission(ChannelPermission::MentionEveryone)
+                        {
+                            entries.extend([
+                                AutocompleteEntry::Role(AutocompleteRoleEntry::Everyone),
+                                AutocompleteEntry::Role(AutocompleteRoleEntry::Online),
+                            ]);
+                        }
+                    }
+                };
+
+                entries
             }
         });
 
@@ -180,7 +177,7 @@ impl Component for Autocomplete {
             }
         });
 
-        let filtered = use_side_effect_value({
+        let filtered = use_derived({
             let server = server.clone();
             let users = users.clone();
             let channels = channels.clone();

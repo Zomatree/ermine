@@ -24,7 +24,7 @@ impl Component for InviteInfo {
                 ),
             )
             .action("Copy Link", move || {
-                Clipboard::set(url.clone()).unwrap();
+                Clipboard::set_text_deferred(url.clone());
                 false
             })
             .default_action("Ok")
