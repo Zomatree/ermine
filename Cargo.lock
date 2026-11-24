@@ -45,7 +45,6 @@ dependencies = [
  "revolt-permissions",
  "revolt-result",
  "rfd 0.18.0",
- "rustc-hash 2.1.3",
  "scc",
  "serde",
  "serde_json",

@@ -22,8 +22,8 @@ use crate::{
             EditApi, EditEmoji, EditOwnServerIdentity, EditRoles, EditServerFolder,
             EditServerIdentity, EnableTotp, ErrorModal, ImageViewer, InviteBot, InviteInfo,
             JoinServer, KickMember, LeaveGroup, LeaveServer, LogoutOtherSessions, MFA,
-            MarkChannelMature, MarkChannelUnmature, OpenLink, RemoveTimeoutMember, RenameCategory,
-            ResetBotToken, ServerInfo, TimeoutMember, ViewRecoveryCodes,
+            MarkChannelMature, MarkChannelUnmature, OpenLink, QuickSwitch, RemoveTimeoutMember,
+            RenameCategory, ResetBotToken, ServerInfo, TimeoutMember, ViewRecoveryCodes,
         },
     },
     consume_material_theme,
@@ -172,6 +172,7 @@ pub enum ModalValue {
     MarkChannelUnmature {
         id: String,
     },
+    QuickSwitch,
     Error {
         error: Error,
     },
@@ -631,6 +632,7 @@ impl Component for Modal {
                                     ModalValue::MarkChannelUnmature { id } => {
                                         MarkChannelUnmature { id }.into_element()
                                     }
+                                    ModalValue::QuickSwitch => QuickSwitch {}.into_element(),
                                 }),
                         ),
                 ),

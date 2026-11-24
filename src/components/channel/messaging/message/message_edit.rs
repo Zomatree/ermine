@@ -183,6 +183,13 @@ impl Component for MessageEdit {
                                         move |e: Event<KeyboardEventData>| {
                                             e.stop_propagation();
 
+                                            if let Key::Character(c) = &e.key
+                                                && c == "k"
+                                                && e.modifiers.contains(Modifiers::ctrl_or_meta())
+                                            {
+                                                return;
+                                            }
+
                                             if autocomplete_visible()
                                                 && matches!(
                                                     e.key,

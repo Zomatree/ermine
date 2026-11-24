@@ -159,10 +159,20 @@ impl Component for MemberList {
                 } else {
                     let channel = channel.read();
 
-                    if let v0::Channel::DirectMessage { recipients, .. }
-                    | v0::Channel::Group { recipients, .. } = &*channel
-                    {
-                        for user_id in recipients {
+                    match &*channel {
+                        v0::Channel::DirectMessage { recipients, .. }
+                        | v0::Channel::Group { recipients, .. } => {
+                            for user_id in recipients {
+                                if let Some(user) = users.get(user_id) {
+                                    if user.online {
+                                        groups.get_mut("default").unwrap().push(user_id.clone());
+                                    } else {
+                                        groups.get_mut("offline").unwrap().push(user_id.clone());
+                                    }
+                                }
+                            }
+                        }
+                        v0::Channel::SavedMessages { user: user_id, .. } => {
                             if let Some(user) = users.get(user_id) {
                                 if user.online {
                                     groups.get_mut("default").unwrap().push(user_id.clone());
@@ -171,6 +181,7 @@ impl Component for MemberList {
                                 }
                             }
                         }
+                        _ => {}
                     }
                 }
 

@@ -432,6 +432,14 @@ impl Component for Textbox {
                                                 let mut send_message = send_message.clone();
 
                                                 move |e: Event<KeyboardEventData>| {
+                                                    if let Key::Character(c) = &e.key
+                                                        && c == "k"
+                                                        && e.modifiers
+                                                            .contains(Modifiers::ctrl_or_meta())
+                                                    {
+                                                        return;
+                                                    }
+
                                                     if autocomplete_visible()
                                                         && matches!(
                                                             e.key,

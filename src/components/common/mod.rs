@@ -1,6 +1,7 @@
 pub mod animated_image;
 pub mod avatar;
 pub mod button;
+pub mod button_category;
 pub mod checkbox;
 pub mod color_picker;
 pub mod color_picker_pallete;
@@ -16,13 +17,14 @@ pub mod reorder;
 pub mod scrollbar;
 pub mod segmented_button;
 pub mod server_icon;
+pub mod svg;
 pub mod tooltip;
 pub mod user_mention;
-pub mod button_category;
 
 pub use animated_image::*;
 pub use avatar::*;
 pub use button::*;
+pub use button_category::*;
 pub use color_picker::*;
 pub use color_picker_pallete::*;
 pub use deferred::*;
@@ -40,4 +42,3 @@ pub use segmented_button::*;
 pub use server_icon::*;
 pub use tooltip::*;
 pub use user_mention::*;
-pub use button_category::*;

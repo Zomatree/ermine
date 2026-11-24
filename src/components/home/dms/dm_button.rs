@@ -1,15 +1,18 @@
 use std::borrow::Cow;
 
-use freya::{prelude::*, radio::use_radio};
+use freya::{
+    prelude::*,
+    radio::{use_radio, use_radio_station},
+};
 use stoat_models::v0;
 
 use crate::{
     AppChannel, NotificationBadge, SizeExt, calculate_channel_permissions,
     components::{
         Avatar, ChannelContextMenu, MarkdownViewer, StoatButton, StoatButtonLayoutThemePartialExt,
-        file_image,
+        file_image, stoat_label,
     },
-    consume_material_theme, get_unread_badge, user_permissions_query,
+    consume_material_theme, get_unread_badge, set_selected_channel, user_permissions_query,
 };
 
 #[derive(PartialEq)]
@@ -19,10 +22,9 @@ pub struct DMButton {
 
 impl Component for DMButton {
     fn render(&self) -> impl IntoElement {
+        let station = use_radio_station();
         let radio = use_radio(AppChannel::UserId);
-        let dm_channel = radio.slice_mut(AppChannel::SelectedChannel, |state| {
-            &mut state.selected_channel
-        });
+        let dm_channel = radio.slice(AppChannel::SelectedChannel, |state| &state.selected_channel);
         let unreads = radio.slice(AppChannel::ChannelUnreads, |state| &state.channel_unreads);
 
         let user_id = radio.read().user_id.clone().unwrap();
@@ -141,12 +143,11 @@ impl Component for DMButton {
                     )
                     .on_press({
                         let channel = self.channel.clone();
-                        let mut dm_channel = dm_channel.clone();
 
                         move |_| {
                             let id = channel.read().id().to_string();
 
-                            dm_channel.set(Some((id.clone(), None)));
+                            set_selected_channel(Some((id, None)), station);
                         }
                     }),
             )
@@ -284,7 +285,7 @@ impl Component for GroupDMIcon {
                         .center()
                         .font_size((12. / 32.) * self.size)
                         .font_weight(600)
-                        .child(initials)
+                        .child(stoat_label().text(initials))
                         .color(if self.invert {
                             theme.md.on_surface
                         } else {

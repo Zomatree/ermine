@@ -12,8 +12,8 @@ use crate::{
     AppChannel, ConnectionState, Room, Selection, SizeExt,
     components::{
         AttachmentController, ChannelSettings, Discover, FloatingManager, FloatingVoiceContainer,
-        Home, MaterialIcon, Server, ServerList, ServerSettings, Settings, UserProfile,
-        material::filled::description, stoat_label,
+        Home, MaterialIcon, ModalValue, Server, ServerList, ServerSettings, Settings, UserProfile,
+        material::filled::description, stoat_label, use_modals,
     },
     consume_material_theme, go_back_page, go_forward_page, map_readable, settings_func,
 };
@@ -45,6 +45,7 @@ impl Component for Client {
         let members = radio.slice(AppChannel::Members, |state| &state.members);
         let users = radio.slice(AppChannel::Users, |state| &state.users);
 
+        let mut modals = use_modals();
 
         let show_connection_state_banner = use_state(|| false);
         let mut file_hover = use_state(|| false);
@@ -315,6 +316,20 @@ impl Component for Client {
                             .into_element()
                     }),
             )
+            .on_global_key_down(move |e: Event<KeyboardEventData>| {
+                if let Key::Character(c) = &e.key
+                    && c == "k"
+                    && e.modifiers.contains(Modifiers::ctrl_or_meta())
+                {
+                    let mut modals = modals.write();
+
+                    if modals.get_modal() == Some(ModalValue::QuickSwitch) {
+                        modals.pop_modal();
+                    } else {
+                        modals.push_modal(ModalValue::QuickSwitch);
+                    }
+                }
+            })
             .maybe_child(user_profile.read().clone().map(|(user_id, server_id)| {
                 let user = users.read().get(&user_id).unwrap().clone().into_readable();
                 let member = server_id

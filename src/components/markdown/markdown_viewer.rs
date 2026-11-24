@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 
 use freya::prelude::*;
-use freya_core::{element::EventHandlerType, integration::EventName};
 use pulldown_cmark::HeadingLevel;
-use rustc_hash::FxHashMap;
 use stoat_models::v0;
 
 use crate::{
@@ -50,7 +48,7 @@ pub struct MarkdownViewer {
     cursor_style: CursorStyle,
     highlights: Vec<(usize, usize)>,
     holder: ParagraphHolder,
-    event_handlers: FxHashMap<EventName, EventHandlerType>,
+    event_handlers: EventHandlers,
 
     key: DiffKey,
 }
@@ -82,7 +80,7 @@ impl MarkdownViewer {
             cursor_style: CursorStyle::Line,
             highlights: Vec::new(),
             holder: ParagraphHolder::default(),
-            event_handlers: FxHashMap::default(),
+            event_handlers: EventHandlers::default(),
 
             key: DiffKey::None,
         }
@@ -178,7 +176,7 @@ impl AccessibilityExt for MarkdownViewer {
 }
 
 impl EventHandlersExt for MarkdownViewer {
-    fn event_handlers_mut(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
+    fn event_handlers_mut(&mut self) -> &mut EventHandlers {
         &mut self.event_handlers
     }
 }

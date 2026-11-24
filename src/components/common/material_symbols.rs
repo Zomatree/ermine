@@ -1,10 +1,7 @@
 use bytes::Bytes;
-use freya::{
-    elements::image::ImageData,
-    prelude::{name::EventName, *},
-};
-use freya_core::integration::EventHandlerType;
-use rustc_hash::FxHashMap;
+use freya::prelude::*;
+
+use crate::{SizeExt, components::svg::svg};
 
 #[derive(PartialEq)]
 pub struct MaterialIcon {
@@ -13,10 +10,9 @@ pub struct MaterialIcon {
 
     layout: LayoutData,
     style: StyleState,
-    image_data: ImageData,
     accessibility: AccessibilityData,
     effect: EffectData,
-    event_handlers: FxHashMap<EventName, EventHandlerType>,
+    event_handlers: EventHandlers,
 
     key: DiffKey,
 }
@@ -28,10 +24,9 @@ impl MaterialIcon {
             color: None,
             layout: LayoutData::default(),
             style: StyleState::default(),
-            image_data: ImageData::default(),
             accessibility: AccessibilityData::default(),
             effect: EffectData::default(),
-            event_handlers: FxHashMap::default(),
+            event_handlers: EventHandlers::default(),
             key: DiffKey::None,
         }
     }
@@ -44,30 +39,17 @@ impl MaterialIcon {
 
 impl Component for MaterialIcon {
     fn render(&self) -> impl IntoElement {
-        let mut inherited_color = use_state::<Option<Color>>(|| None);
-
         rect()
             .layout(self.layout.clone())
             .corner_radius(self.style.corner_radius)
             .child(
-                SvgViewer::new(self.content.clone())
-                    // .asset_age(AssetAge::Unspecified)
-                    .show_loader(false)
-                    .async_rasterization(true)
+                svg(self.content.clone())
+                    .size(Size::Fill)
+                    .map(self.color, |this, color| this.color(color))
                     .accessibility(self.accessibility.clone())
-                    .image_data(self.image_data.clone())
                     .effect(self.effect.clone())
-                    .event_handlers(self.event_handlers.clone())
-                    .map(self.color.or(inherited_color()), |this, color| {
-                        this.color(color).fill(color)
-                    }),
+                    .event_handlers(self.event_handlers.clone()),
             )
-            .maybe(self.color.is_none(), |this| {
-                this.on_styled(move |event: Event<StyledEventData>| {
-                    let color = event.text_style.color.as_color().unwrap_or(Color::BLACK);
-                    inherited_color.set_if_modified(Some(color));
-                })
-            })
     }
 }
 
@@ -86,12 +68,6 @@ impl LayoutExt for MaterialIcon {
 impl ContainerSizeExt for MaterialIcon {}
 impl ContainerPositionExt for MaterialIcon {}
 
-impl ImageExt for MaterialIcon {
-    fn image_data_mut(&mut self) -> &mut ImageData {
-        &mut self.image_data
-    }
-}
-
 impl AccessibilityExt for MaterialIcon {
     fn accessibility_data_mut(&mut self) -> &mut AccessibilityData {
         &mut self.accessibility
@@ -105,7 +81,7 @@ impl EffectExt for MaterialIcon {
 }
 
 impl EventHandlersExt for MaterialIcon {
-    fn event_handlers_mut(&mut self) -> &mut FxHashMap<EventName, EventHandlerType> {
+    fn event_handlers_mut(&mut self) -> &mut EventHandlers {
         &mut self.event_handlers
     }
 }
